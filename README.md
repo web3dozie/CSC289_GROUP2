@@ -41,7 +41,7 @@ See `CONTRIBUTING.md` for:
 - Conventional Commits and code style
 
 ## License
-Open source (license file to be confirmed with the team).
+MIT — see `LICENSE`.
 
 ---
 Questions? Start with `OVERVIEW.md` for the full product vision.
