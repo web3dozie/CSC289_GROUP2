@@ -1,6 +1,6 @@
-# Momentum Landing Page
+# Task Line Landing Page
 
-A classy, desktop-first landing page for the Momentum task management system.
+A classy, desktop-first landing page for the Task Line task management system.
 
 ## Quick Start
 
@@ -57,7 +57,7 @@ frontend/
 
 All landing page content is defined directly in the component files for easy editing:
 
-- **Branding**: Default name is "Momentum" with alternatives shown in header/footer
+- **Branding**: Product name is "Task Line"
 - **Copy**: All text content follows the specifications in the components
 - **Colors**: Purple-based palette defined in `tailwind.config.js`
 - **Links**:

@@ -12,7 +12,7 @@ const FAQ: React.FC = () => {
   const faqs: FAQItem[] = [
     {
       question: "Does this work offline?",
-      answer: "Yes! Momentum is designed to work completely offline. All your data is stored locally on your device, and no internet connection is required for any core features. You only need internet during initial setup to download the app."
+      answer: "Yes! Task Line is designed to work completely offline. All your data is stored locally on your device, and no internet connection is required for any core features. You only need internet during initial setup to download the app."
     },
     {
       question: "Is my data private?",
@@ -32,15 +32,15 @@ const FAQ: React.FC = () => {
     },
     {
       question: "What views are available?",
-      answer: "Momentum offers four views: List (fast, keyboard-friendly), Board (visual Todo/In-Progress/Done lanes), Calendar (agenda-style with Today/Tomorrow/This Week), and Review (history, notes, and analytics)."
+      answer: "Task Line offers four views: List (fast, keyboard-friendly), Board (visual Todo/In-Progress/Done lanes), Calendar (agenda-style with Today/Tomorrow/This Week), and Review (history, notes, and analytics)."
     },
     {
       question: "Can I use keyboard shortcuts?",
-      answer: "Yes! Momentum is designed to be keyboard-friendly. Common shortcuts include adding tasks, navigating between views, searching, and marking tasks complete. The tutorial covers all available shortcuts."
+      answer: "Yes! Task Line is designed to be keyboard-friendly. Common shortcuts include adding tasks, navigating between views, searching, and marking tasks complete. The tutorial covers all available shortcuts."
     },
     {
       question: "Is there a mobile version?",
-      answer: "Momentum is currently optimized for desktop and tablet use. While it works on mobile browsers, the experience is best on larger screens. We focused on desktop-first design for maximum productivity."
+      answer: "Task Line is currently optimized for desktop and tablet use. While it works on mobile browsers, the experience is best on larger screens. We focused on desktop-first design for maximum productivity."
     }
   ];
 
@@ -53,7 +53,7 @@ const FAQ: React.FC = () => {
               Frequently Asked Questions
             </h2>
             <p className="text-lg text-gray-600">
-              Everything you need to know about Momentum
+              Everything you need to know about Task Line
             </p>
           </div>
 

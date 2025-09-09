@@ -7,9 +7,9 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-4 md:px-6 py-12">
         <div className="grid md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-2xl font-bold text-white mb-2">Momentum</h3>
+            <h3 className="text-2xl font-bold text-white mb-2">Task Line</h3>
             <p className="text-sm text-gray-400 mb-3">Lock in. Get it done. Stay zen.</p>
-            <div className="flex items-center space-x-2 text-xs text-gray-500">
+            <div className="hidden">
               <span>Also known as:</span>
               <span className="text-gray-400">FlowState</span>
               <span>•</span>

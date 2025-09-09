@@ -21,8 +21,8 @@ const Header: React.FC = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="text-2xl font-bold text-purple-600">Momentum</div>
-              <div className="hidden lg:flex text-xs text-gray-500 ml-2">
+              <div className="text-2xl font-bold text-purple-600">Task Line</div>
+              <div className="hidden">
                 <span>FlowState</span>
                 <span className="mx-1">·</span>
                 <span>Zen</span>

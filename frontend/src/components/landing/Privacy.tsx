@@ -71,7 +71,7 @@ const Privacy: React.FC = () => {
             <Shield className="h-12 w-12 mx-auto mb-4 opacity-90" />
             <h3 className="text-2xl font-bold mb-3">Your Data, Your Control</h3>
             <p className="text-purple-100 max-w-2xl mx-auto mb-6">
-              We believe privacy is a fundamental right. That's why Momentum keeps everything local by default. 
+              We believe privacy is a fundamental right. That's why Task Line keeps everything local by default. 
               No tracking, no analytics, no cloud sync unless you explicitly choose to enable it.
             </p>
             <div className="inline-flex items-center bg-white/20 backdrop-blur rounded-full px-6 py-3">
