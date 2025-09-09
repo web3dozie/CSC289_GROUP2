@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface FAQItem {
@@ -114,3 +114,4 @@ const FAQ: React.FC = () => {
 };
 
 export default FAQ;
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
 const Header: React.FC = () => {
@@ -22,11 +22,6 @@ const Header: React.FC = () => {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="text-2xl font-bold text-purple-600">Task Line</div>
-              <div className="hidden">
-                <span>FlowState</span>
-                <span className="mx-1">·</span>
-                <span>Zen</span>
-              </div>
             </div>
 
             <nav className="hidden md:flex items-center space-x-8" aria-label="Main navigation">
@@ -105,3 +100,4 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+

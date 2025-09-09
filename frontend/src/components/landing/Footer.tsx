@@ -9,12 +9,6 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-2xl font-bold text-white mb-2">Task Line</h3>
             <p className="text-sm text-gray-400 mb-3">Lock in. Get it done. Stay zen.</p>
-            <div className="hidden">
-              <span>Also known as:</span>
-              <span className="text-gray-400">FlowState</span>
-              <span>•</span>
-              <span className="text-gray-400">Zen</span>
-            </div>
           </div>
 
           <div>
@@ -99,12 +93,11 @@ const Footer: React.FC = () => {
               <p>© 2025 CSC289 Group 2 Capstone Project</p>
               <p className="mt-1">Built with React, TypeScript, and Tailwind CSS</p>
             </div>
-            
             <div className="flex items-center space-x-6 text-sm">
               <span className="text-gray-500">Local-first</span>
-              <span className="text-gray-700">•</span>
+              <span className="text-gray-700">·</span>
               <span className="text-gray-500">Privacy-focused</span>
-              <span className="text-gray-700">•</span>
+              <span className="text-gray-700">·</span>
               <span className="text-gray-500">Open source</span>
             </div>
           </div>
@@ -115,3 +108,4 @@ const Footer: React.FC = () => {
 };
 
 export default Footer;
+
