@@ -4,3 +4,6 @@ sample_frontend
 SDLC
 scripts
 docs
+
+frontend
+frontend\node_modules
