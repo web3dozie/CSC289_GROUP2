@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, FileText } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 
 const CTA: React.FC = () => {
   return (
@@ -14,13 +15,13 @@ const CTA: React.FC = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="/#/app"
+            <Link
+              to="/login"
               className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-purple-600 bg-white rounded-full hover:bg-purple-50 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-purple-600 shadow-xl"
             >
               Open App
               <ArrowRight className="ml-2 h-5 w-5" />
-            </a>
+            </Link>
             
             <a
               href="/OVERVIEW.md"
