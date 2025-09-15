@@ -1,6 +1,5 @@
 # Momentum Task Manager — Backend API
-
-A small, clean Flask API for managing tasks. It's easy to run on your Mac, simple to extend in later phases, and straightforward for frontend teammates to integrate with.
+A simple Flask API for managing tasks. It’s easy to run on a Mac, can be extended as we add more features, and will connect smoothly with the frontend.
 
 ---
 
