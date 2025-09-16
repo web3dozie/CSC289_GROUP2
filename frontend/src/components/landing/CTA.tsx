@@ -23,13 +23,13 @@ const CTA: React.FC = () => {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             
-            <a
-              href="/OVERVIEW.md"
+            <Link
+              to="/overview"
               className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-white/20 backdrop-blur border-2 border-white/50 rounded-full hover:bg-white/30 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-purple-600"
             >
               <FileText className="mr-2 h-5 w-5" />
               Read Overview
-            </a>
+            </Link>
           </div>
 
           <div className="mt-12 text-purple-100">
