@@ -35,7 +35,9 @@ jobs:
   backend:
     name: Backend Tests (conditional)
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('backend/**') != '' }}
+    # commenting out hashfiles conditional. hashfiles was causing the test to fail.
+    # this conditional can only be used as a step or job output.
+    # if: ${{ hashFiles('backend/**') != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
