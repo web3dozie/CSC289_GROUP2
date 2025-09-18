@@ -1,121 +1,47 @@
-# Momentum Task Manager — Backend API
+# Task Management System - Backend
 
-A small, clean Flask API for managing tasks. It's easy to run on your Mac, simple to extend in later phases, and straightforward for frontend teammates to integrate with.
+## Overview
+Backend API for the Task Management System built with Quart 0.18.x following project requirements. Provides PIN-based authentication, task management, and kanban board functionality.
 
----
+## Architecture
+- **Framework**: Quart 0.18.x (async micro-framework)
+- **Database**: SQLite with async SQLAlchemy
+- **Authentication**: PIN-based (4-8 digits) with session management
+- **Structure**: Modular blueprints for organized routing
 
-## Features
+## Current Implementation Status
 
-- **CRUD for tasks** at `/api/tasks`
-- **SQLite** storage (auto-creates `momentum.db`)
-- **CORS** enabled (frontend on another port can call the API)
-- **Consistent JSON errors** (`{ "error": "message" }`)
-- **Health check** at `/api/health`
-- **Unit tests** covering health, CRUD, and validation
-- Optional: **basic rate limiting** if `flask-limiter` is installed
+### Completed Features
 
----
+#### Authentication System (/api/auth/)
+- POST /api/auth/setup - Initial PIN setup (first-time user)
+- POST /api/auth/login - PIN authentication with error handling
+- POST /api/auth/logout - Session termination
+- PUT /api/auth/pin - Change existing PIN
 
-## Quick Start (macOS)
+#### Task Management (/api/tasks/)
+- GET /api/tasks/ - List all user tasks
+- POST /api/tasks/ - Create new task with validation
+- GET /api/tasks/kanban - Kanban board view (Todo/In Progress/Done)
+- GET /api/tasks/categories - Available categories (Personal, Work, Shopping)
 
+## Setup Instructions
 ```bash
-# Go to the project
-cd momentum-app
-
-# Create & activate a virtual environment
+cd backend
 python3 -m venv venv
 source venv/bin/activate
-
-# Install dependencies
-pip install -U pip
 pip install -r requirements.txt
-
-# (Optional) install rate limiting support
-# pip install flask-limiter
-
-# Run the server
 python app.py
-# Server runs at http://127.0.0.1:8000
-```
+API Testing
+bash# Health check
+curl http://localhost:5001/api/health
 
----
-
-## API Endpoints
-
-| Method | Endpoint          | Description       |
-| :----: | ----------------- | ----------------- |
-|   GET  | `/api/tasks`      | List all tasks    |
-|  POST  | `/api/tasks`      | Create new task   |
-|   GET  | `/api/tasks/{id}` | Get specific task |
-|   PUT  | `/api/tasks/{id}` | Update task       |
-| DELETE | `/api/tasks/{id}` | Delete task       |
-|   GET  | `/api/health`     | Health check      |
-
----
-
-## Example Usage (curl)
-
-### Create a task
-```bash
-curl -X POST http://127.0.0.1:8000/api/tasks \
+# Authentication setup
+curl -X POST http://localhost:5001/api/auth/setup \
   -H "Content-Type: application/json" \
-  -d '{"title": "Learn Flask"}'
-```
-
-**Example response:**
-```json
-{
-  "id": 2,
-  "title": "Learn Flask",
-  "done": false,
-  "created_at": "2025-09-13T15:47:22.999366"
-}
-```
-
-### List all tasks
-```bash
-curl http://127.0.0.1:8000/api/tasks
-```
-
-### Get a task by id
-```bash
-curl http://127.0.0.1:8000/api/tasks/2
-```
-
-### Update a task
-```bash
-curl -X PUT http://127.0.0.1:8000/api/tasks/2 \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Updated title", "done": true}'
-```
-
-### Delete a task
-```bash
-curl -X DELETE http://127.0.0.1:8000/api/tasks/2
-```
-
-### Error format
-```json
-{ "error": "Task not found" }
-```
-
----
-
-## Testing
-
-You don't need the server running; tests use an in-memory SQLite DB.
-
-```bash
-# pytest (recommended)
-python -m pytest tests/ -v
-
-# unittest (built-in)
-python -m unittest -v tests/test_api.py
-```
-
----
-
-## Status
-
-**Phase 1: Complete** 
-CRUD working, tests passing (14/14), ready for frontend.
+  -d '{"pin": "1234", "username": "testuser"}'
+Dependencies
+quart==0.18.4
+quart-cors==0.7.0
+SQLAlchemy==2.0.43
+aiosqlite==0.20.0
