@@ -1,7 +1,9 @@
+
 # Task Management System - Backend
 
 ## Overview
 Backend API for the Task Management System built with Quart 0.18.x following project requirements. Provides PIN-based authentication, task management, and kanban board functionality.
+
 
 ## Architecture
 - **Framework**: Quart 0.18.x (async micro-framework)
@@ -39,9 +41,11 @@ curl http://localhost:5001/api/health
 # Authentication setup
 curl -X POST http://localhost:5001/api/auth/setup \
   -H "Content-Type: application/json" \
+
   -d '{"pin": "1234", "username": "testuser"}'
 Dependencies
 quart==0.18.4
 quart-cors==0.7.0
 SQLAlchemy==2.0.43
 aiosqlite==0.20.0
+
