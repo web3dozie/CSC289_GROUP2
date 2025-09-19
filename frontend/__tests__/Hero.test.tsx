@@ -2,10 +2,14 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from './test-utils'
 import Hero from '../src/components/landing/Hero'
 
-// Mock the Link component
-vi.mock('@tanstack/react-router', () => ({
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
-}))
+// Partially mock the Link component but keep other router exports
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const actual = (await importOriginal()) as any
+  return {
+    ...actual,
+    Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  }
+})
 
 describe('Hero', () => {
   it('renders the hero section with main heading', () => {
