@@ -1,17 +1,17 @@
-from quart import Blueprint, jsonify, request
-from quart import Blueprint, jsonify, request
-from ...models import UserSettings, auth_required
-from ...db_async import AsyncSessionLocal
+from quart import Blueprint, jsonify, request, session
+from models import UserSettings, auth_required
+from db_async import AsyncSessionLocal
 from sqlalchemy import select
 
 settings_bp = Blueprint('settings', __name__)
 
 async def get_settings():
+    user_id = session.get('user_id', 1)
     async with AsyncSessionLocal() as s:
-        result = await s.execute(select(UserSettings).filter_by(user_id=1))
+        result = await s.execute(select(UserSettings).filter_by(user_id=user_id))
         settings = result.scalars().first()
         if not settings:
-            settings = UserSettings(user_id=1)
+            settings = UserSettings(user_id=user_id)
             s.add(settings)
             await s.commit()
             await s.refresh(settings)
@@ -43,7 +43,7 @@ async def update_settings():
         settings.theme = data['theme']
 
     async with AsyncSessionLocal() as s:
-        s.merge(settings)
+        await s.merge(settings)
         await s.commit()
         return jsonify(settings.to_dict())
 
@@ -55,7 +55,7 @@ async def update_notes():
     if 'enabled' in data:
         settings.notes_enabled = bool(data['enabled'])
     async with AsyncSessionLocal() as s:
-        s.merge(settings)
+        await s.merge(settings)
         await s.commit()
         return jsonify({'notes_enabled': settings.notes_enabled})
 
@@ -67,7 +67,7 @@ async def update_timer():
     if 'enabled' in data:
         settings.timer_enabled = bool(data['enabled'])
     async with AsyncSessionLocal() as s:
-        s.merge(settings)
+        await s.merge(settings)
         await s.commit()
         return jsonify({'timer_enabled': settings.timer_enabled})
 
@@ -79,7 +79,7 @@ async def update_ai_url():
     if 'url' in data:
         settings.ai_url = data['url']
     async with AsyncSessionLocal() as s:
-        s.merge(settings)
+        await s.merge(settings)
         await s.commit()
         return jsonify({'ai_url': settings.ai_url})
 
@@ -91,7 +91,7 @@ async def update_auto_lock():
     if 'minutes' in data:
         settings.auto_lock_minutes = int(data['minutes'])
     async with AsyncSessionLocal() as s:
-        s.merge(settings)
+        await s.merge(settings)
         await s.commit()
         return jsonify({'auto_lock_minutes': settings.auto_lock_minutes})
 
@@ -103,7 +103,7 @@ async def update_theme():
     if 'theme' in data:
         settings.theme = data['theme']
     async with AsyncSessionLocal() as s:
-        s.merge(settings)
+        await s.merge(settings)
         await s.commit()
         return jsonify({'theme': settings.theme})
     

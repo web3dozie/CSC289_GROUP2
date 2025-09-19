@@ -84,6 +84,19 @@ async def update_journal(entry_id):
                 pass
             return jsonify({'error': str(e)}), 500
 
+
+@review_bp.route('/api/review/journal/<int:entry_id>', methods=['DELETE'])
+@auth_required
+async def delete_journal(entry_id):
+    user_id = session.get('user_id', 1)
+    async with AsyncSessionLocal() as s:
+        entry = await s.get(JournalEntry, entry_id)
+        if not entry or entry.user_id != user_id:
+            return jsonify({'error': 'Journal entry not found'}), 404
+        await s.delete(entry)
+        await s.commit()
+        return jsonify({'success': True}), 204
+
 @review_bp.route('/api/review/summary/daily', methods=['GET'])
 @auth_required
 async def daily_summary():

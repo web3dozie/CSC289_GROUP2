@@ -97,3 +97,80 @@ async def get_categories():
         {'id': 'shopping', 'name': 'Shopping', 'color': '#F59E0B'}
     ]
     return jsonify({'categories': categories})
+
+
+@tasks_bp.route('/<int:task_id>', methods=['GET'])
+@auth_required
+async def get_task(task_id):
+    """Fetch a single task by id for the current user"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            result = await db_session.execute(
+                select(Task).options(selectinload(Task.status)).where(
+                    Task.id == task_id,
+                    Task.created_by == session['user_id']
+                )
+            )
+            task = result.scalars().first()
+            if not task:
+                return jsonify({'error': 'Task not found'}), 404
+            return jsonify(task.to_dict())
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to fetch task'}), 500
+
+
+@tasks_bp.route('/<int:task_id>', methods=['PUT'])
+@auth_required
+async def update_task(task_id):
+    """Update a task's fields"""
+    data = await request.get_json()
+    try:
+        async with AsyncSessionLocal() as db_session:
+            task = await db_session.get(Task, task_id)
+            if not task or task.created_by != session['user_id']:
+                return jsonify({'error': 'Task not found'}), 404
+
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            if 'title' in data:
+                task.title = data['title']
+            if 'description' in data:
+                task.description = data['description']
+            if 'done' in data:
+                task.done = bool(data['done'])
+            if 'priority' in data:
+                task.priority = bool(data['priority'])
+            if 'due_date' in data:
+                task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data['due_date'] else None
+            if 'status_id' in data:
+                task.status_id = int(data['status_id'])
+
+            await db_session.commit()
+            # Re-query with selectinload so related objects (status) are loaded safely
+            result = await db_session.execute(
+                select(Task).options(selectinload(Task.status)).where(Task.id == task_id)
+            )
+            task = result.scalars().first()
+            return jsonify(task.to_dict())
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to update task'}), 500
+
+
+@tasks_bp.route('/<int:task_id>', methods=['DELETE'])
+@auth_required
+async def delete_task(task_id):
+    """Delete a task by id"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            task = await db_session.get(Task, task_id)
+            if not task or task.created_by != session['user_id']:
+                return jsonify({'error': 'Task not found'}), 404
+            await db_session.delete(task)
+            await db_session.commit()
+            return ('', 204)
+    except Exception:
+        return jsonify({'error': 'Failed to delete task'}), 500
