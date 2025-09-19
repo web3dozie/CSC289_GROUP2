@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -98,9 +99,9 @@ const Login: React.FC = () => {
               <p className="text-sm text-gray-600">
                 Don't have credentials yet?
               </p>
-              <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
+              <Link to="/signup" className="text-sm text-purple-600 hover:text-purple-700 font-medium">
                 Set up your account
-              </button>
+              </Link>
             </div>
           </div>
         </div>
