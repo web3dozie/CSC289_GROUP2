@@ -1,3 +1,11 @@
+"""
+Lightweight Quart app smoke tests.
+
+Verifies the homepage and /api/health endpoint behave as expected. Uses a
+temporary file-backed SQLite database to avoid in-memory multi-connection
+issues when running the async engine.
+"""
+
 import os
 import tempfile
 import pytest

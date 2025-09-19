@@ -1,3 +1,11 @@
+"""
+Tests for general API flows: health check, homepage, and full task CRUD workflow.
+
+This file uses a temporary SQLite file-backed database so async SQLAlchemy
+connections share the same file during tests. It verifies creating a user,
+listing/creating/updating/deleting tasks and basic health/home endpoints.
+"""
+
 import os
 import pytest
 import pytest_asyncio

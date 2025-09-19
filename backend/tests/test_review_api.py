@@ -1,3 +1,11 @@
+"""
+Tests for review and journal endpoints.
+
+This file exercises the journal CRUD endpoints and summary/insights routes
+to ensure journal entries can be created, updated, listed, deleted, and that
+summary/insight endpoints return expected JSON structures.
+"""
+
 import os
 import tempfile
 import asyncio
@@ -14,7 +22,7 @@ async def test_review_journal_and_summaries(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", db_uri)
 
     # import and create app after env var is set
-    from backend.app import create_app, initialize_database
+    from app import create_app, initialize_database
 
     app = create_app()
 

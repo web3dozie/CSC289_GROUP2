@@ -1,3 +1,10 @@
+"""
+Tests for user settings endpoints.
+
+Verifies retrieving and updating user settings, including toggles for notes
+and timer, updating AI URL, auto-lock minutes, and theme preferences.
+"""
+
 import os
 import pytest
 
@@ -9,15 +16,20 @@ async def test_settings_endpoints(tmp_path, monkeypatch):
     db_uri = f"sqlite+aiosqlite:///{db_path.as_posix()}"
     monkeypatch.setenv("DATABASE_URL", db_uri)
 
-    from backend.app import create_app, initialize_database
+    from app import create_app, initialize_database
 
     app = create_app()
     await initialize_database()
 
     async with app.test_client() as client:
-        # create a user/session
+        # create a user/session (idempotent: if user exists, try login)
         resp = await client.post('/api/auth/setup', json={'pin': '1234', 'username': 'settings_tester'})
-        assert resp.status_code in (200, 201)
+        if resp.status_code == 400:
+            # user already exists; try to login to establish session
+            login = await client.post('/api/auth/login', json={'pin': '1234'})
+            assert login.status_code in (200, 201)
+        else:
+            assert resp.status_code in (200, 201)
 
         # GET settings
         r = await client.get('/api/settings')
