@@ -22,6 +22,17 @@ jobs:
       - name: Install deps
         working-directory: frontend
         run: npm ci
+      - name: "Debug: list frontend files"
+        working-directory: frontend
+        run: |
+          echo "Listing frontend dir"
+          ls -la
+          echo "-- tsconfig.json contents --"
+          if [ -f tsconfig.json ]; then
+            cat tsconfig.json
+          else
+            echo "tsconfig.json not found"
+          fi
       - name: Lint
         working-directory: frontend
         run: npm run lint
