@@ -42,3 +42,14 @@ public/mockServiceWorker.js
 
 # Husky
 .husky/_/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# SQLite database files (backend)
+backend/*.db
+backend/*.sqlite3
