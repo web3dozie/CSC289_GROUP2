@@ -91,6 +91,17 @@ def register_routes(app):
         app.register_blueprint(tasks_bp)
     except ImportError:
         print("Tasks blueprint not found - will add later")    
+    try:
+        from blueprints.review.routes import review_bp
+        app.register_blueprint(review_bp)
+    except ImportError:
+        print("Review blueprint not found - will add later")
+
+    try:
+        from blueprints.settings.routes import settings_bp
+        app.register_blueprint(settings_bp)
+    except ImportError:
+        print("Settings blueprint not found - will add later")
     # Error handlers
     @app.errorhandler(404)
     async def not_found(error):
