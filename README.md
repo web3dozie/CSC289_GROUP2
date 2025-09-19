@@ -27,17 +27,18 @@ Docker Compose (one‑command) and full dev scripts are being added as we scaffo
 - Privacy: strictly local unless you explicitly enable AI
 
 ## Architecture
-- Frontend: React 19 + Vite + TypeScript + Tailwind + TanStack Router/Query
-- Backend: Django + Django REST Framework (modular monolith)
-- Database: SQLite (WAL) in the backend container
-- Packaging: containers for frontend and backend, no external services
+ Frontend: React + Vite + TypeScript + Tailwind + TanStack Router/Query
+ Backend: Quart (async) + SQLAlchemy (modular monolith using Blueprints)
+ Database: SQLite for local development (WAL recommended)
+ Packaging: intended to run in containers for local/dev usage; currently run via provided scripts
 
 ## Contributing
 See `CONTRIBUTING.md` for:
 - Branch model: `main` (stable), `dev` (team integration), personal named branches (e.g., `dozie`)
-- PR flow: PRs → `dev` (squash merges), then `dev` → `main` for releases
-- Reviews: 1 reviewer on `dev`, 2 on `main`; CI must pass
-- Trello‑first workflow with GitHub links from cards (free tier friendly)
+ There are dev scripts for frontend and backend in the repository root; see `run-dev.ps1` and `run-backend.ps1` for Windows PowerShell helpers. Full Docker/compose setup is planned but not required for local dev.
+ - Overview: `OVERVIEW.md`
+ - SDLC workspace: `SDLC/`
+ - Historical docs: `old_docs/`
 - Conventional Commits and code style
 
 ## License

@@ -1,15 +1,18 @@
-# Task Line Landing Page
+# Task Line Frontend
 
-A classy, desktop-first landing page for the Task Line task management system.
+A compact frontend for Task Line. Built with React + TypeScript and Vite.
 
-## Quick Start
+## Quick start
 
-```bash
+```powershell
 # Install dependencies
 npm install
 
 # Start development server
 npm run dev
+
+# Run tests
+npm run test
 
 # Build for production
 npm run build
@@ -18,98 +21,62 @@ npm run build
 npm run preview
 ```
 
-## Tech Stack
+Notes:
+- This project uses Vite and TypeScript. Use `npm run type-check` to run the TypeScript-only check.
+- `pnpm` is also supported if you prefer it (`pnpm install`, `pnpm dev`, ...).
 
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool & dev server
-- **Tailwind CSS** - Styling
-- **Lucide React** - Icons
+## Tech stack
 
-## Project Structure
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- Vitest + Testing Library for unit/QA tests
+
+## Project structure (actual)
 
 ```
 frontend/
-├── src/
-│   ├── components/
-│   │   └── landing/       # Landing page components
-│   │       ├── Header.tsx
-│   │       ├── Hero.tsx
-│   │       ├── WhyDifferent.tsx
-│   │       ├── Features.tsx
-│   │       ├── Views.tsx
-│   │       ├── CoachChat.tsx
-│   │       ├── Tutorial.tsx
-│   │       ├── Analytics.tsx
-│   │       ├── Privacy.tsx
-│   │       ├── FAQ.tsx
-│   │       ├── CTA.tsx
-│   │       └── Footer.tsx
-│   ├── App.tsx            # Main app component
-│   ├── main.tsx           # Entry point
-│   └── index.css          # Global styles & Tailwind
-├── public/                # Static assets
-├── tailwind.config.js     # Tailwind configuration
-└── vite.config.ts         # Vite configuration
+├─ public/                    # Static assets (mockServiceWorker, icons)
+├─ src/
+│  ├─ components/
+│  │  └─ landing/              # Landing & auth UI
+│  │     ├─ Header.tsx
+│  │     ├─ Hero.tsx
+│  │     ├─ Overview.tsx
+│  │     ├─ Login.tsx
+│  │     ├─ SignUp.tsx
+│  │     ├─ FAQ.tsx
+│  │     ├─ CTA.tsx
+│  │     ├─ Footer.tsx
+│  │     └─ Tutorial.tsx
+│  ├─ index.css
+  │  └─ main.tsx
+  └─ routes/
+     └─ __root.tsx
+├─ tailwind.config.js
+├─ vite.config.ts
+├─ package.json
+└─ __tests__/                 # Vitest + Testing Library tests
 ```
 
-## Content Management
+## Scripts
 
-All landing page content is defined directly in the component files for easy editing:
+- `npm run dev` — start Vite dev server
+- `npm run build` — type-check and build
+- `npm run preview` — preview built production files
+- `npm run test` — run Vitest (use `test:ui` for the interactive UI)
+- `npm run lint` / `npm run lint:fix` — ESLint
+- `npm run format` — Prettier
 
-- **Branding**: Product name is "Task Line"
-- **Copy**: All text content follows the specifications in the components
-- **Colors**: Purple-based palette defined in `tailwind.config.js`
-- **Links**:
-  - "Open App" → `/#/app` (placeholder)
-  - "Read Overview" → `/OVERVIEW.md`
-  - "Try Tutorial" → `/#/tutorial` (placeholder)
+## Testing
 
-## Accessibility Features
+- Unit and component tests live in `frontend/__tests__/` and use Vitest + Testing Library.
+- MSW (Mock Service Worker) is used to stub network calls during tests (`frontend/__tests__/mocks`).
 
-- Skip to main content link
-- Semantic HTML structure
-- ARIA labels and roles
-- Keyboard navigation support
-- Focus indicators
-- Reduced motion support
-- Sufficient color contrast
+## Accessibility & content
 
-## Development
+- Components include ARIA attributes, keyboard handling, and reduced-motion support where applicable.
+- Copy/content is kept inside the landing components for now; consider extracting to a JSON/YAML content file if non-dev editing is needed.
 
-```bash
-# Run development server (opens at http://localhost:5173)
-npm run dev
 
-# Type checking
-npm run tsc
-
-# Linting (if configured)
-npm run lint
-```
-
-## Production Build
-
-```bash
-# Create optimized production build
-npm run build
-
-# Preview production build locally
-npm run preview
-```
-
-Built files will be in the `dist/` directory.
-
-## Performance
-
-- Desktop-first responsive design
-- Optimized for fast loading
-- Minimal JavaScript
-- Tailwind CSS purging for small bundle size
-- Lazy loading considerations
-
-## Browser Support
-
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- Desktop-optimized, tablet-responsive
-- Graceful degradation for older browsers
