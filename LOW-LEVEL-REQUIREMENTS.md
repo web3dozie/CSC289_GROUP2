@@ -4,16 +4,14 @@
 
 ### Core Framework & Setup
 
-- Use Quart 0.18.x as the web framework (micro-framework for lightweight, modular design, aligning with project resources for college students).
+- Use Quart 0.18.4 as the web framework (micro-framework for lightweight, modular design, aligning with project resources for college students).
 - Implement a **modular monolith structure** with Blueprints for organization:
     - `auth` Blueprint: PIN authentication (set, verify, login, logout, change PIN) – supports secure, PIN-based login with error notifications (e.g., "Error, wrong PIN").
     - `tasks` Blueprint: Task CRUD, categories, reordering, highlighting, dates, estimates, completion – enables adding, editing, deleting tasks with validation and inline errors.
     - `review` Blueprint: Journal entries, completion notes, summaries/analytics.
     - `settings` Blueprint: Feature toggles (e.g., notes, timer, AI URL), themes, auto-lock.
-    - `timer` Blueprint (optional): Focus session controls linked to tasks.
-    - `agent` Blueprint (optional): AI tool actions with user confirmation.
 - Use Quart-RESTful for REST API structure.
-- Enable CORS for frontend communication (Quart-CORS).
+- Enable CORS for frontend communication (Quart-CORS 0.7.0).
 - Configure for local container deployment (Docker), ensuring minimal server resources and compatibility with modern web browsers.
 
 ---
@@ -41,11 +39,10 @@ Your new map provides a clear, high-level overview of the API.
 #### **Task Management - `/api/tasks/`**
 
 - `GET /api/tasks`: List all tasks (with filtering/pagination).
-- `GET /api/tasks/calendar`: Display calendar view.
-- `GET /api/tasks/kanban`: Display kanban board (Implementation specifics needed).
+- `GET /api/tasks/kanban`: Display kanban board grouped by status.
 - `POST /api/tasks`: Create new task.
 - `GET /api/tasks/{id}`: Get specific task.
-- `PUT /api/tasks/{id}`: Update task. (with Toggle completion status. Toggle highlight/priority. Update task category.)
+- `PUT /api/tasks/{id}`: Update task (toggle completion, priority, category, status).
 - `DELETE /api/tasks/{id}`: Delete task.
 - `GET /api/tasks/categories`: Get available categories.
 
@@ -72,17 +69,17 @@ Your new map provides a clear, high-level overview of the API.
 
 ### Data Handling & Validation
 
-- Use Flask's built-in `request` object for parsing JSON inputs and manual validation (e.g., check types, lengths, required fields) – ensures error notifications for empty input fields.
-- Implement inline error handling (e.g., "Title is required", "Invalid date format") by raising `BadRequest` exceptions.
-- Support export/import: `GET /api/export` (JSON bundle), `POST /api/import` (validate and merge).
-- Autosave: Periodic saves via background threads or on changes.
+- Use Quart's built-in `request` object for parsing JSON inputs and manual validation (e.g., check types, lengths, required fields) – ensures error notifications for empty input fields.
+- Implement inline error handling (e.g., "Title is required", "Invalid date format") by returning JSON error responses.
+- **Export/Import (Not Implemented)**: Planned support for `GET /api/export` (JSON bundle), `POST /api/import` (validate and merge).
+- **Autosave (Not Implemented)**: Planned periodic saves via background threads or on changes.
 
 ---
 
 ### Performance & Reliability
 
-- Handle **offline-first**: All operations work without internet – aligns with project assumptions of stable internet and local storage.
-- Implement **undo**: Simple stack for recent changes (e.g., last 10 actions).
+- **Offline-first (Not Fully Implemented)**: Basic local storage via SQLite, but full offline sync not implemented.
+- **Undo (Not Implemented)**: Planned simple stack for recent changes (e.g., last 10 actions).
 - Error responses: JSON with status codes (400 for validation, 401 for auth, 500 for server errors).
 - **Single-user only**: No multi-user or synchronization features (out of scope).
 
@@ -90,9 +87,11 @@ Your new map provides a clear, high-level overview of the API.
 
 ### Dependencies
 
-- Quart, Quart-RESTful, Quart-CORS
-- Werkzeug for utilities.
-- APScheduler for optional background tasks (e.g., auto-lock).
+- Quart 0.18.4, Quart-CORS 0.7.0
+- SQLAlchemy 2.0.43 with aiosqlite 0.20.0 for async database operations
+- Werkzeug 2.3.7 for utilities
+- APScheduler 3.10.4 for optional background tasks (e.g., auto-lock)
+- pytest 8.4.2 for testing
 
 ---
 
@@ -100,7 +99,7 @@ Your new map provides a clear, high-level overview of the API.
 
 ### Core Framework & Setup
 
-- Use **React 19 with Vite** for build tooling – aligns with project resources and objectives for a user-friendly web application.
+- Use **React 18 with Vite** for build tooling – aligns with project resources and objectives for a user-friendly web application.
 - **TypeScript** for type safety.
 - **TanStack Router** for client-side routing (e.g., `/` for landing, `/login` for auth, future `/tasks` for app).
 - **TanStack Query** for API state management and caching.
@@ -110,12 +109,13 @@ Your new map provides a clear, high-level overview of the API.
 
 ### UI Components & Views
 
-- Implement views as per OVERVIEW.md:
+- **Landing Page**: Complete landing page with hero, tutorial, privacy, FAQ, CTA sections using React components.
+- Login/SignUp pages: Forms with PIN validation and error handling.
+- **Main App Interface (Not Yet Implemented)**: Planned views include:
   - **List**: Keyboard-navigable list with search/filters – supports grouping tasks by importance and adjusting order for prioritization.
   - **Board**: Drag-and-drop lanes (Todo, In-Progress, Done) using `react-beautiful-dnd` or `@dnd-kit`.
   - **Calendar**: Agenda-style (Today, Tomorrow, This Week) with date picker.
   - **Review**: Charts (e.g., completions) using Chart.js or Recharts.
-- Login page: Form with username/PIN validation, loading states – provides PIN-based secure login with error notifications.
 - Tutorial: First-run guided tour (around 60 - 90 seconds) using `react-joyride`.
 - Optional Coach Chat: Side panel with AI prompts (only if API URL provided).
 - Minimalistic, intuitive web interface – aligns with project scope and objectives.
@@ -124,9 +124,9 @@ Your new map provides a clear, high-level overview of the API.
 
 ### State Management & API Integration
 
-- Use TanStack Query for API calls (e.g., fetch tasks, handle mutations).
+- **TanStack Query (Not Yet Connected)**: Planned for API calls (e.g., fetch tasks, handle mutations) once main app interface is built.
 - Local state for UI (e.g., form inputs) with React hooks.
-- Handle offline: Cache data locally, sync on reconnect.
+- **Offline Handling (Not Implemented)**: Planned cache data locally, sync on reconnect.
 
 ---
 
@@ -140,22 +140,24 @@ Your new map provides a clear, high-level overview of the API.
 
 ### Features Implementation
 
-- Task CRUD: Inline editing, validation, drag-to-reorder – enables adding, editing, deleting tasks within the first 6 weeks.
-- Categorize tasks: Support for categories (e.g., personal, work) – enables categorization by week 8.
-- Prioritization: Highlight important tasks and adjust order – supports prioritization by week 8.
-- Search/Filters: Real-time with debouncing.
-- Completion: Prompt for optional notes.
-- Analytics: Compute on read (e.g., streaks, accuracy).
-- Privacy: No external data unless AI enabled.
+- **Landing Page**: Complete with all sections (hero, tutorial, privacy, FAQ, CTA).
+- **Authentication**: PIN-based login/signup with validation.
+- **Backend API**: Full task CRUD, categories, priority, due dates, completion tracking.
+- **Settings Management**: User preferences for notes, timer, AI URL, auto-lock, theme.
+- **Review/Analytics**: Journal entries, daily/weekly summaries, productivity insights.
+- **Task Management (Backend Only)**: Task CRUD, categories, prioritization, due dates, estimates, completion – enables adding, editing, deleting tasks within the first 6 weeks.
+- **Frontend App Interface (Not Yet Implemented)**: Main task management views (List, Board, Calendar, Review) to be built.
 
 ---
 
 ### Dependencies
 
-- React, React DOM, Vite, TypeScript.
-- TanStack Router, TanStack Query.
-- Tailwind CSS, PostCSS.
-- Optional: `react-beautiful-dnd` (drag), Chart.js (charts), `react-joyride` (tutorial).
+- React 18.2.0, React DOM 18.2.0, Vite 7.1.5, TypeScript 5.2.2
+- TanStack Router 1.20.0, TanStack Query 5.17.0
+- Tailwind CSS 3.4.1, PostCSS 8.4.35, Autoprefixer 10.4.17
+- Lucide React 0.344.0 for icons
+- React Joyride 2.8.2 for tutorial
+- React Markdown 10.1.0 for content rendering
 
 ---
 
@@ -170,18 +172,15 @@ Your new map provides a clear, high-level overview of the API.
 
 ### Schema Design
 
-The provided ERD is an excellent, detailed plan for the database schema.
+The implemented database schema focuses on core functionality with the following tables:
 
-- **Tables**:
-  - `Users`: `user_id`, `username`, `email`, `user_pin`, `config_data`, `created_on`.
-  - `Tasks`: `task_id`, `description`, `notes`, `category`, `status`, `closed_on`, `due_date`, `created_on`, `updated_on`, `created_by`.
-  - `Statuses`: `status_id`, `description`, `created_on`, `created_by`.
-  - `Categories`: `category_id`, `name`, `description`, `color_hex`, `created_on`, `created_by`.
-  - `Tags`: `tag_id`, `name`, `description`, `color_hex`, `created_on`, `created_by`.
-  - `TaskTags`: `task_id`, `tag_id`, `tagged_on`, `tagged_by`.
-  - `TaskDependencies`: `parent_task_id`, `dependent_on_task_id`, `created_on`, `created_by`.
-- Use **foreign keys** for relationships (e.g., `Tasks.category > Categories.category_id`).
-- Indexes: On frequently queried fields (e.g., status, category, dates).
+- **Users**: `id`, `username`, `email`, `pin_hash`, `config_data`, `created_at`.
+- **Statuses**: `id`, `description`, `created_at` (for kanban board: Todo, In Progress, Done).
+- **Tasks**: `id`, `title`, `description`, `notes`, `done`, `category`, `priority`, `due_date`, `estimate_minutes`, `order`, `status_id`, `created_at`, `updated_on`, `closed_on`, `created_by`.
+- **JournalEntries**: `id`, `user_id`, `entry_date`, `content`, `created_at`, `updated_on`.
+- **UserSettings**: `id`, `user_id`, `notes_enabled`, `timer_enabled`, `ai_url`, `auto_lock_minutes`, `theme`, `updated_on`.
+- Use **foreign keys** for relationships (e.g., `Tasks.status_id > Statuses.id`, `Tasks.created_by > Users.id`).
+- Indexes on frequently queried fields (status, created_by, dates).
 
 ---
 
@@ -206,12 +205,12 @@ The provided ERD is an excellent, detailed plan for the database schema.
 
 ### Backend Testing
 
-- Use **pytest** for unit and integration tests.
-- Test coverage: ≥80% (aim for ≥12 tests as per OVERVIEW.md).
+- Use **pytest 8.4.2** for unit and integration tests.
+- Test coverage: Basic API endpoints tested (health check, task CRUD, auth flows).
 - Test types:
-  - Unit: Individual functions (e.g., PIN validation, task CRUD).
+  - Unit: Individual route functions and utilities.
   - Integration: API endpoints (e.g., login flow, task creation with validation).
-  - Edge cases: Invalid inputs, auth failures, offline scenarios.
+  - Edge cases: Invalid inputs, auth failures.
 - Mock external dependencies (e.g., AI API if enabled).
 - CI: Run on PRs to `dev`/`main` via GitHub Actions – aligns with CONTRIBUTING.md's branch model and CI requirements.
 
@@ -219,22 +218,14 @@ The provided ERD is an excellent, detailed plan for the database schema.
 
 ### Frontend Testing
 
-- Use **Vitest + React Testing Library** for unit/component tests.
-
-- Test coverage: ≥6 UI tests (as per OVERVIEW.md).
-
+- Use **Vitest 3.2.4 + React Testing Library 14.2.1** for unit/component tests.
+- Test coverage: Basic component tests for landing page components (Header, Hero, Login).
 - Test types:
-  
-  - Unit: Components (e.g., form validation, drag-and-drop).
-  - Integration: User flows (e.g., login to task list).
-  - Accessibility: Screen-reader and keyboard navigation.
-  * E2E Testing: Playwright
-
-- Mock API calls with **MSW (Mock Service Worker)**.
-
-- CI: Run on PRs to `dev`/`main`.
-
----
+  - Unit: Components (e.g., form validation, PIN input restrictions).
+  - Integration: User flows (e.g., login form validation).
+  - Accessibility: Screen-reader and keyboard navigation (planned).
+- Mock API calls with **MSW (Mock Service Worker) 2.2.3**.
+- CI: Run on PRs to `dev`/`main`.---
 
 ### General Testing Practices
 
