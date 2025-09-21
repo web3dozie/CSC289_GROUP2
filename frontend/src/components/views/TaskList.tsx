@@ -101,7 +101,7 @@ export const TaskList: React.FC = () => {
     }
   }
 
-  const handleCompleteTask = async (notes?: string, createJournalEntry?: boolean) => {
+  const handleCompleteTask = async (_notes?: string, _createJournalEntry?: boolean) => {
     if (!completingTask) return
 
     try {

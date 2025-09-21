@@ -1,6 +1,7 @@
 import React from 'react'
 import { Navigate } from '@tanstack/react-router'
 import { useAuth } from '../contexts/AuthContext'
+import { LockScreen } from './LockScreen'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -11,7 +12,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   children,
   requireAuth = true
 }) => {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, isLocked } = useAuth()
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -26,6 +27,11 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   if (requireAuth && !isAuthenticated) {
     // Redirect to login
     return <Navigate to="/login" replace />
+  }
+
+  // If user is authenticated but app is locked, show lock screen
+  if (requireAuth && isAuthenticated && isLocked) {
+    return <LockScreen />
   }
 
   // If authentication is not required but user is authenticated
