@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, Grid3X3 } from 'lucide-react'
 import { useCalendarTasks } from '../../lib/hooks'
 import { TaskItem, TaskModal, DeleteConfirmation } from '../tasks'
 import type { Task } from '../../lib/api'
@@ -116,6 +116,7 @@ export const TaskCalendar: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
+  const [viewMode, setViewMode] = useState<'calendar' | 'agenda'>('calendar')
 
   const { data: tasks = [], isLoading, error } = useCalendarTasks()
 
@@ -181,6 +182,135 @@ export const TaskCalendar: React.FC = () => {
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+  // Group tasks by date for agenda view
+  const tasksByDate = useMemo(() => {
+    const grouped: { [key: string]: Task[] } = {}
+    tasks.forEach(task => {
+      if (task.due_date) {
+        const dateKey = new Date(task.due_date).toDateString()
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = []
+        }
+        grouped[dateKey].push(task)
+      }
+    })
+    return grouped
+  }, [tasks])
+
+  // Get upcoming dates for agenda view
+  const upcomingDates = useMemo(() => {
+    const dates: Date[] = []
+    const today = new Date()
+    for (let i = 0; i < 14; i++) { // Next 14 days
+      const date = new Date(today)
+      date.setDate(today.getDate() + i)
+      dates.push(date)
+    }
+    return dates
+  }, [])
+
+  const AgendaView: React.FC = () => {
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+
+    const sections = [
+      {
+        title: 'Today',
+        date: today,
+        tasks: tasksByDate[today.toDateString()] || [],
+        dates: undefined as Date[] | undefined,
+        tasksByDate: undefined as { [key: string]: Task[] } | undefined
+      },
+      {
+        title: 'Tomorrow',
+        date: tomorrow,
+        tasks: tasksByDate[tomorrow.toDateString()] || [],
+        dates: undefined as Date[] | undefined,
+        tasksByDate: undefined as { [key: string]: Task[] } | undefined
+      },
+      {
+        title: 'Upcoming',
+        date: undefined as Date | undefined,
+        tasks: undefined as Task[] | undefined,
+        dates: upcomingDates.slice(2), // Skip today and tomorrow
+        tasksByDate
+      }
+    ]
+
+    return (
+      <div className="space-y-6">
+        {sections.map((section) => (
+          <div key={section.title} className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <CalendarIcon className="w-5 h-5 text-gray-500 mr-2" />
+              {section.title}
+            </h3>
+
+            {section.title === 'Upcoming' ? (
+              // Upcoming section shows multiple dates
+              <div className="space-y-4">
+                {section.dates!.map(date => {
+                  const dateTasks = section.tasksByDate![date.toDateString()] || []
+                  if (dateTasks.length === 0) return null
+
+                  return (
+                    <div key={date.toISOString()} className="border-l-4 border-purple-200 pl-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        {date.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </h4>
+                      <div className="space-y-2">
+                        {dateTasks.map(task => (
+                          <TaskItem
+                            key={task.id}
+                            task={task}
+                            onEdit={setEditingTask}
+                            onDelete={setDeletingTask}
+                            onToggleComplete={() => {}} // Will be handled by modal
+                            showActions={true}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+                {section.dates!.every(date => !section.tasksByDate![date.toDateString()]?.length) && (
+                  <p className="text-gray-500 text-center py-4">
+                    No upcoming tasks
+                  </p>
+                )}
+              </div>
+            ) : (
+              // Today/Tomorrow sections
+              <div className="space-y-2">
+                {section.tasks!.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">
+                    No tasks {section.title.toLowerCase()}
+                  </p>
+                ) : (
+                  section.tasks!.map(task => (
+                    <TaskItem
+                      key={task.id}
+                      task={task}
+                      onEdit={setEditingTask}
+                      onDelete={setDeletingTask}
+                      onToggleComplete={() => {}} // Will be handled by modal
+                      showActions={true}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -221,110 +351,150 @@ export const TaskCalendar: React.FC = () => {
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
+            {viewMode === 'calendar' && (
+              <>
+                <button
+                  onClick={() => navigateMonth('prev')}
+                  className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                </h1>
+                <button
+                  onClick={() => navigateMonth('next')}
+                  className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={goToToday}
+                  className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  Today
+                </button>
+              </>
+            )}
+            {viewMode === 'agenda' && (
+              <h1 className="text-2xl font-bold text-gray-900">Agenda</h1>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            {/* View Toggle Buttons */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center ${
+                  viewMode === 'calendar'
+                    ? 'bg-white shadow text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Grid3X3 className="w-4 h-4 mr-1" />
+                Calendar
+              </button>
+              <button
+                onClick={() => setViewMode('agenda')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center ${
+                  viewMode === 'agenda'
+                    ? 'bg-white shadow text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <List className="w-4 h-4 mr-1" />
+                Agenda
+              </button>
+            </div>
             <button
-              onClick={() => navigateMonth('prev')}
-              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
             >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </h1>
-            <button
-              onClick={() => navigateMonth('next')}
-              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <button
-              onClick={goToToday}
-              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-            >
-              Today
+              <Plus className="w-4 h-4 mr-2" />
+              New Task
             </button>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Task
-          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar Grid */}
-        <div className="lg:col-span-2">
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            {/* Day headers */}
-            <div className="grid grid-cols-7 bg-gray-50 border-b">
-              {dayNames.map(day => (
-                <div key={day} className="p-4 text-center text-sm font-medium text-gray-700">
-                  {day}
-                </div>
-              ))}
-            </div>
+        {/* Calendar Grid or Agenda View */}
+        <div className={viewMode === 'calendar' ? "lg:col-span-2" : "lg:col-span-3"}>
+          {viewMode === 'calendar' ? (
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              {/* Day headers */}
+              <div className="grid grid-cols-7 bg-gray-50 border-b">
+                {dayNames.map(day => (
+                  <div key={day} className="p-4 text-center text-sm font-medium text-gray-700">
+                    {day}
+                  </div>
+                ))}
+              </div>
 
-            {/* Calendar days */}
-            <div className="grid grid-cols-7">
-              {calendarDays.map((date, index) => (
-                <CalendarDay
-                  key={index}
-                  date={date}
-                  tasks={tasks}
-                  isCurrentMonth={date.getMonth() === currentDate.getMonth()}
-                  isToday={date.toDateString() === new Date().toDateString()}
-                  onTaskClick={handleTaskClick}
-                  onDateClick={handleDateClick}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Selected Date Tasks */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center mb-4">
-            <CalendarIcon className="w-5 h-5 text-gray-500 mr-2" />
-            <h2 className="text-lg font-semibold text-gray-900">
-              {selectedDate
-                ? selectedDate.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })
-                : 'Select a date'
-              }
-            </h2>
-          </div>
-
-          {selectedDate ? (
-            <div className="space-y-3">
-              {selectedDateTasks.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No tasks for this date
-                </p>
-              ) : (
-                selectedDateTasks.map(task => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    onEdit={setEditingTask}
-                    onDelete={setDeletingTask}
-                    onToggleComplete={() => {}} // Will be handled by modal
-                    showActions={true}
+              {/* Calendar days */}
+              <div className="grid grid-cols-7">
+                {calendarDays.map((date, index) => (
+                  <CalendarDay
+                    key={index}
+                    date={date}
+                    tasks={tasks}
+                    isCurrentMonth={date.getMonth() === currentDate.getMonth()}
+                    isToday={date.toDateString() === new Date().toDateString()}
+                    onTaskClick={handleTaskClick}
+                    onDateClick={handleDateClick}
                   />
-                ))
-              )}
+                ))}
+              </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
-              Click on a date to see tasks
-            </p>
+            <AgendaView />
           )}
         </div>
+
+        {/* Selected Date Tasks - Only show in calendar view */}
+        {viewMode === 'calendar' && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <CalendarIcon className="w-5 h-5 text-gray-500 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-900">
+                {selectedDate
+                  ? selectedDate.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })
+                  : 'Select a date'
+                }
+              </h2>
+            </div>
+
+            {selectedDate ? (
+              <div className="space-y-3">
+                {selectedDateTasks.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">
+                    No tasks for this date
+                  </p>
+                ) : (
+                  selectedDateTasks.map(task => (
+                    <TaskItem
+                      key={task.id}
+                      task={task}
+                      onEdit={setEditingTask}
+                      onDelete={setDeletingTask}
+                      onToggleComplete={() => {}} // Will be handled by modal
+                      showActions={true}
+                    />
+                  ))
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">
+                Click on a date to see tasks
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modals */}

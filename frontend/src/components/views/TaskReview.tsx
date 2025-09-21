@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { BookOpen, TrendingUp, Calendar, Plus, Edit, X } from 'lucide-react'
+import { BookOpen, TrendingUp, Calendar, Plus, Edit, X, BarChart3, Target, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import {
   useJournal,
   useCreateJournalEntry,
@@ -9,6 +9,65 @@ import {
   useInsights
 } from '../../lib/hooks'
 import type { JournalEntry } from '../../lib/api'
+
+// Simple Chart Components
+interface BarChartProps {
+  data: { label: string; value: number; color?: string }[]
+  title?: string
+}
+
+const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
+  const maxValue = Math.max(...data.map(d => d.value))
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      {title && <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>}
+      <div className="space-y-3">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center space-x-3">
+            <div className="w-24 text-sm text-gray-600 truncate">{item.label}</div>
+            <div className="flex-1 bg-gray-200 rounded-full h-4">
+              <div
+                className={`h-4 rounded-full ${item.color || 'bg-purple-500'}`}
+                style={{ width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%` }}
+              ></div>
+            </div>
+            <div className="w-8 text-sm text-gray-600 text-right">{item.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+interface StatCardProps {
+  title: string
+  value: string | number
+  icon: React.ComponentType<{ className?: string }>
+  color: string
+  change?: string
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, change }) => {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-600">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          {change && (
+            <p className={`text-sm ${change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+              {change}
+            </p>
+          )}
+        </div>
+        <div className={`p-3 rounded-full ${color}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 interface JournalEntryCardProps {
   entry: JournalEntry
@@ -163,7 +222,7 @@ export const TaskReview: React.FC = () => {
   const tabs = [
     { id: 'journal', label: 'Journal', icon: BookOpen },
     { id: 'daily', label: 'Daily Summary', icon: Calendar },
-    { id: 'weekly', label: 'Weekly Summary', icon: TrendingUp },
+    { id: 'weekly', label: 'Weekly Summary', icon: BarChart3 },
     { id: 'insights', label: 'Insights', icon: TrendingUp }
   ]
 
@@ -272,63 +331,292 @@ export const TaskReview: React.FC = () => {
 
           {/* Daily Summary Tab */}
           {activeTab === 'daily' && (
-            <div>
+            <div className="space-y-6">
               {dailyLoading ? (
                 <div className="animate-pulse space-y-4">
-                  <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-24 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                  <div className="h-64 bg-gray-200 rounded"></div>
                 </div>
               ) : dailySummary ? (
-                <div className="prose max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-gray-900">
-                    {typeof dailySummary === 'string' ? dailySummary : JSON.stringify(dailySummary, null, 2)}
-                  </pre>
+                <div className="space-y-6">
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <StatCard
+                      title="Tasks Completed"
+                      value={dailySummary.completed_tasks || 0}
+                      icon={CheckCircle}
+                      color="bg-green-500"
+                      change={dailySummary.completed_change ? `+${dailySummary.completed_change}` : undefined}
+                    />
+                    <StatCard
+                      title="Tasks Created"
+                      value={dailySummary.created_tasks || 0}
+                      icon={Plus}
+                      color="bg-blue-500"
+                    />
+                    <StatCard
+                      title="Overdue Tasks"
+                      value={dailySummary.overdue_tasks || 0}
+                      icon={AlertCircle}
+                      color="bg-red-500"
+                    />
+                    <StatCard
+                      title="Time Spent"
+                      value={`${dailySummary.time_spent || 0}m`}
+                      icon={Clock}
+                      color="bg-purple-500"
+                    />
+                  </div>
+
+                  {/* Productivity Chart */}
+                  <BarChart
+                    title="Daily Productivity"
+                    data={[
+                      { label: 'Completed', value: dailySummary.completed_tasks || 0, color: 'bg-green-500' },
+                      { label: 'In Progress', value: dailySummary.in_progress_tasks || 0, color: 'bg-yellow-500' },
+                      { label: 'Overdue', value: dailySummary.overdue_tasks || 0, color: 'bg-red-500' },
+                    ]}
+                  />
+
+                  {/* Category Breakdown */}
+                  {dailySummary.categories && Object.keys(dailySummary.categories).length > 0 && (
+                    <BarChart
+                      title="Tasks by Category"
+                      data={Object.entries(dailySummary.categories).map(([category, count]) => ({
+                        label: category,
+                        value: count as number,
+                        color: 'bg-purple-500'
+                      }))}
+                    />
+                  )}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">No daily summary available</p>
+                <div className="text-center py-12">
+                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No daily summary available</h3>
+                  <p className="text-gray-500">Complete some tasks to see your daily productivity insights.</p>
+                </div>
               )}
             </div>
           )}
 
           {/* Weekly Summary Tab */}
           {activeTab === 'weekly' && (
-            <div>
+            <div className="space-y-6">
               {weeklyLoading ? (
                 <div className="animate-pulse space-y-4">
-                  <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-24 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                  <div className="h-64 bg-gray-200 rounded"></div>
                 </div>
               ) : weeklySummary ? (
-                <div className="prose max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-gray-900">
-                    {typeof weeklySummary === 'string' ? weeklySummary : JSON.stringify(weeklySummary, null, 2)}
-                  </pre>
+                <div className="space-y-6">
+                  {/* Weekly Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <StatCard
+                      title="Total Completed"
+                      value={weeklySummary.total_completed || 0}
+                      icon={CheckCircle}
+                      color="bg-green-500"
+                      change={weeklySummary.completion_trend ? `${weeklySummary.completion_trend > 0 ? '+' : ''}${weeklySummary.completion_trend}%` : undefined}
+                    />
+                    <StatCard
+                      title="Average Daily"
+                      value={weeklySummary.average_daily || 0}
+                      icon={Target}
+                      color="bg-blue-500"
+                    />
+                    <StatCard
+                      title="Most Productive Day"
+                      value={weeklySummary.most_productive_day || 'N/A'}
+                      icon={TrendingUp}
+                      color="bg-purple-500"
+                    />
+                    <StatCard
+                      title="Total Time"
+                      value={`${weeklySummary.total_time || 0}h`}
+                      icon={Clock}
+                      color="bg-indigo-500"
+                    />
+                  </div>
+
+                  {/* Weekly Progress Chart */}
+                  <BarChart
+                    title="Tasks Completed by Day"
+                    data={weeklySummary.daily_breakdown ? Object.entries(weeklySummary.daily_breakdown).map(([day, count]) => ({
+                      label: day,
+                      value: count as number,
+                      color: 'bg-green-500'
+                    })) : []}
+                  />
+
+                  {/* Productivity Trends */}
+                  {weeklySummary.productivity_trend && (
+                    <BarChart
+                      title="Productivity Trend"
+                      data={weeklySummary.productivity_trend.map((item: any, index: number) => ({
+                        label: `Week ${index + 1}`,
+                        value: item.value,
+                        color: item.trend === 'up' ? 'bg-green-500' : item.trend === 'down' ? 'bg-red-500' : 'bg-gray-500'
+                      }))}
+                    />
+                  )}
+
+                  {/* Category Performance */}
+                  {weeklySummary.category_performance && Object.keys(weeklySummary.category_performance).length > 0 && (
+                    <BarChart
+                      title="Performance by Category"
+                      data={Object.entries(weeklySummary.category_performance).map(([category, performance]) => ({
+                        label: category,
+                        value: (performance as any).completed || 0,
+                        color: 'bg-purple-500'
+                      }))}
+                    />
+                  )}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">No weekly summary available</p>
+                <div className="text-center py-12">
+                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No weekly summary available</h3>
+                  <p className="text-gray-500">Complete tasks throughout the week to see your weekly analytics.</p>
+                </div>
               )}
             </div>
           )}
 
           {/* Insights Tab */}
           {activeTab === 'insights' && (
-            <div>
+            <div className="space-y-6">
               {insightsLoading ? (
                 <div className="animate-pulse space-y-4">
-                  <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                  <div className="h-64 bg-gray-200 rounded"></div>
                 </div>
               ) : insights ? (
-                <div className="prose max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-gray-900">
-                    {typeof insights === 'string' ? insights : JSON.stringify(insights, null, 2)}
-                  </pre>
+                <div className="space-y-6">
+                  {/* Key Insights Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <TrendingUp className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-gray-600">Productivity Score</p>
+                          <p className="text-xl font-bold text-gray-900">{insights.productivity_score || 0}%</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Target className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-gray-600">Completion Rate</p>
+                          <p className="text-xl font-bold text-gray-900">{insights.completion_rate || 0}%</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Clock className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-gray-600">Avg. Task Time</p>
+                          <p className="text-xl font-bold text-gray-900">{insights.avg_task_time || 0}m</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Trends */}
+                  {insights.performance_trends && (
+                    <BarChart
+                      title="Performance Trends"
+                      data={insights.performance_trends.map((trend: any, _index: number) => ({
+                        label: trend.period,
+                        value: trend.score,
+                        color: trend.score > 70 ? 'bg-green-500' : trend.score > 40 ? 'bg-yellow-500' : 'bg-red-500'
+                      }))}
+                    />
+                  )}
+
+                  {/* Strengths & Areas for Improvement */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {insights.strengths && (
+                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                          Strengths
+                        </h3>
+                        <ul className="space-y-2">
+                          {insights.strengths.map((strength: string, index: number) => (
+                            <li key={index} className="flex items-start">
+                              <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700">{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {insights.improvements && (
+                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <AlertCircle className="w-5 h-5 text-orange-500 mr-2" />
+                          Areas for Improvement
+                        </h3>
+                        <ul className="space-y-2">
+                          {insights.improvements.map((improvement: string, index: number) => (
+                            <li key={index} className="flex items-start">
+                              <AlertCircle className="w-4 h-4 text-orange-500 mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700">{improvement}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recommendations */}
+                  {insights.recommendations && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <Target className="w-5 h-5 text-purple-500 mr-2" />
+                        Recommendations
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {insights.recommendations.map((rec: any, index: number) => (
+                          <div key={index} className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <h4 className="font-medium text-purple-900 mb-1">{rec.title}</h4>
+                            <p className="text-sm text-purple-700">{rec.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">No insights available</p>
+                <div className="text-center py-12">
+                  <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No insights available</h3>
+                  <p className="text-gray-500">Complete more tasks and use the journal to unlock productivity insights.</p>
+                </div>
               )}
             </div>
           )}
