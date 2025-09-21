@@ -1,287 +1,165 @@
-#!/usr/bin/env python3
-"""
-Momentum Task Manager - Phase 1
-A clean, Flask API for task management
-Author: Issagha Diallo 
-Created: 9/12/2025
-"""
+# try:
+#     from . import bootstrap_shim
+# except Exception:
+#     try:
+#         import bootstrap_shim
+#     except Exception:
+#         pass
+
 import os
-from functools import wraps
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
+from quart import Quart, jsonify
+from quart_cors import cors
 from datetime import datetime
 
-# Create the db object up front.
-# We'll attach it to the app later inside create_app().
-db = SQLAlchemy()
+from db_async import engine, AsyncSessionLocal, Base
+from sqlalchemy import select, func
 
-# -----------------------------
-# Input validation decorator
-# -----------------------------
-def validate_json(*expected_fields):
-    """
-    Small helper to make sure we actually got JSON
-    and that certain fields are present and non-empty.
-    """
-    def decorator(f):
-        @wraps(f)
-        def fn(*args, **kwargs):
-            # Must be JSON (e.g., Content-Type: application/json)
-            if not request.is_json:
-                return jsonify({'error': 'Content-Type must be application/json'}), 400
-
-            # Try to parse the body without blowing up on bad JSON
-            data = request.get_json(silent=True)
-            if data is None:
-                return jsonify({'error': 'Malformed JSON'}), 400
-
-            # Make sure required fields exist and aren't just whitespace
-            for field in expected_fields:
-                if field not in data:
-                    return jsonify({'error': f'{field} is required'}), 400
-                if isinstance(data[field], str) and not data[field].strip():
-                    return jsonify({'error': f'{field} cannot be empty'}), 400
-
-            return f(*args, **kwargs)
-        return fn
-    return decorator
-
-# -----------------------------
-# Database Model
-# -----------------------------
-class Task(db.Model):
-    """
-    Tiny task table for Phase 1: title + done + created_at.
-    Keep it simple for now; easy to extend later.
-    """
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    done = db.Column(db.Boolean, default=False)
-    # Using a naive timestamp for Phase 1. We can swap to UTC-aware in Phase 2.
-    created_at = db.Column(db.DateTime, default=datetime.now)
-
-    def to_dict(self):
-        # Shape the object exactly how the API returns it.
-        return {
-            'id': self.id,
-            'title': self.title,
-            'done': self.done,
-            'created_at': self.created_at.isoformat()
-        }
-
-# -----------------------------
-# App Factory
-# -----------------------------
 def create_app():
-    """
-    Build the Flask app, wire up extensions, and register routes.
-    Using a factory keeps testing and config changes straightforward.
-    """
-    app = Flask(__name__)
-
-    # Allow the frontend (usually running on a different port) to call us.
-    CORS(app)
-
-    # SQLite is perfect for local dev. No setup required.
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///momentum.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-    # In production, this should come from the environment.
+    """Create and configure the Quart app"""
+    app = Quart(__name__)
+    
+    # Enable CORS for frontend communication
+    cors(app)
+    
+    # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-
-    # Attach the db instance to this app.
-    db.init_app(app)
-
-    # Optional: simple rate limiting so we don’t get hammered in a demo.
-    # If the package isn’t installed, we just skip it.
-    try:
-        from flask_limiter import Limiter
-        from flask_limiter.util import get_remote_address
-        Limiter(
-            key_func=get_remote_address,
-            app=app,
-            default_limits=["200 per hour"],  # global default
-            storage_uri="memory://"          # swap to Redis for real deployments
-        )
-    except Exception:
-        pass
-
-    # All endpoints live in one place.
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite+aiosqlite:///taskline.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Import models to ensure they're registered
+    import models
+    
+    # Register routes
     register_routes(app)
-
+    
+    # Database initialization
+    @app.before_serving
+    async def startup():
+        try:
+            await initialize_database()
+        except Exception as e:
+            print(f"Database initialization failed: {e}")
+    
+    @app.after_serving
+    async def shutdown():
+        try:
+            await engine.dispose()
+            print("Database engine disposed")
+        except Exception as e:
+            print(f"Engine disposal failed: {e}")
+    
     return app
 
-# -----------------------------
-# Routes
-# -----------------------------
 def register_routes(app):
-    """Hook up all endpoints and error handlers."""
-
-    # Quick landing page so you know the server is alive.
+    """Register all route blueprints"""
+    
     @app.route('/')
-    def home():
+    async def home():
         return jsonify({
-            'message': 'Welcome to Momentum Task Manager API!',
+            'message': 'Welcome to Task Line API!',
             'version': '1.0',
             'endpoints': {
+                'auth': '/api/auth',
                 'tasks': '/api/tasks',
+                'review': '/api/review',
+                'settings': '/api/settings',
                 'health': '/api/health'
             }
         })
-
-    # Simple health check for pings/monitoring.
+    
     @app.route('/api/health')
-    def health_check():
+    async def health_check():
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
             'database': 'connected'
         })
+    
+    @app.route('/favicon.ico')
+    async def favicon():
+        return ('', 204)
+    
+    # Register blueprints (we'll add these as we create them)
+    try:
+        from blueprints.auth.routes import auth_bp
+        app.register_blueprint(auth_bp)
+    except ImportError:
+        print("Auth blueprint not found - will add later")
 
-    # List tasks, newest first. Supports a basic limit.
-    @app.route('/api/tasks', methods=['GET'])
-    def get_tasks():
-        """
-        Query params:
-          - limit (int): max number of tasks (default 50, max 100)
-        """
-        try:
-            limit = min(int(request.args.get('limit', 50)), 100)
-            tasks = Task.query.order_by(Task.created_at.desc()).limit(limit).all()
-            return jsonify([task.to_dict() for task in tasks])
-        except ValueError:
-            return jsonify({'error': 'limit must be a valid integer'}), 400
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+    try:
+        from blueprints.tasks.routes import tasks_bp
+        app.register_blueprint(tasks_bp)
+    except ImportError:
+        print("Tasks blueprint not found - will add later")    
+    try:
+        from blueprints.review.routes import review_bp
+        app.register_blueprint(review_bp)
+    except ImportError:
+        print("Review blueprint not found - will add later")
 
-    # Create a task. Title is required and capped at 200 chars.
-    @app.route('/api/tasks', methods=['POST'])
-    @validate_json('title')
-    def create_task():
-        """
-        Body:
-          - title (str, <= 200)
-        """
-        try:
-            data = request.get_json()
-            title = data['title'].strip()
-
-            if len(title) > 200:
-                return jsonify({'error': 'Title too long (max 200 characters)'}), 400
-
-            task = Task(title=title)
-            db.session.add(task)
-            db.session.commit()
-            return jsonify(task.to_dict()), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-
-    # Fetch a single task by id.
-    @app.route('/api/tasks/<int:task_id>', methods=['GET'])
-    def get_task(task_id):
-        # SQLAlchemy 2.x style lookup (no deprecation warning).
-        task = db.session.get(Task, task_id)
-        if task is None:
-            return jsonify({'error': 'Resource not found'}), 404
-        return jsonify(task.to_dict())
-
-    # Update title/done for a task.
-    @app.route('/api/tasks/<int:task_id>', methods=['PUT'])
-    def update_task(task_id):
-        task = db.session.get(Task, task_id)
-        if task is None:
-            return jsonify({'error': 'Resource not found'}), 404
-
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-
-        try:
-            if 'title' in data:
-                title = data['title'].strip() if data['title'] else ''
-                if not title:
-                    return jsonify({'error': 'Title cannot be empty'}), 400
-                if len(title) > 200:
-                    return jsonify({'error': 'Title too long (max 200 characters)'}), 400
-                task.title = title
-
-            if 'done' in data:
-                task.done = bool(data['done'])
-
-            db.session.commit()
-            return jsonify(task.to_dict())
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-
-    # Permanently delete a task by id.
-    @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
-    def delete_task(task_id):
-        task = db.session.get(Task, task_id)
-        if task is None:
-            return jsonify({'error': 'Resource not found'}), 404
-
-        try:
-            db.session.delete(task)
-            db.session.commit()
-            return '', 204
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-
-    # Consistent JSON error responses.
+    try:
+        from blueprints.settings.routes import settings_bp
+        app.register_blueprint(settings_bp)
+    except ImportError:
+        print("Settings blueprint not found - will add later")
+    # Error handlers
     @app.errorhandler(404)
-    def not_found_error(error):
+    async def not_found(error):
         return jsonify({'error': 'Resource not found'}), 404
-
+    
     @app.errorhandler(400)
-    def bad_request_error(error):
+    async def bad_request(error):
         return jsonify({'error': 'Bad request'}), 400
-
+    
     @app.errorhandler(500)
-    def internal_error(error):
-        db.session.rollback()
+    async def internal_error(error):
         return jsonify({'error': 'Internal server error'}), 500
 
-# -----------------------------
-# Startup
-# -----------------------------
-def initialize_database(app):
-    """
-    Create tables on first run and seed a single welcome task
-    so the list view has something to show.
-    """
-    with app.app_context():
-        try:
-            db.create_all()
-            print("Database initialized successfully!")
-            if Task.query.count() == 0:
-                db.session.add(Task(title="Welcome to Momentum! Edit or delete this task to get started."))
-                db.session.commit()
-                print("Sample task created!")
-        except Exception as e:
-            print(f"Database initialization failed: {e}")
+async def initialize_database():
+    """Initialize database with tables and default data"""
+    try:
+        # Create tables
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("Database tables created successfully!")
+        
+        # Seed default data
+        async with AsyncSessionLocal() as session:
+            from models import Status, Task
+            
+            # Add default statuses for kanban board
+            result = await session.execute(select(func.count(Status.id)))
+            status_count = result.scalar_one()
+            
+            if status_count == 0:
+                default_statuses = [
+                    Status(id=1, description="Todo"),
+                    Status(id=2, description="In Progress"),
+                    Status(id=3, description="Done")
+                ]
+                for status in default_statuses:
+                    session.add(status)
+                print("Default statuses created!")
+            
+            await session.commit()
+            
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
 
 def main():
-    print("Starting Momentum Task Manager...")
-    print("Phase 1: Basic CRUD Operations")
-
-    app = create_app()
-    initialize_database(app)
-
-    print("Server starting on http://localhost:8000")
-    print("API endpoints available at http://localhost:8000/api/tasks")
-    print("Health check at http://localhost:8000/api/health")
-    print("Press Ctrl+C to stop the server")
-
+    print("Starting Task Line API...")
+    print("Server starting on http://localhost:5000")
+    print("Health check at http://localhost:5000/api/health")
+    print("Press Ctrl+C to stop")
+    
     app.run(
         debug=True,
         host='127.0.0.1',
-        port=8000
+        port=5001
     )
+
+# Create app instance
+app = create_app()
 
 if __name__ == '__main__':
     main()
-

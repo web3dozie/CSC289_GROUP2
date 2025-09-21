@@ -1,17 +1,14 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
 import Header from '../components/landing/Header'
 import Hero from '../components/landing/Hero'
-import WhyDifferent from '../components/landing/WhyDifferent'
-import Features from '../components/landing/Features'
-import Views from '../components/landing/Views'
-import CoachChat from '../components/landing/CoachChat'
 import Tutorial from '../components/landing/Tutorial'
-import Analytics from '../components/landing/Analytics'
 import Privacy from '../components/landing/Privacy'
 import FAQ from '../components/landing/FAQ'
 import CTA from '../components/landing/CTA'
 import Footer from '../components/landing/Footer'
 import Login from '../components/landing/Login'
+import SignUp from '../components/landing/SignUp'
+import Overview from '../components/landing/Overview'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -30,12 +27,7 @@ const indexRoute = createRoute({
         <Header />
         <main id="main">
           <Hero />
-          <WhyDifferent />
-          <Features />
-          <Views />
-          <CoachChat />
           <Tutorial />
-          <Analytics />
           <Privacy />
           <FAQ />
           <CTA />
@@ -52,6 +44,18 @@ const loginRoute = createRoute({
   component: Login,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute])
+const signupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/signup',
+  component: SignUp,
+})
+
+const overviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/overview',
+  component: Overview,
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, signupRoute, overviewRoute])
 
 export const router = createRouter({ routeTree })
