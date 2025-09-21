@@ -42,6 +42,7 @@ async def create_task():
                 category=data.get('category'),
                 priority=bool(data.get('priority', False)),
                 due_date=datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data.get('due_date') else None,
+                estimate_minutes=data.get('estimate_minutes'),
                 created_by=session['user_id']
             )
             db_session.add(task)
@@ -90,13 +91,18 @@ async def get_kanban_board():
 @tasks_bp.route('/categories', methods=['GET'])
 @auth_required
 async def get_categories():
-    """Get available categories"""
-    categories = [
-        {'id': 'personal', 'name': 'Personal', 'color': '#10B981'},
-        {'id': 'work', 'name': 'Work', 'color': '#3B82F6'},
-        {'id': 'shopping', 'name': 'Shopping', 'color': '#F59E0B'}
-    ]
-    return jsonify({'categories': categories})
+    """Get available categories from user's tasks"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            result = await db_session.execute(
+                select(Task.category)
+                .where(and_(Task.created_by == session['user_id'], Task.category.isnot(None)))
+                .distinct()
+            )
+            categories = [row[0] for row in result.all()]
+            return jsonify(categories)
+    except Exception as e:
+        return jsonify({'error': 'Failed to fetch categories'}), 500
 
 
 @tasks_bp.route('/<int:task_id>', methods=['GET'])
@@ -140,10 +146,14 @@ async def update_task(task_id):
                 task.description = data['description']
             if 'done' in data:
                 task.done = bool(data['done'])
+            if 'category' in data:
+                task.category = data['category']
             if 'priority' in data:
                 task.priority = bool(data['priority'])
             if 'due_date' in data:
                 task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data['due_date'] else None
+            if 'estimate_minutes' in data:
+                task.estimate_minutes = data['estimate_minutes']
             if 'status_id' in data:
                 task.status_id = int(data['status_id'])
 
