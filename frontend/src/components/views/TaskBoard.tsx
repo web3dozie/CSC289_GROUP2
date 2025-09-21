@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { Plus, GripVertical } from 'lucide-react'
 import { useKanbanTasks, useUpdateTask, useDeleteTask } from '../../lib/hooks'
-import { TaskItem, TaskModal, DeleteConfirmation } from '../tasks'
+import { TaskItem, TaskModal, DeleteConfirmation, CompletionNotesModal } from '../tasks'
 import type { Task } from '../../lib/api'
 
 type ColumnType = 'todo' | 'in-progress' | 'done'
@@ -169,6 +169,7 @@ export const TaskBoard: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
+  const [completingTask, setCompletingTask] = useState<Task | null>(null)
 
   // Drag and drop state
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
@@ -249,6 +250,12 @@ export const TaskBoard: React.FC = () => {
     // Don't do anything if dropping in the same column
     if (currentColumn === targetColumn) return
 
+    // If moving to done column, show completion notes modal
+    if (targetColumn === 'done' && !draggedTask.done) {
+      setCompletingTask(draggedTask)
+      return
+    }
+
     // Map column types to task status updates
     const statusUpdates: Record<ColumnType, Partial<Task>> = {
       'todo': { done: false },
@@ -263,6 +270,20 @@ export const TaskBoard: React.FC = () => {
       })
     } catch (error) {
       console.error('Failed to move task:', error)
+    }
+  }
+
+  const handleCompleteTask = async (notes?: string, createJournalEntry?: boolean) => {
+    if (!completingTask) return
+
+    try {
+      await updateTask.mutateAsync({
+        id: completingTask.id,
+        data: { done: true }
+      })
+      setCompletingTask(null)
+    } catch (error) {
+      console.error('Failed to complete task:', error)
     }
   }
 
@@ -395,6 +416,14 @@ export const TaskBoard: React.FC = () => {
         title="Delete Task"
         message={`Are you sure you want to delete "${deletingTask?.title}"? This action cannot be undone.`}
         isLoading={deleteTask.isPending}
+      />
+
+      <CompletionNotesModal
+        isOpen={!!completingTask}
+        onClose={() => setCompletingTask(null)}
+        task={completingTask!}
+        onComplete={handleCompleteTask}
+        isCompleting={updateTask.isPending}
       />
     </div>
   )

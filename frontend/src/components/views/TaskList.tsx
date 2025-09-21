@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { Plus, Search, SortAsc, SortDesc, GripVertical } from 'lucide-react'
 import { useTasks, useUpdateTask, useDeleteTask } from '../../lib/hooks'
-import { TaskItem, TaskModal, DeleteConfirmation } from '../tasks'
+import { TaskItem, TaskModal, DeleteConfirmation, CompletionNotesModal } from '../tasks'
 import type { Task } from '../../lib/api'
 
 type SortField = 'created_at' | 'due_date' | 'priority' | 'title'
@@ -16,6 +16,7 @@ export const TaskList: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
+  const [completingTask, setCompletingTask] = useState<Task | null>(null)
 
   // Keyboard navigation state
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number>(-1)
@@ -83,13 +84,34 @@ export const TaskList: React.FC = () => {
   }, [tasks])
 
   const handleToggleComplete = async (task: Task) => {
+    // If marking as complete, show completion notes modal
+    if (!task.done) {
+      setCompletingTask(task)
+      return
+    }
+
+    // If unmarking as complete, just update directly
     try {
       await updateTask.mutateAsync({
         id: task.id,
-        data: { done: !task.done }
+        data: { done: false }
       })
     } catch (error) {
       console.error('Failed to toggle task completion:', error)
+    }
+  }
+
+  const handleCompleteTask = async (notes?: string, createJournalEntry?: boolean) => {
+    if (!completingTask) return
+
+    try {
+      await updateTask.mutateAsync({
+        id: completingTask.id,
+        data: { done: true }
+      })
+      setCompletingTask(null)
+    } catch (error) {
+      console.error('Failed to complete task:', error)
     }
   }
 
@@ -472,6 +494,14 @@ export const TaskList: React.FC = () => {
         title="Delete Task"
         message={`Are you sure you want to delete "${deletingTask?.title}"? This action cannot be undone.`}
         isLoading={deleteTask.isPending}
+      />
+
+      <CompletionNotesModal
+        isOpen={!!completingTask}
+        onClose={() => setCompletingTask(null)}
+        task={completingTask!}
+        onComplete={handleCompleteTask}
+        isCompleting={updateTask.isPending}
       />
     </div>
   )

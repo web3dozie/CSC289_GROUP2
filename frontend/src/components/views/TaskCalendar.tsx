@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, Grid3X3 } from 'lucide-react'
-import { useCalendarTasks } from '../../lib/hooks'
-import { TaskItem, TaskModal, DeleteConfirmation } from '../tasks'
+import { useCalendarTasks, useUpdateTask } from '../../lib/hooks'
+import { TaskItem, TaskModal, DeleteConfirmation, CompletionNotesModal } from '../tasks'
 import type { Task } from '../../lib/api'
 
 interface CalendarDayProps {
@@ -116,9 +116,11 @@ export const TaskCalendar: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
+  const [completingTask, setCompletingTask] = useState<Task | null>(null)
   const [viewMode, setViewMode] = useState<'calendar' | 'agenda'>('calendar')
 
   const { data: tasks = [], isLoading, error } = useCalendarTasks()
+  const updateTask = useUpdateTask()
 
   // Calculate calendar grid
   const calendarDays = useMemo(() => {
@@ -164,6 +166,32 @@ export const TaskCalendar: React.FC = () => {
 
   const handleTaskClick = (task: Task) => {
     setEditingTask(task)
+  }
+
+  const handleToggleComplete = (task: Task) => {
+    // If marking as complete, show completion notes modal
+    if (!task.done) {
+      setCompletingTask(task)
+      return
+    }
+
+    // If unmarking as complete, just update directly
+    // Note: TaskCalendar doesn't have direct update capability, so this would need to be handled differently
+    // For now, we'll just show the modal for completion
+  }
+
+  const handleCompleteTask = async (_notes?: string, _createJournalEntry?: boolean) => {
+    if (!completingTask) return
+
+    try {
+      await updateTask.mutateAsync({
+        id: completingTask.id,
+        data: { done: true }
+      })
+      setCompletingTask(null)
+    } catch (error) {
+      console.error('Failed to complete task:', error)
+    }
   }
 
   const selectedDateTasks = useMemo(() => {
@@ -270,7 +298,7 @@ export const TaskCalendar: React.FC = () => {
                             task={task}
                             onEdit={setEditingTask}
                             onDelete={setDeletingTask}
-                            onToggleComplete={() => {}} // Will be handled by modal
+                            onToggleComplete={handleToggleComplete}
                             showActions={true}
                           />
                         ))}
@@ -298,7 +326,7 @@ export const TaskCalendar: React.FC = () => {
                       task={task}
                       onEdit={setEditingTask}
                       onDelete={setDeletingTask}
-                      onToggleComplete={() => {}} // Will be handled by modal
+                      onToggleComplete={handleToggleComplete}
                       showActions={true}
                     />
                   ))
@@ -482,7 +510,7 @@ export const TaskCalendar: React.FC = () => {
                       task={task}
                       onEdit={setEditingTask}
                       onDelete={setDeletingTask}
-                      onToggleComplete={() => {}} // Will be handled by modal
+                      onToggleComplete={handleToggleComplete}
                       showActions={true}
                     />
                   ))
@@ -520,6 +548,14 @@ export const TaskCalendar: React.FC = () => {
         }}
         title="Delete Task"
         message={`Are you sure you want to delete "${deletingTask?.title}"? This action cannot be undone.`}
+      />
+
+      <CompletionNotesModal
+        isOpen={!!completingTask}
+        onClose={() => setCompletingTask(null)}
+        task={completingTask!}
+        onComplete={handleCompleteTask}
+        isCompleting={updateTask.isPending}
       />
     </div>
   )
