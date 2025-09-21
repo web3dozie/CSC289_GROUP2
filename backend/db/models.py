@@ -74,9 +74,7 @@ class Task(Base):
     )
 
     # Relating tasks to user that created them
-    user: Mapped["User"] = relationship(
-        back_populates="tasks", cascade="all, delete-orphan"
-    )
+    user: Mapped["User"] = relationship(back_populates="tasks")
 
     # Relating tasks to categories
     category: Mapped["Category"] = relationship(back_populates="tasks")
@@ -91,10 +89,11 @@ class Task(Base):
 
     # Relate subtasks and parent tasks together
     parent_task: Mapped["Task"] = relationship(
-        back_populates="subtasks", remote_side=[id]
+        back_populates="subtasks",
+        remote_side=[id],
     )
     subtasks: Mapped[list["Task"]] = relationship(
-        back_populates="parent_task", cascade="all, delete-orphan"
+        back_populates="parent_task", cascade="all, delete-orphan", single_parent=True
     )
 
     # Potential dependency relationship
