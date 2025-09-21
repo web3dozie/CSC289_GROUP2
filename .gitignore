@@ -6,3 +6,7 @@ scripts
 docs
 node_modules/
 frontend/node_modules/
+
+# Internal organization documents
+STATUS_UPDATE*.md
+STATUS_UPDATE*
