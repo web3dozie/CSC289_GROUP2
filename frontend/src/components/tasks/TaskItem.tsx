@@ -18,6 +18,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   showActions = true
 }) => {
   const [showMenu, setShowMenu] = React.useState(false)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+
+  // Close menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -34,18 +49,30 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     new Date(task.due_date) > new Date() &&
     !task.done
 
+  const taskStatus = task.done ? 'completed' : 'pending'
+  const priorityText = task.priority ? 'high priority' : 'normal priority'
+  const dueDateText = task.due_date ?
+    (isOverdue ? `overdue, due ${formatDate(task.due_date)}` :
+     isDueSoon ? `due soon, ${formatDate(task.due_date)}` :
+     `due ${formatDate(task.due_date)}`) : 'no due date'
+
   return (
-    <div className={`bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
-      task.done ? 'opacity-75' : ''
-    }`}>
+    <article
+      className={`bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
+        task.done ? 'opacity-75' : ''
+      }`}
+      aria-label={`Task: ${task.title}, ${taskStatus}, ${priorityText}, ${dueDateText}`}
+    >
       {/* Header with checkbox and actions */}
-      <div className="flex items-start justify-between mb-2">
+      <header className="flex items-start justify-between mb-2">
         <div className="flex items-center space-x-3 flex-1">
           <input
             type="checkbox"
+            id={`task-${task.id}-complete`}
             checked={task.done}
             onChange={() => onToggleComplete(task)}
-            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+            aria-label={`${task.done ? 'Mark as incomplete' : 'Mark as complete'}: ${task.title}`}
           />
           <h3 className={`font-medium text-gray-900 flex-1 ${
             task.done ? 'line-through text-gray-500' : ''
@@ -58,21 +85,31 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="text-gray-400 hover:text-gray-600 p-1 rounded"
+              className="text-gray-400 hover:text-gray-600 p-1 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+              aria-label={`Task options for ${task.title}`}
+              aria-expanded={showMenu}
+              aria-haspopup="menu"
             >
-              <MoreVertical className="w-4 h-4" />
+              <MoreVertical className="w-4 h-4" aria-hidden="true" />
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+              <div
+                ref={menuRef}
+                className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-10"
+                role="menu"
+                aria-label="Task actions"
+              >
                 <button
                   onClick={() => {
                     onEdit(task)
                     setShowMenu(false)
                   }}
-                  className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
+                  role="menuitem"
+                  aria-label={`Edit task: ${task.title}`}
                 >
-                  <Edit className="w-4 h-4 mr-2" />
+                  <Edit className="w-4 h-4 mr-2" aria-hidden="true" />
                   Edit
                 </button>
                 <button
@@ -80,16 +117,18 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                     onDelete(task)
                     setShowMenu(false)
                   }}
-                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-100"
+                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-100 focus:outline-none focus:bg-red-100"
+                  role="menuitem"
+                  aria-label={`Delete task: ${task.title}`}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
                   Delete
                 </button>
               </div>
             )}
           </div>
         )}
-      </div>
+      </header>
 
       {/* Description */}
       {task.description && (
@@ -101,19 +140,25 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       )}
 
       {/* Metadata */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <footer className="flex items-center justify-between text-xs text-gray-500">
         <div className="flex items-center space-x-4">
           {/* Category */}
           {task.category && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 text-gray-800">
+            <span
+              className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 text-gray-800"
+              aria-label={`Category: ${task.category}`}
+            >
               {task.category}
             </span>
           )}
 
           {/* Priority */}
           {task.priority && (
-            <div className="flex items-center text-yellow-600">
-              <Star className="w-3 h-3 fill-current" />
+            <div
+              className="flex items-center text-yellow-600"
+              aria-label="High priority task"
+            >
+              <Star className="w-3 h-3 fill-current" aria-hidden="true" />
             </div>
           )}
 
@@ -123,25 +168,34 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               isOverdue ? 'text-red-600' :
               isDueSoon ? 'text-orange-600' : 'text-gray-500'
             }`}>
-              <Calendar className="w-3 h-3 mr-1" />
-              {formatDate(task.due_date)}
+              <Calendar className="w-3 h-3 mr-1" aria-hidden="true" />
+              <time dateTime={task.due_date} aria-label={`Due ${dueDateText}`}>
+                {formatDate(task.due_date)}
+              </time>
             </div>
           )}
 
           {/* Time Estimate */}
           {task.estimate_minutes && (
-            <div className="flex items-center text-gray-500">
-              <Clock className="w-3 h-3 mr-1" />
+            <div
+              className="flex items-center text-gray-500"
+              aria-label={`Estimated time: ${task.estimate_minutes} minutes`}
+            >
+              <Clock className="w-3 h-3 mr-1" aria-hidden="true" />
               {task.estimate_minutes}m
             </div>
           )}
         </div>
 
         {/* Created date */}
-        <span className="text-xs text-gray-400">
+        <time
+          className="text-xs text-gray-400"
+          dateTime={task.created_at}
+          aria-label={`Created ${formatDate(task.created_at)}`}
+        >
           {formatDate(task.created_at)}
-        </span>
-      </div>
-    </div>
+        </time>
+      </footer>
+    </article>
   )
 }

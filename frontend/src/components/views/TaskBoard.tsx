@@ -170,6 +170,18 @@ export const TaskBoard: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
   const [completingTask, setCompletingTask] = useState<Task | null>(null)
+  const [liveMessage, setLiveMessage] = useState('')
+
+  // Announce task movements to screen readers
+  const announceTaskMovement = (taskTitle: string, fromColumn: string, toColumn: string) => {
+    setLiveMessage(`Task "${taskTitle}" moved from ${fromColumn} to ${toColumn}`)
+    setTimeout(() => setLiveMessage(''), 1000)
+  }
+
+  const announceTaskCompletion = (taskTitle: string) => {
+    setLiveMessage(`Task "${taskTitle}" marked as completed`)
+    setTimeout(() => setLiveMessage(''), 1000)
+  }
 
   // Drag and drop state
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
@@ -268,12 +280,14 @@ export const TaskBoard: React.FC = () => {
         id: draggedTask.id,
         data: statusUpdates[targetColumn]
       })
+      // Announce the task movement
+      announceTaskMovement(draggedTask.title, currentColumn, targetColumn)
     } catch (error) {
       console.error('Failed to move task:', error)
     }
   }
 
-  const handleCompleteTask = async (notes?: string, createJournalEntry?: boolean) => {
+  const handleCompleteTask = async (_notes?: string, _createJournalEntry?: boolean) => {
     if (!completingTask) return
 
     try {
@@ -281,6 +295,7 @@ export const TaskBoard: React.FC = () => {
         id: completingTask.id,
         data: { done: true }
       })
+      announceTaskCompletion(completingTask.title)
       setCompletingTask(null)
     } catch (error) {
       console.error('Failed to complete task:', error)
@@ -327,6 +342,16 @@ export const TaskBoard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ARIA Live Region for announcements */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        role="status"
+      >
+        {liveMessage}
+      </div>
+
       {/* Header */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between">

@@ -32,16 +32,39 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Skip Navigation Links */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-purple-600 focus:text-white focus:rounded-md"
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#navigation"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-32 focus:z-50 focus:px-4 focus:py-2 focus:bg-purple-600 focus:text-white focus:rounded-md"
+      >
+        Skip to navigation
+      </a>
+
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
+      <aside
+        className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg"
+        role="complementary"
+        aria-label="Main navigation"
+      >
         <div className="flex flex-col h-full">
           {/* Logo/Brand */}
-          <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200">
+          <header className="flex items-center justify-center h-16 px-4 border-b border-gray-200">
             <h1 className="text-xl font-bold text-gray-900">Task Line</h1>
-          </div>
+          </header>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav
+            id="navigation"
+            className="flex-1 px-4 py-6 space-y-2"
+            role="navigation"
+            aria-label="Task management views"
+          >
             {navigation.map((item) => {
               const Icon = item.icon
               const isActive = location.pathname === item.href
@@ -50,13 +73,14 @@ export const AppLayout: React.FC = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
                     isActive
                       ? 'bg-purple-100 text-purple-700 border-r-2 border-purple-700'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
+                  aria-current={isActive ? 'page' : undefined}
                 >
-                  <Icon className="w-5 h-5 mr-3" />
+                  <Icon className="w-5 h-5 mr-3" aria-hidden="true" />
                   {item.name}
                 </Link>
               )
@@ -64,11 +88,11 @@ export const AppLayout: React.FC = () => {
           </nav>
 
           {/* User section */}
-          <div className="border-t border-gray-200 p-4">
+          <section className="border-t border-gray-200 p-4" aria-label="User account">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-purple-600" />
+                  <User className="w-4 h-4 text-purple-600" aria-hidden="true" />
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-900">
@@ -78,28 +102,35 @@ export const AppLayout: React.FC = () => {
               </div>
               <button
                 onClick={handleLogout}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                 title="Logout"
+                aria-label="Logout from your account"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
             {/* Settings link */}
             <Link
               to="/app/settings"
-              className="flex items-center mt-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+              className="flex items-center mt-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+              aria-label="Go to settings page"
             >
-              <Settings className="w-4 h-4 mr-2" />
+              <Settings className="w-4 h-4 mr-2" aria-hidden="true" />
               Settings
             </Link>
-          </div>
+          </section>
         </div>
-      </div>
+      </aside>
 
       {/* Main content */}
       <div className="pl-64">
-        <main className="py-6">
+        <main
+          id="main-content"
+          className="py-6"
+          role="main"
+          aria-label="Task management content"
+        >
           <Outlet />
         </main>
       </div>
