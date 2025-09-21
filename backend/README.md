@@ -13,6 +13,47 @@ Summary
   - backend/tests/* — pytest tests for API and models.
   - backend/taskline.db — local SQLite DB (should not be committed; see below).
 
+## Project Structure
+
+```
+backend/
+├── app.py                    # Main Quart application factory
+├── db_async.py              # Async database engine and session setup
+├── models.py                # SQLAlchemy ORM models (User, Task, Status, etc.)
+├── requirements.txt         # Python dependencies
+├── taskline.db             # Local SQLite database (should be gitignored)
+├── debug_auth_post.py      # Debug script for auth testing
+├── debug_init_db.py        # Debug script for database initialization
+├── debug_task_flow.py      # Debug script for task workflows
+├── README.md               # This file
+├── __pycache__/            # Python bytecode cache (gitignored)
+├── blueprints/             # Modular API blueprints
+│   ├── __init__.py
+│   ├── __pycache__/
+│   ├── auth/               # Authentication endpoints
+│   │   ├── __init__.py
+│   │   ├── routes.py       # PIN setup, login, logout, PIN changes
+│   │   └── __pycache__/
+│   ├── tasks/              # Task management endpoints
+│   │   ├── __init__.py
+│   │   ├── routes.py       # CRUD operations, kanban, categories
+│   │   └── __pycache__/
+│   ├── review/             # Review and analytics endpoints
+│   │   ├── __init__.py
+│   │   ├── routes.py       # Journal, summaries, insights
+│   │   └── __pycache__/
+│   └── settings/           # User preferences endpoints
+│       ├── __init__.py
+│       ├── routes.py       # Feature toggles, themes, auto-lock
+│       └── __pycache__/
+└── tests/                  # Test suite
+    ├── test_api.py         # General API and task CRUD tests
+    ├── test_quart_api.py   # Basic Quart app smoke tests
+    ├── test_review_api.py  # Review and journal endpoint tests
+    ├── test_settings_api.py # Settings endpoint tests
+    └── __pycache__/
+```
+
 Quick status vs LOW-LEVEL-REQUIREMENTS
 - Present / implemented:
   - Async engine, Base, models, and blueprints for auth, tasks, review, settings.
