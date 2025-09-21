@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Plus } from 'lucide-react'
+import React, { useState, useRef } from 'react'
+import { Plus, GripVertical } from 'lucide-react'
 import { useKanbanTasks, useUpdateTask, useDeleteTask } from '../../lib/hooks'
 import { TaskItem, TaskModal, DeleteConfirmation } from '../tasks'
 import type { Task } from '../../lib/api'
@@ -13,6 +13,12 @@ interface ColumnProps {
   onTaskUpdate: (taskId: number, updates: Partial<Task>) => void
   onTaskEdit: (task: Task) => void
   onTaskDelete: (task: Task) => void
+  onDragStart: (e: React.DragEvent, task: Task) => void
+  onDragEnd: (e: React.DragEvent) => void
+  onDragOver: (e: React.DragEvent, columnType: ColumnType) => void
+  onDragLeave: () => void
+  onDrop: (e: React.DragEvent, targetColumn: ColumnType) => void
+  isDragOver: boolean
 }
 
 const Column: React.FC<ColumnProps> = ({
@@ -21,7 +27,13 @@ const Column: React.FC<ColumnProps> = ({
   type,
   onTaskUpdate,
   onTaskEdit,
-  onTaskDelete
+  onTaskDelete,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  isDragOver
 }) => {
   const getNextStatus = (currentType: ColumnType): ColumnType | null => {
     switch (currentType) {
@@ -67,7 +79,14 @@ const Column: React.FC<ColumnProps> = ({
   }
 
   return (
-    <div className={`flex-1 min-w-80 border-2 rounded-lg ${columnColors[type]}`}>
+    <div
+      className={`flex-1 min-w-80 border-2 rounded-lg transition-colors ${
+        columnColors[type]
+      } ${isDragOver ? 'ring-2 ring-purple-400 ring-opacity-50' : ''}`}
+      onDragOver={(e) => onDragOver(e, type)}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => onDrop(e, type)}
+    >
       {/* Column Header */}
       <div className={`p-4 border-b ${headerColors[type]} rounded-t-lg`}>
         <div className="flex items-center justify-between">
@@ -79,14 +98,40 @@ const Column: React.FC<ColumnProps> = ({
       </div>
 
       {/* Tasks */}
-      <div className="p-4 space-y-3 min-h-96">
+      <div className="p-4 space-y-3 min-h-96 relative">
+        {isDragOver && (
+          <div className="absolute inset-0 border-2 border-dashed border-purple-400 bg-purple-50 bg-opacity-50 rounded-lg flex items-center justify-center z-10">
+            <div className="text-center">
+              <div className="text-purple-600 font-medium">Drop here</div>
+              <div className="text-sm text-purple-500">Move to {title}</div>
+            </div>
+          </div>
+        )}
+
         {tasks.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <p>No tasks in {title.toLowerCase()}</p>
+            {isDragOver && (
+              <p className="text-sm text-purple-500 mt-2">Drop tasks here</p>
+            )}
           </div>
         ) : (
           tasks.map(task => (
-            <div key={task.id} className="bg-white rounded-lg shadow-sm border">
+            <div
+              key={task.id}
+              className="bg-white rounded-lg shadow-sm border group cursor-move"
+              draggable
+              onDragStart={(e) => onDragStart(e, task)}
+              onDragEnd={onDragEnd}
+            >
+              {/* Drag handle */}
+              <div className="flex items-center justify-between p-3 border-b border-gray-100">
+                <GripVertical className="w-4 h-4 text-gray-400 cursor-grab active:cursor-grabbing" />
+                <span className="text-xs text-gray-500 font-medium">
+                  Drag to move
+                </span>
+              </div>
+
               <TaskItem
                 task={task}
                 onEdit={onTaskEdit}
@@ -95,7 +140,7 @@ const Column: React.FC<ColumnProps> = ({
                 showActions={true}
               />
 
-              {/* Move buttons */}
+              {/* Move buttons - keep for keyboard users */}
               <div className="px-4 pb-3 flex justify-between">
                 <button
                   onClick={() => handleMoveTask(task, 'backward')}
@@ -125,6 +170,11 @@ export const TaskBoard: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
 
+  // Drag and drop state
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<ColumnType | null>(null)
+  const boardRef = useRef<HTMLDivElement>(null)
+
   const { data: kanbanData, isLoading, error } = useKanbanTasks()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
@@ -153,6 +203,66 @@ export const TaskBoard: React.FC = () => {
       setDeletingTask(null)
     } catch (error) {
       console.error('Failed to delete task:', error)
+    }
+  }
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, task: Task) => {
+    setDraggedTask(task)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/html', e.currentTarget.outerHTML)
+    ;(e.currentTarget as HTMLElement).style.opacity = '0.5'
+  }
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggedTask(null)
+    setDragOverColumn(null)
+    ;(e.currentTarget as HTMLElement).style.opacity = '1'
+  }
+
+  const handleDragOver = (e: React.DragEvent, columnType: ColumnType) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverColumn(columnType)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null)
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetColumn: ColumnType) => {
+    e.preventDefault()
+    setDragOverColumn(null)
+
+    if (!draggedTask) return
+
+    // Determine current column based on task status
+    let currentColumn: ColumnType
+    if (draggedTask.done) {
+      currentColumn = 'done'
+    } else {
+      // For simplicity, assume tasks without explicit status are in 'todo'
+      // In a real app, you'd want a more sophisticated status system
+      currentColumn = 'todo'
+    }
+
+    // Don't do anything if dropping in the same column
+    if (currentColumn === targetColumn) return
+
+    // Map column types to task status updates
+    const statusUpdates: Record<ColumnType, Partial<Task>> = {
+      'todo': { done: false },
+      'in-progress': { done: false }, // You might want to add a separate status field
+      'done': { done: true }
+    }
+
+    try {
+      await updateTask.mutateAsync({
+        id: draggedTask.id,
+        data: statusUpdates[targetColumn]
+      })
+    } catch (error) {
+      console.error('Failed to move task:', error)
     }
   }
 
@@ -204,6 +314,9 @@ export const TaskBoard: React.FC = () => {
             <p className="text-gray-600 mt-1">
               {todo.length + inProgress.length + done.length} total tasks
             </p>
+            <p className="text-sm text-gray-500 mt-1">
+              Drag tasks between columns or use the move buttons
+            </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -216,7 +329,7 @@ export const TaskBoard: React.FC = () => {
       </div>
 
       {/* Board */}
-      <div className="flex gap-6 overflow-x-auto pb-6">
+      <div className="flex gap-6 overflow-x-auto pb-6" ref={boardRef}>
         <Column
           title="To Do"
           tasks={todo}
@@ -224,6 +337,12 @@ export const TaskBoard: React.FC = () => {
           onTaskUpdate={handleTaskUpdate}
           onTaskEdit={handleTaskEdit}
           onTaskDelete={handleTaskDelete}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          isDragOver={dragOverColumn === 'todo'}
         />
         <Column
           title="In Progress"
@@ -232,6 +351,12 @@ export const TaskBoard: React.FC = () => {
           onTaskUpdate={handleTaskUpdate}
           onTaskEdit={handleTaskEdit}
           onTaskDelete={handleTaskDelete}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          isDragOver={dragOverColumn === 'in-progress'}
         />
         <Column
           title="Done"
@@ -240,6 +365,12 @@ export const TaskBoard: React.FC = () => {
           onTaskUpdate={handleTaskUpdate}
           onTaskEdit={handleTaskEdit}
           onTaskDelete={handleTaskDelete}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          isDragOver={dragOverColumn === 'done'}
         />
       </div>
 

@@ -8,7 +8,6 @@ describe('Login', () => {
     render(<Login />)
 
     expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/pin code/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /unlock app/i })).toBeInTheDocument()
   })
@@ -60,11 +59,9 @@ describe('Login', () => {
     const user = userEvent.setup()
     render(<Login />)
 
-    const usernameInput = screen.getByLabelText(/username/i)
     const pinInput = screen.getByLabelText(/pin code/i)
     const submitButton = screen.getByRole('button', { name: /unlock app/i })
 
-    await user.type(usernameInput, 'testuser')
     await user.type(pinInput, '1234')
 
     expect(submitButton).not.toBeDisabled()
