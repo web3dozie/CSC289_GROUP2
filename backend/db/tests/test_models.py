@@ -40,7 +40,7 @@ def test_user_creation_and_uniqueness(session):
         username="alice",
         email="a@example.com",
         user_pin=1111,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     session.add(u)
     session.commit()
@@ -52,7 +52,7 @@ def test_user_creation_and_uniqueness(session):
             username="alice",
             email="b@example.com",
             user_pin=2222,
-            created_on=datetime.utcnow(),
+            created_on=datetime.now(),
         )
     )
     with pytest.raises(IntegrityError):
@@ -65,7 +65,7 @@ def test_user_creation_and_uniqueness(session):
             username="bob",
             email="a@example.com",
             user_pin=3333,
-            created_on=datetime.utcnow(),
+            created_on=datetime.now(),
         )
     )
     with pytest.raises(IntegrityError):
@@ -81,25 +81,25 @@ def test_task_creation_and_relationships(session):
         username="chris",
         email="c@example.com",
         user_pin=1234,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="OPEN",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     cat = Category(
         name="General",
         color_hex="999999",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([u, st, cat])
     session.commit()
 
-    due = datetime.utcnow() + timedelta(days=2)
+    due = datetime.now() + timedelta(days=2)
     t = Task(
         title="Write docs",
         description="draft",
@@ -108,8 +108,8 @@ def test_task_creation_and_relationships(session):
         status_id=st.id,
         category_id=cat.id,
         due_date=due,
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     session.add(t)
     session.commit()
@@ -130,21 +130,21 @@ def test_task_with_multiple_tags(session):
         username="dana",
         email="d@example.com",
         user_pin=4444,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="IN_PROGRESS",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     t = Task(
         title="Tag me",
         created_by=1,  # will set after commit
         status_id=1,  # will set after commit
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     # add in two steps so we can use real IDs
     session.add_all([u, st])
@@ -155,15 +155,15 @@ def test_task_with_multiple_tags(session):
     tag1 = Tag(
         name="prototype",
         color_hex="3366FF",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     tag2 = Tag(
         name="school",
         color_hex="FF9933",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([t, tag1, tag2])
@@ -188,12 +188,12 @@ def test_parent_child_subtasks(session):
         username="eve",
         email="e@example.com",
         user_pin=5555,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="BLOCKED",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([u, st])
@@ -203,25 +203,25 @@ def test_parent_child_subtasks(session):
         title="Parent",
         created_by=u.id,
         status_id=st.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     c1 = Task(
         title="Child 1",
         created_by=u.id,
         status_id=st.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     c2 = Task(
         title="Child 2",
         created_by=u.id,
         status_id=st.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     session.add_all([parent, c1, c2])
     session.commit()
@@ -242,12 +242,12 @@ def test_cascade_delete_user_deletes_tasks(session):
         username="fred",
         email="f@example.com",
         user_pin=6666,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="TEMP",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([u, st])
@@ -257,9 +257,9 @@ def test_cascade_delete_user_deletes_tasks(session):
         title="to be deleted with user",
         created_by=u.id,
         status_id=st.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     session.add(t)
     session.commit()
@@ -278,19 +278,19 @@ def test_delete_category_sets_task_category_null(session):
         username="gina",
         email="g@example.com",
         user_pin=7777,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="TEMP2",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     cat = Category(
         name="Disposable",
         color_hex="ABCDEF",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([u, st, cat])
@@ -301,9 +301,9 @@ def test_delete_category_sets_task_category_null(session):
         created_by=u.id,
         status_id=st.id,
         category_id=cat.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     session.add(t)
     session.commit()
@@ -321,12 +321,12 @@ def test_delete_task_clears_m2m_links_but_keeps_tags(session):
         username="hank",
         email="h@example.com",
         user_pin=8888,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="READY",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([u, st])
@@ -336,15 +336,15 @@ def test_delete_task_clears_m2m_links_but_keeps_tags(session):
         title="linked task",
         created_by=u.id,
         status_id=st.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     tag = Tag(
         name="keep_me",
         color_hex="00FF00",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([t, tag])
@@ -372,12 +372,12 @@ def test_delete_parent_task_deletes_subtasks(session):
         username="ira",
         email="i@example.com",
         user_pin=9999,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="PARENT",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([u, st])
@@ -387,17 +387,17 @@ def test_delete_parent_task_deletes_subtasks(session):
         title="parent",
         created_by=u.id,
         status_id=st.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     c = Task(
         title="child",
         created_by=u.id,
         status_id=st.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     session.add_all([parent, c])
     session.commit()
@@ -419,12 +419,12 @@ def test_retrieve_status_of_task(session):
         username="jane",
         email="j@example.com",
         user_pin=1357,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="DONE",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([u, st])
@@ -434,9 +434,9 @@ def test_retrieve_status_of_task(session):
         title="finish me",
         created_by=u.id,
         status_id=st.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     session.add(t)
     session.commit()
@@ -453,19 +453,19 @@ def test_back_populates_collections(session):
         username="kate",
         email="k@example.com",
         user_pin=2468,
-        created_on=datetime.utcnow(),
+        created_on=datetime.now(),
     )
     st = Status(
         title="QUEUED",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     cat = Category(
         name="Study",
         color_hex="123456",
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
         created_by=0,
     )
     session.add_all([u, st, cat])
@@ -476,9 +476,9 @@ def test_back_populates_collections(session):
         created_by=u.id,
         status_id=st.id,
         category_id=cat.id,
-        due_date=datetime.utcnow(),
-        created_on=datetime.utcnow(),
-        updated_on=datetime.utcnow(),
+        due_date=datetime.now(),
+        created_on=datetime.now(),
+        updated_on=datetime.now(),
     )
     session.add(t)
     session.commit()
