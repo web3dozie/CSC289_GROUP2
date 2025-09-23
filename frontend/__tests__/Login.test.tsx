@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from './test-utils'
+import { render, screen, act } from './test-utils'
 import userEvent from '@testing-library/user-event'
 import Login from '../src/components/landing/Login'
 
@@ -17,7 +17,9 @@ describe('Login', () => {
     render(<Login />)
 
     const pinInput = screen.getByLabelText(/pin code/i)
-    await user.type(pinInput, 'abc123def')
+    await act(async () => {
+      await user.type(pinInput, 'abc123def')
+    })
 
     expect(pinInput).toHaveValue('123')
   })
@@ -27,7 +29,9 @@ describe('Login', () => {
     render(<Login />)
 
     const pinInput = screen.getByLabelText(/pin code/i)
-    await user.type(pinInput, '123456789')
+    await act(async () => {
+      await user.type(pinInput, '123456789')
+    })
 
     expect(pinInput).toHaveValue('12345678')
   })
@@ -41,10 +45,14 @@ describe('Login', () => {
 
     expect(pinInput).toHaveAttribute('type', 'password')
 
-    await user.click(toggleButton)
+    await act(async () => {
+      await user.click(toggleButton)
+    })
     expect(pinInput).toHaveAttribute('type', 'text')
 
-    await user.click(toggleButton)
+    await act(async () => {
+      await user.click(toggleButton)
+    })
     expect(pinInput).toHaveAttribute('type', 'password')
   })
 
@@ -62,7 +70,12 @@ describe('Login', () => {
     const pinInput = screen.getByLabelText(/pin code/i)
     const submitButton = screen.getByRole('button', { name: /unlock app/i })
 
-    await user.type(pinInput, '1234')
+
+    await act(async () => {
+      await user.type(usernameInput, 'testuser')
+      await user.type(pinInput, '1234')
+    })
+
 
     expect(submitButton).not.toBeDisabled()
   })
