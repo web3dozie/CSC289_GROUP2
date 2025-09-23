@@ -7,12 +7,13 @@
 #         pass
 
 import os
-from quart import Quart, jsonify
+from quart import Quart, jsonify, request, session
 from quart_cors import cors
 from datetime import datetime
 
 from db_async import engine, AsyncSessionLocal, Base
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
+from models import auth_required
 
 def create_app():
     """Create and configure the Quart app"""
@@ -75,6 +76,161 @@ def register_routes(app):
             'database': 'connected'
         })
     
+    @app.route('/api/export', methods=['GET'])
+    @auth_required
+    async def export_data():
+        """Export all user data as JSON"""
+        try:
+            from models import Task, JournalEntry, UserSettings, Status
+            from sqlalchemy import select
+            from sqlalchemy.orm import selectinload
+            
+            async with AsyncSessionLocal() as db_session:
+                # Export tasks
+                task_result = await db_session.execute(
+                    select(Task).options(selectinload(Task.status))
+                    .where(Task.created_by == session['user_id'])
+                )
+                tasks = [task.to_dict() for task in task_result.scalars().all()]
+                
+                # Export journal entries
+                journal_result = await db_session.execute(
+                    select(JournalEntry).where(JournalEntry.user_id == session['user_id'])
+                )
+                journal_entries = [entry.to_dict() for entry in journal_result.scalars().all()]
+                
+                # Export settings
+                settings_result = await db_session.execute(
+                    select(UserSettings).where(UserSettings.user_id == session['user_id'])
+                )
+                settings = [setting.to_dict() for setting in settings_result.scalars().all()]
+                
+                export_data = {
+                    'version': '1.0',
+                    'exported_at': datetime.now().isoformat(),
+                    'tasks': tasks,
+                    'journal_entries': journal_entries,
+                    'settings': settings
+                }
+                
+                return jsonify(export_data)
+                
+        except Exception as e:
+            return jsonify({'error': 'Failed to export data'}), 500
+    
+    @app.route('/api/import', methods=['POST'])
+    @auth_required
+    async def import_data():
+        """Import user data from JSON"""
+        try:
+            data = await request.get_json()
+            
+            if not data or 'version' not in data:
+                return jsonify({'error': 'Invalid import data format'}), 400
+            
+            from models import Task, JournalEntry, UserSettings, Status
+            from sqlalchemy import select
+            from datetime import datetime
+            
+            async with AsyncSessionLocal() as db_session:
+                imported_count = {'tasks': 0, 'journal_entries': 0, 'settings': 0}
+                
+                # Import tasks
+                if 'tasks' in data:
+                    for task_data in data['tasks']:
+                        # Skip if task with same title and created_at already exists
+                        existing_result = await db_session.execute(
+                            select(Task).where(
+                                Task.title == task_data['title'],
+                                Task.created_by == session['user_id']
+                            )
+                        )
+                        if existing_result.scalars().first():
+                            continue  # Skip duplicate
+                            
+                        task = Task(
+                            title=task_data['title'],
+                            description=task_data.get('description', ''),
+                            notes=task_data.get('notes', ''),
+                            done=task_data.get('done', False),
+                            category=task_data.get('category'),
+                            priority=task_data.get('priority', False),
+                            due_date=datetime.fromisoformat(task_data['due_date']).date() if task_data.get('due_date') else None,
+                            estimate_minutes=task_data.get('estimate_minutes'),
+                            order=task_data.get('order', 0),
+                            status_id=task_data.get('status', {}).get('id', 1) if task_data.get('status') else 1,
+                            created_at=datetime.fromisoformat(task_data['created_at']) if task_data.get('created_at') else datetime.now(),
+                            updated_on=datetime.fromisoformat(task_data['updated_on']) if task_data.get('updated_on') else datetime.now(),
+                            closed_on=datetime.fromisoformat(task_data['closed_on']) if task_data.get('closed_on') else None,
+                            created_by=session['user_id']
+                        )
+                        db_session.add(task)
+                        imported_count['tasks'] += 1
+                
+                # Import journal entries
+                if 'journal_entries' in data:
+                    for entry_data in data['journal_entries']:
+                        # Skip if entry with same date and content already exists
+                        existing_result = await db_session.execute(
+                            select(JournalEntry).where(
+                                JournalEntry.entry_date == datetime.fromisoformat(entry_data['entry_date']).date(),
+                                JournalEntry.content == entry_data['content'],
+                                JournalEntry.user_id == session['user_id']
+                            )
+                        )
+                        if existing_result.scalars().first():
+                            continue  # Skip duplicate
+                            
+                        entry = JournalEntry(
+                            user_id=session['user_id'],
+                            entry_date=datetime.fromisoformat(entry_data['entry_date']).date(),
+                            content=entry_data['content'],
+                            created_at=datetime.fromisoformat(entry_data['created_at']) if entry_data.get('created_at') else datetime.now(),
+                            updated_on=datetime.fromisoformat(entry_data['updated_on']) if entry_data.get('updated_on') else datetime.now()
+                        )
+                        db_session.add(entry)
+                        imported_count['journal_entries'] += 1
+                
+                # Import settings (update existing or create new)
+                if 'settings' in data and data['settings']:
+                    settings_data = data['settings'][0]  # Assume single settings object
+                    existing_result = await db_session.execute(
+                        select(UserSettings).where(UserSettings.user_id == session['user_id'])
+                    )
+                    existing_settings = existing_result.scalars().first()
+                    
+                    if existing_settings:
+                        # Update existing
+                        existing_settings.notes_enabled = settings_data.get('notes_enabled', True)
+                        existing_settings.timer_enabled = settings_data.get('timer_enabled', True)
+                        existing_settings.ai_url = settings_data.get('ai_url')
+                        existing_settings.auto_lock_minutes = settings_data.get('auto_lock_minutes', 10)
+                        existing_settings.theme = settings_data.get('theme', 'light')
+                    else:
+                        # Create new
+                        new_settings = UserSettings(
+                            user_id=session['user_id'],
+                            notes_enabled=settings_data.get('notes_enabled', True),
+                            timer_enabled=settings_data.get('timer_enabled', True),
+                            ai_url=settings_data.get('ai_url'),
+                            auto_lock_minutes=settings_data.get('auto_lock_minutes', 10),
+                            theme=settings_data.get('theme', 'light')
+                        )
+                        db_session.add(new_settings)
+                    
+                    imported_count['settings'] += 1
+                
+                await db_session.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Data imported successfully',
+                    'imported': imported_count
+                })
+                
+        except Exception as e:
+            return jsonify({'error': f'Failed to import data: {str(e)}'}), 500
+    
     @app.route('/favicon.ico')
     async def favicon():
         return ('', 204)
@@ -121,7 +277,14 @@ async def initialize_database():
         # Create tables
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            
+            # Enable WAL mode for better concurrency
+            await conn.execute(text("PRAGMA journal_mode=WAL"))
+            # Enable foreign key constraints
+            await conn.execute(text("PRAGMA foreign_keys=ON"))
+            
         print("Database tables created successfully!")
+        print("WAL mode and foreign key constraints enabled!")
         
         # Seed default data
         async with AsyncSessionLocal() as session:
