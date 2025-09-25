@@ -70,9 +70,8 @@ describe('Login', () => {
     const pinInput = screen.getByLabelText(/pin code/i)
     const submitButton = screen.getByRole('button', { name: /unlock app/i })
 
-
     await act(async () => {
-      await user.type(usernameInput, 'testuser')
+      // Login only requires a PIN in the current component
       await user.type(pinInput, '1234')
     })
 
