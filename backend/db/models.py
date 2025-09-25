@@ -1,6 +1,11 @@
 from datetime import datetime
+from functools import wraps
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from quart import jsonify, request, session
+import inspect
+import hashlib
 from sqlalchemy import (
+    Boolean,
     String,
     DateTime,
     ForeignKey,
@@ -15,6 +20,13 @@ from sqlalchemy import (
 
 class Base(DeclarativeBase):
     pass
+
+
+def _iso(dt):
+    try:
+        return dt.isoformat()
+    except Exception:
+        return None
 
 
 # User Table
