@@ -11,10 +11,9 @@ from quart import Quart, jsonify
 from quart_cors import cors
 from datetime import datetime
 from sqlalchemy import select, func
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Import environment variables
+from config import DATABASE_URL, SECRET_KEY
 
 # Imports for running the full app
 # from backend.db.engine_async import async_engine, AsyncSessionLocal
@@ -33,9 +32,13 @@ def create_app():
     cors(app)
 
     # Configuration
-    app.config["SECRET_KEY"] = os.environ.get(
-        "SECRET_KEY", "dev-key-change-in-production"
-    )
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+    if not app.config["SECRET_KEY"]:
+        raise RuntimeError("SECRET_KEY is not set. Define it in .env or environment.")
+
+    app.config["DATABASE_URL"] = os.getenv("DATABASE_URL")
+    if not app.config["DATABASE_URL"]:
+        raise RuntimeError("DATABASE_URL is not set. Define it in .env or environment.")
 
     # Register routes
     register_routes(app)
