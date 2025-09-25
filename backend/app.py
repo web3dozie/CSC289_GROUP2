@@ -38,16 +38,19 @@ def create_app():
     async def startup():
         try:
             await initialize_database()
-        except Exception as e:
-            print(f"Database initialization failed: {e}")
+        except Exception:
+            import logging
+            logging.exception("Database initialization failed")
     
     @app.after_serving
     async def shutdown():
         try:
             await engine.dispose()
-            print("Database engine disposed")
-        except Exception as e:
-            print(f"Engine disposal failed: {e}")
+            import logging
+            logging.info("Database engine disposed")
+        except Exception:
+            import logging
+            logging.exception("Engine disposal failed")
     
     return app
 
@@ -228,8 +231,10 @@ def register_routes(app):
                     'imported': imported_count
                 })
                 
-        except Exception as e:
-            return jsonify({'error': f'Failed to import data: {str(e)}'}), 500
+        except Exception:
+            import logging
+            logging.exception("Failed to import data")
+            return jsonify({'error': 'Failed to import data'}), 500
     
     @app.route('/favicon.ico')
     async def favicon():
@@ -315,8 +320,9 @@ def main():
     print("Health check at http://localhost:5000/api/health")
     print("Press Ctrl+C to stop")
     
+    debug_mode = os.environ.get('TASKLINE_DEBUG', '0') == '1'
     app.run(
-        debug=True,
+        debug=debug_mode,
         host='localhost',
         port=5001
     )

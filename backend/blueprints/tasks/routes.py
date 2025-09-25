@@ -1,4 +1,5 @@
 from quart import Blueprint, request, jsonify, session
+import logging
 from datetime import datetime, date, timedelta
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
@@ -122,8 +123,7 @@ async def get_task(task_id):
                 return jsonify({'error': 'Task not found'}), 404
             return jsonify(task.to_dict())
     except Exception:
-        import traceback
-        traceback.print_exc()
+        logging.exception("Failed to fetch task")
         return jsonify({'error': 'Failed to fetch task'}), 500
 
 
@@ -165,8 +165,7 @@ async def update_task(task_id):
             task = result.scalars().first()
             return jsonify(task.to_dict())
     except Exception:
-        import traceback
-        traceback.print_exc()
+        logging.exception("Failed to update task")
         return jsonify({'error': 'Failed to update task'}), 500
 
 
@@ -183,6 +182,7 @@ async def delete_task(task_id):
             await db_session.commit()
             return ('', 204)
     except Exception:
+        logging.exception("Failed to delete task")
         return jsonify({'error': 'Failed to delete task'}), 500
 
 @tasks_bp.route('/calendar', methods=['GET'])
@@ -211,8 +211,6 @@ async def get_calendar_tasks():
             
             print(f"Returning grouped tasks with {len(grouped_tasks)} date keys")
             return jsonify(grouped_tasks)
-    except Exception as e:
-        print(f"Error in calendar endpoint: {e}")
-        import traceback
-        traceback.print_exc()
+    except Exception:
+        logging.exception("Failed to fetch calendar tasks")
         return jsonify({'error': 'Failed to fetch calendar tasks'}), 500

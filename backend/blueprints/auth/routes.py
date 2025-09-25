@@ -1,8 +1,9 @@
 from quart import Blueprint, request, jsonify, session
+import logging
 from datetime import datetime
 from sqlalchemy import select
 from backend.db_async import AsyncSessionLocal
-from backend.models import User, UserSettings, hash_pin, validate_pin, auth_required
+from backend.models import User, UserSettings, hash_pin, validate_pin, auth_required, verify_and_migrate_pin
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -60,7 +61,8 @@ async def setup_auth():
                 'username': username
             }), 201
             
-    except Exception as e:
+    except Exception:
+        logging.exception("Failed to create account")
         return jsonify({'error': 'Failed to create account'}), 500
 
 @auth_bp.route('/login', methods=['POST'])
@@ -78,9 +80,19 @@ async def login():
             result = await db_session.execute(select(User))
             user = result.scalar_one_or_none()
             
-            if not user or user.pin_hash != hash_pin(pin):
+            if not user:
                 return jsonify({'error': 'Error, wrong PIN'}), 401
-            
+
+            # Verify PIN and migrate legacy SHA-256 -> bcrypt if needed
+            is_valid, new_hash = verify_and_migrate_pin(pin, user.pin_hash)
+            if not is_valid:
+                return jsonify({'error': 'Error, wrong PIN'}), 401
+
+            # If migration produced a new bcrypt hash, save it
+            if new_hash:
+                user.pin_hash = new_hash
+                await db_session.commit()
+
             session['user_id'] = user.id
             session['username'] = user.username
             
@@ -91,7 +103,8 @@ async def login():
                 'username': user.username
             })
             
-    except Exception as e:
+    except Exception:
+        logging.exception("Login failed")
         return jsonify({'error': 'Login failed'}), 500
 
 @auth_bp.route('/logout', methods=['POST'])
@@ -123,13 +136,20 @@ async def change_pin():
             )
             user = result.scalar_one_or_none()
             
-            if not user or user.pin_hash != hash_pin(current_pin):
+            if not user:
                 return jsonify({'error': 'Current PIN is incorrect'}), 401
-            
+
+            # Verify current PIN
+            is_valid, _ = verify_and_migrate_pin(current_pin, user.pin_hash)
+            if not is_valid:
+                return jsonify({'error': 'Current PIN is incorrect'}), 401
+
+            # Store new PIN using bcrypt
             user.pin_hash = hash_pin(new_pin)
             await db_session.commit()
             
             return jsonify({'success': True, 'message': 'PIN updated successfully'})
             
-    except Exception as e:
+    except Exception:
+        logging.exception("Failed to update PIN")
         return jsonify({'error': 'Failed to update PIN'}), 500

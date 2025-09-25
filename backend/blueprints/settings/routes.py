@@ -1,4 +1,5 @@
 from quart import Blueprint, jsonify, request, session
+import logging
 from backend.models import UserSettings, auth_required
 from backend.db_async import AsyncSessionLocal
 from sqlalchemy import select
@@ -6,7 +7,10 @@ from sqlalchemy import select
 settings_bp = Blueprint('settings', __name__)
 
 async def get_settings():
-    user_id = session.get('user_id', 1)
+    # Require authenticated session; do not default to user_id=1
+    if 'user_id' not in session:
+        return None
+    user_id = session['user_id']
     async with AsyncSessionLocal() as s:
         result = await s.execute(select(UserSettings).filter_by(user_id=user_id))
         settings = result.scalars().first()
@@ -21,6 +25,8 @@ async def get_settings():
 @auth_required
 async def get_all_settings():
     settings = await get_settings()
+    if settings is None:
+        return jsonify({'error': 'Authentication required'}), 401
     return jsonify(settings.to_dict())
 
 @settings_bp.route('/api/settings', methods=['PUT'])
