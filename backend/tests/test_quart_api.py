@@ -16,6 +16,7 @@ tmp_db = tempfile.NamedTemporaryFile(prefix='test_taskline_', suffix='.db', dele
 os.environ['DATABASE_URL'] = f"sqlite+aiosqlite:///{tmp_db.name}"
 
 from app import create_app, initialize_database
+from backend.app import create_app, initialize_database
 
 pytest_plugins = "pytest_asyncio"
 

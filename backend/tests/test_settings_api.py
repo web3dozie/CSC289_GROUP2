@@ -17,6 +17,7 @@ async def test_settings_endpoints(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", db_uri)
 
     from app import create_app, initialize_database
+    from backend.app import create_app, initialize_database
 
     app = create_app()
     await initialize_database()
