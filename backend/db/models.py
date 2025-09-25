@@ -34,6 +34,28 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
 
+    # Relating user to all their created journal entries
+    journal_entries: Mapped[list["JournalEntry"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+    # One-to-one user settings (Configuration holds the foreign key)
+    settings: Mapped["Configuration"] = relationship(
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": getattr(self, "id", None),
+            "username": getattr(self, "username", None),
+            "email": getattr(self, "email", None),
+            "created_on": _iso(getattr(self, "created_on", None)),
+            "config_data": getattr(self, "config_data", None),
+        }
+
 
 # Basic Table implementation for join table (Many to Many)
 # Declared before Task Table or Tag Table in this file
@@ -121,6 +143,28 @@ class Task(Base):
         back_populates="parent_task", cascade="all, delete-orphan", single_parent=True
     )
 
+    def to_dict(self) -> dict:
+        status = getattr(self, "status", None)
+        tags = getattr(self, "tags", None) or []
+        return {
+            "id": getattr(self, "id", None),
+            "title": getattr(self, "title", None),
+            "description": getattr(self, "description", None),
+            "notes": getattr(self, "notes", None),
+            "category_id": getattr(self, "category_id", None),
+            "status": (
+                {"id": status.id, "title": getattr(status, "title", None)}
+                if status
+                else None
+            ),
+            "tags": [getattr(t, "name", None) for t in tags],
+            "parent_id": getattr(self, "parent_id", None),
+            "due_date": _iso(getattr(self, "due_date", None)),
+            "created_on": _iso(getattr(self, "created_on", None)),
+            "updated_on": _iso(getattr(self, "updated_on", None)),
+            "created_by": getattr(self, "created_by", None),
+        }
+
     # Potential dependency relationship
     # successor_links: Mapped[list["TaskDependency"]] = relationship(back_populates=)
 
@@ -141,6 +185,17 @@ class Category(Base):
     # Relating categories to tasks that are so labeled
     tasks: Mapped[list["Task"]] = relationship(back_populates="category")
 
+    def to_dict(self) -> dict:
+        return {
+            "id": getattr(self, "id", None),
+            "name": getattr(self, "name", None),
+            "description": getattr(self, "description", None),
+            "color_hex": getattr(self, "color_hex", None),
+            "created_on": _iso(getattr(self, "created_on", None)),
+            "updated_on": _iso(getattr(self, "updated_on", None)),
+            "created_by": getattr(self, "created_by", None),
+        }
+
 
 # Tag Table
 class Tag(Base):
@@ -159,6 +214,17 @@ class Tag(Base):
     tasks: Mapped[list["Task"]] = relationship(
         secondary=task_tag, back_populates="tags", passive_deletes=True
     )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": getattr(self, "id", None),
+            "name": getattr(self, "name", None),
+            "description": getattr(self, "description", None),
+            "color_hex": getattr(self, "color_hex", None),
+            "created_on": _iso(getattr(self, "created_on", None)),
+            "updated_on": _iso(getattr(self, "updated_on", None)),
+            "created_by": getattr(self, "created_by", None),
+        }
 
 
 # # Many-To-Many Sequential Task Dependencies association table (Out of scope for now)
@@ -192,6 +258,18 @@ class Status(Base):
 
     # Relate statuses to tasks
     tasks: Mapped[list["Task"]] = relationship(back_populates="status")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": getattr(self, "id", None),
+            "title": getattr(self, "title", None),
+            "description": getattr(self, "description", None),
+            "created_on": _iso(getattr(self, "created_on", None)),
+            "updated_on": _iso(getattr(self, "updated_on", None)),
+            "created_by": getattr(self, "created_by", None),
+        }
+
+
 class Configuration(Base):
     __tablename__ = "configuration"
 
@@ -207,3 +285,15 @@ class Configuration(Base):
     )
 
     user = relationship("User", back_populates="settings")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": getattr(self, "id", None),
+            "user_id": getattr(self, "user_id", None),
+            "notes_enabled": getattr(self, "notes_enabled", None),
+            "timer_enabled": getattr(self, "timer_enabled", None),
+            "ai_url": getattr(self, "ai_url", None),
+            "auto_lock_minutes": getattr(self, "auto_lock_minutes", None),
+            "theme": getattr(self, "theme", None),
+            "updated_on": _iso(getattr(self, "updated_on", None)),
+        }
