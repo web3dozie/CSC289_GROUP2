@@ -14,6 +14,7 @@ from sqlalchemy import select, func
 
 # Import environment variables
 from config import DATABASE_URL, SECRET_KEY
+from backend.config import DATABASE_URL, SECRET_KEY
 
 # Imports for running the full app
 # from backend.db.engine_async import async_engine, AsyncSessionLocal
