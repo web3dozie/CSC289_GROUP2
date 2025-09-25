@@ -11,7 +11,10 @@ from quart import Quart, jsonify
 from quart_cors import cors
 from datetime import datetime
 from sqlalchemy import select, func
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 
 # Imports for running the full app
 # from backend.db.engine_async import async_engine, AsyncSessionLocal
