@@ -12,8 +12,10 @@ import pytest
 import pytest_asyncio
 
 # Use a temporary file DB so in-memory multi-connection issues do not occur
-tmp_db = tempfile.NamedTemporaryFile(prefix='test_taskline_', suffix='.db', delete=False)
-os.environ['DATABASE_URL'] = f"sqlite+aiosqlite:///{tmp_db.name}"
+tmp_db = tempfile.NamedTemporaryFile(
+    prefix="test_taskline_", suffix=".db", delete=False
+)
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{tmp_db.name}"
 
 from backend.app import create_app, initialize_database
 
