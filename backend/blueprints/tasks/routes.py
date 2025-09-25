@@ -2,10 +2,8 @@ from quart import Blueprint, request, jsonify, session
 from datetime import datetime, date, timedelta
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
-from db_async import AsyncSessionLocal
-from models import Task, Status, auth_required
-from backend.db_async import AsyncSessionLocal
-from backend.models import Task, Status, auth_required
+from backend.db.engine_async import AsyncSessionLocal
+from backend.db.models import Task, Status, auth_required
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/api/tasks")
 

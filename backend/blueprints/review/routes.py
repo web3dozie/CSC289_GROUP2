@@ -1,10 +1,8 @@
 from quart import Blueprint, jsonify, request, session
-from models import JournalEntry, Task, auth_required
-from backend.models import JournalEntry, Task, auth_required
+from backend.db.models import JournalEntry, Task, auth_required
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, select
-from db_async import AsyncSessionLocal
-from backend.db_async import AsyncSessionLocal
+from backend.db.engine_async import AsyncSessionLocal
 
 review_bp = Blueprint("review", __name__)
 
