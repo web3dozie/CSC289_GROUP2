@@ -39,7 +39,7 @@ def test_user_creation_and_uniqueness(session):
     u = User(
         username="alice",
         email="a@example.com",
-        user_pin=1111,
+        pin_hash=1111,
         created_on=datetime.now(),
     )
     session.add(u)
@@ -51,7 +51,7 @@ def test_user_creation_and_uniqueness(session):
         User(
             username="alice",
             email="b@example.com",
-            user_pin=2222,
+            pin_hash=2222,
             created_on=datetime.now(),
         )
     )
@@ -64,7 +64,7 @@ def test_user_creation_and_uniqueness(session):
         User(
             username="bob",
             email="a@example.com",
-            user_pin=3333,
+            pin_hash=3333,
             created_on=datetime.now(),
         )
     )
@@ -80,7 +80,7 @@ def test_task_creation_and_relationships(session):
     u = User(
         username="chris",
         email="c@example.com",
-        user_pin=1234,
+        pin_hash=1234,
         created_on=datetime.now(),
     )
     st = Status(
@@ -129,7 +129,7 @@ def test_task_with_multiple_tags(session):
     u = User(
         username="dana",
         email="d@example.com",
-        user_pin=4444,
+        pin_hash=4444,
         created_on=datetime.now(),
     )
     st = Status(
@@ -187,7 +187,7 @@ def test_parent_child_subtasks(session):
     u = User(
         username="eve",
         email="e@example.com",
-        user_pin=5555,
+        pin_hash=5555,
         created_on=datetime.now(),
     )
     st = Status(
@@ -241,7 +241,7 @@ def test_cascade_delete_user_deletes_tasks(session):
     u = User(
         username="fred",
         email="f@example.com",
-        user_pin=6666,
+        pin_hash=6666,
         created_on=datetime.now(),
     )
     st = Status(
@@ -277,7 +277,7 @@ def test_delete_category_sets_task_category_null(session):
     u = User(
         username="gina",
         email="g@example.com",
-        user_pin=7777,
+        pin_hash=7777,
         created_on=datetime.now(),
     )
     st = Status(
@@ -320,7 +320,7 @@ def test_delete_task_clears_m2m_links_but_keeps_tags(session):
     u = User(
         username="hank",
         email="h@example.com",
-        user_pin=8888,
+        pin_hash=8888,
         created_on=datetime.now(),
     )
     st = Status(
@@ -371,7 +371,7 @@ def test_delete_parent_task_deletes_subtasks(session):
     u = User(
         username="ira",
         email="i@example.com",
-        user_pin=9999,
+        pin_hash=9999,
         created_on=datetime.now(),
     )
     st = Status(
