@@ -184,3 +184,35 @@ async def delete_task(task_id):
             return ('', 204)
     except Exception:
         return jsonify({'error': 'Failed to delete task'}), 500
+
+@tasks_bp.route('/calendar', methods=['GET'])
+@auth_required
+async def get_calendar_tasks():
+    """Get tasks grouped by due date for calendar view"""
+    try:
+        print(f"Calendar request for user: {session.get('user_id')}")
+        async with AsyncSessionLocal() as db_session:
+            result = await db_session.execute(
+                select(Task).options(selectinload(Task.status))
+                .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None)))
+                .order_by(Task.due_date, Task.priority.desc(), Task.updated_on.desc())
+            )
+            tasks = result.scalars().all()
+            
+            print(f"Found {len(tasks)} tasks with due dates")
+            
+            # Group tasks by due_date
+            grouped_tasks = {}
+            for task in tasks:
+                date_key = task.due_date.isoformat()  # 'YYYY-MM-DD'
+                if date_key not in grouped_tasks:
+                    grouped_tasks[date_key] = []
+                grouped_tasks[date_key].append(task.to_dict())
+            
+            print(f"Returning grouped tasks with {len(grouped_tasks)} date keys")
+            return jsonify(grouped_tasks)
+    except Exception as e:
+        print(f"Error in calendar endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to fetch calendar tasks'}), 500

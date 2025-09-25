@@ -6,7 +6,7 @@ import type { Task } from '../../lib/api'
 
 interface CalendarDayProps {
   date: Date
-  tasks: Task[]
+  tasksByDate: { [date: string]: Task[] }
   isCurrentMonth: boolean
   isToday: boolean
   onTaskClick: (task: Task) => void
@@ -15,17 +15,14 @@ interface CalendarDayProps {
 
 const CalendarDay: React.FC<CalendarDayProps> = ({
   date,
-  tasks,
+  tasksByDate,
   isCurrentMonth,
   isToday,
   onTaskClick,
   onDateClick
 }) => {
-  const dayTasks = tasks.filter(task => {
-    if (!task.due_date) return false
-    const taskDate = new Date(task.due_date)
-    return taskDate.toDateString() === date.toDateString()
-  })
+  const dateKey = date.toISOString().split('T')[0]
+  const dayTasks = tasksByDate[dateKey] || []
 
   const overdueTasks = dayTasks.filter(task => {
     const taskDate = new Date(task.due_date!)
@@ -119,7 +116,7 @@ export const TaskCalendar: React.FC = () => {
   const [completingTask, setCompletingTask] = useState<Task | null>(null)
   const [viewMode, setViewMode] = useState<'calendar' | 'agenda'>('calendar')
 
-  const { data: tasks = [], isLoading, error } = useCalendarTasks()
+  const { data: tasksByDate = {}, isLoading, error } = useCalendarTasks()
   const updateTask = useUpdateTask()
 
   // Calculate calendar grid
@@ -196,12 +193,9 @@ export const TaskCalendar: React.FC = () => {
 
   const selectedDateTasks = useMemo(() => {
     if (!selectedDate) return []
-    return tasks.filter(task => {
-      if (!task.due_date) return false
-      const taskDate = new Date(task.due_date)
-      return taskDate.toDateString() === selectedDate.toDateString()
-    })
-  }, [tasks, selectedDate])
+    const dateKey = selectedDate.toISOString().split('T')[0]
+    return tasksByDate[dateKey] || []
+  }, [tasksByDate, selectedDate])
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -209,21 +203,6 @@ export const TaskCalendar: React.FC = () => {
   ]
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-  // Group tasks by date for agenda view
-  const tasksByDate = useMemo(() => {
-    const grouped: { [key: string]: Task[] } = {}
-    tasks.forEach(task => {
-      if (task.due_date) {
-        const dateKey = new Date(task.due_date).toDateString()
-        if (!grouped[dateKey]) {
-          grouped[dateKey] = []
-        }
-        grouped[dateKey].push(task)
-      }
-    })
-    return grouped
-  }, [tasks])
 
   // Get upcoming dates for agenda view
   const upcomingDates = useMemo(() => {
@@ -246,14 +225,14 @@ export const TaskCalendar: React.FC = () => {
       {
         title: 'Today',
         date: today,
-        tasks: tasksByDate[today.toDateString()] || [],
+        tasks: tasksByDate[today.toISOString().split('T')[0]] || [],
         dates: undefined as Date[] | undefined,
         tasksByDate: undefined as { [key: string]: Task[] } | undefined
       },
       {
         title: 'Tomorrow',
         date: tomorrow,
-        tasks: tasksByDate[tomorrow.toDateString()] || [],
+        tasks: tasksByDate[tomorrow.toISOString().split('T')[0]] || [],
         dates: undefined as Date[] | undefined,
         tasksByDate: undefined as { [key: string]: Task[] } | undefined
       },
@@ -279,7 +258,8 @@ export const TaskCalendar: React.FC = () => {
               // Upcoming section shows multiple dates
               <div className="space-y-4">
                 {section.dates!.map(date => {
-                  const dateTasks = section.tasksByDate![date.toDateString()] || []
+                  const dateKey = date.toISOString().split('T')[0]
+                  const dateTasks = section.tasksByDate![dateKey] || []
                   if (dateTasks.length === 0) return null
 
                   return (
@@ -306,7 +286,10 @@ export const TaskCalendar: React.FC = () => {
                     </div>
                   )
                 })}
-                {section.dates!.every(date => !section.tasksByDate![date.toDateString()]?.length) && (
+                {section.dates!.every(date => {
+                  const dateKey = date.toISOString().split('T')[0]
+                  return !section.tasksByDate![dateKey]?.length
+                }) && (
                   <p className="text-gray-500 text-center py-4">
                     No upcoming tasks
                   </p>
@@ -465,7 +448,7 @@ export const TaskCalendar: React.FC = () => {
                   <CalendarDay
                     key={index}
                     date={date}
-                    tasks={tasks}
+                    tasksByDate={tasksByDate}
                     isCurrentMonth={date.getMonth() === currentDate.getMonth()}
                     isToday={date.toDateString() === new Date().toDateString()}
                     onTaskClick={handleTaskClick}

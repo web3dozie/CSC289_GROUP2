@@ -114,7 +114,7 @@ export const tasksApi = {
     apiRequest<{ todo: Task[]; 'in-progress': Task[]; done: Task[] }>('/api/tasks/kanban'),
 
   getCalendar: () =>
-    apiRequest<Task[]>('/api/tasks/calendar'),
+    apiRequest<{ [date: string]: Task[] }>('/api/tasks/calendar'),
 
   getById: (id: number) =>
     apiRequest<Task>(`/api/tasks/${id}`),

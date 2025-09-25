@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react'
 import { useAuthLogin, useAuthLogout, useAuthSetup, useAuthChangePin } from '../lib/hooks'
+import { settingsApi } from '../lib/api'
 import { useSettings } from '../lib/hooks'
 
 interface User {
@@ -52,12 +53,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Load auth state from localStorage on mount
   useEffect(() => {
-    const loadAuthState = () => {
+    const loadAuthState = async () => {
       try {
         const stored = localStorage.getItem(AUTH_STORAGE_KEY)
         if (stored) {
           const authData = JSON.parse(stored)
-          setUser(authData.user)
+          // Validate session with backend
+          try {
+            await settingsApi.getSettings()
+            setUser(authData.user)
+          } catch (error) {
+            // Session is invalid or other error, clear localStorage
+            console.log('Session validation failed, clearing auth state')
+            localStorage.removeItem(AUTH_STORAGE_KEY)
+          }
         }
       } catch (error) {
         console.error('Failed to load auth state:', error)
