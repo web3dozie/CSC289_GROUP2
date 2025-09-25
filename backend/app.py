@@ -97,27 +97,27 @@ def register_routes(app):
 
     # Register blueprints (we'll add these as we create them)
     try:
-        from .blueprints.auth.routes import auth_bp
+        from backend.blueprints.auth.routes import auth_bp
 
         app.register_blueprint(auth_bp)
     except ImportError:
         print("Auth blueprint not found - will add later")
 
     try:
-        from .blueprints.tasks.routes import tasks_bp
+        from backend.blueprints.tasks.routes import tasks_bp
 
         app.register_blueprint(tasks_bp)
     except ImportError:
         print("Tasks blueprint not found - will add later")
     try:
-        from .blueprints.review.routes import review_bp
+        from backend.blueprints.review.routes import review_bp
 
         app.register_blueprint(review_bp)
     except ImportError:
         print("Review blueprint not found - will add later")
 
     try:
-        from .blueprints.settings.routes import settings_bp
+        from backend.blueprints.settings.routes import settings_bp
 
         app.register_blueprint(settings_bp)
     except ImportError:

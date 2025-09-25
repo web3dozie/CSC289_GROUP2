@@ -49,6 +49,31 @@ task_tag = Table(
 )
 
 
+class JournalEntry(Base):
+    __tablename__ = "journal_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
+    entry_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    content: Mapped[str] = mapped_column(String(140), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_on: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, onupdate=datetime.now
+    )
+
+    user = relationship("User", back_populates="journal_entries")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": getattr(self, "id", None),
+            "user_id": getattr(self, "user_id", None),
+            "entry_date": _iso(getattr(self, "entry_date", None)),
+            "content": getattr(self, "content", None),
+            "created_at": _iso(getattr(self, "created_at", None)),
+            "updated_on": _iso(getattr(self, "updated_on", None)),
+        }
+
+
 # Task Table
 class Task(Base):
     __tablename__ = "task"
