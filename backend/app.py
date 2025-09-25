@@ -13,7 +13,6 @@ from datetime import datetime
 from sqlalchemy import select, func
 
 # Import environment variables
-from config import DATABASE_URL, SECRET_KEY
 from backend.config import DATABASE_URL, SECRET_KEY
 
 # Imports for running the full app
