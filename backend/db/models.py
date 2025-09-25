@@ -23,11 +23,13 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
-    email: Mapped[str] = mapped_column(String(99), nullable=False, unique=True)
-    user_pin: Mapped[int] = mapped_column(nullable=False)
-    # Placeholder for config table to be implemented later
-    # config_id: Mapped[int] = mapped_column(ForeignKey("configuration.id"), nullable=False)
-    created_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    # Nullable for development purposes, but should be required in production
+    email: Mapped[str] = mapped_column(String(99), nullable=True, unique=True)
+    pin_hash: Mapped[str] = mapped_column(nullable=False)
+    created_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
+    config_data: Mapped[str] = mapped_column(String(1000), default="{}")
 
     # Relating user to all their created tasks
     tasks: Mapped[list["Task"]] = relationship(
@@ -297,3 +299,24 @@ class Configuration(Base):
             "theme": getattr(self, "theme", None),
             "updated_on": _iso(getattr(self, "updated_on", None)),
         }
+
+
+def auth_required(f):
+    @wraps(f)
+    async def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            return jsonify({"error": "Authentication required"}), 401
+        if inspect.iscoroutinefunction(f):
+            return await f(*args, **kwargs)
+        else:
+            return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def hash_pin(pin: str) -> str:
+    return hashlib.sha256(pin.encode()).hexdigest()
+
+
+def validate_pin(pin: str) -> bool:
+    return pin.isdigit() and 4 <= len(pin) <= 8
