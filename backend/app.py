@@ -153,10 +153,32 @@ async def initialize_database():
             status_count = result.scalar_one()
 
             if status_count == 0:
+                now = datetime.now()
                 default_statuses = [
-                    Status(id=1, description="Todo"),
-                    Status(id=2, description="In Progress"),
-                    Status(id=3, description="Done"),
+                    Status(
+                        id=1,
+                        title="Todo",
+                        description="Todo",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
+                    Status(
+                        id=2,
+                        title="In Progress",
+                        description="In Progress",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
+                    Status(
+                        id=3,
+                        title="Done",
+                        description="Done",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
                 ]
                 for status in default_statuses:
                     session.add(status)
