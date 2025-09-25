@@ -11,9 +11,9 @@ from quart import Quart, jsonify, request, session
 from quart_cors import cors
 from datetime import datetime
 
-from db_async import engine, AsyncSessionLocal, Base
+from backend.db_async import engine, AsyncSessionLocal, Base
 from sqlalchemy import select, func, text
-from models import auth_required
+from backend.models import auth_required
 
 def create_app():
     """Create and configure the Quart app"""
@@ -28,7 +28,7 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Import models to ensure they're registered
-    import models
+    import backend.models
     
     # Register routes
     register_routes(app)
@@ -81,7 +81,7 @@ def register_routes(app):
     async def export_data():
         """Export all user data as JSON"""
         try:
-            from models import Task, JournalEntry, UserSettings, Status
+            from backend.models import Task, JournalEntry, UserSettings, Status
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
             
@@ -128,7 +128,7 @@ def register_routes(app):
             if not data or 'version' not in data:
                 return jsonify({'error': 'Invalid import data format'}), 400
             
-            from models import Task, JournalEntry, UserSettings, Status
+            from backend.models import Task, JournalEntry, UserSettings, Status
             from sqlalchemy import select
             from datetime import datetime
             
@@ -237,24 +237,24 @@ def register_routes(app):
     
     # Register blueprints (we'll add these as we create them)
     try:
-        from blueprints.auth.routes import auth_bp
+        from backend.blueprints.auth.routes import auth_bp
         app.register_blueprint(auth_bp)
     except ImportError:
         print("Auth blueprint not found - will add later")
 
     try:
-        from blueprints.tasks.routes import tasks_bp
+        from backend.blueprints.tasks.routes import tasks_bp
         app.register_blueprint(tasks_bp)
     except ImportError:
         print("Tasks blueprint not found - will add later")    
     try:
-        from blueprints.review.routes import review_bp
+        from backend.blueprints.review.routes import review_bp
         app.register_blueprint(review_bp)
     except ImportError:
         print("Review blueprint not found - will add later")
 
     try:
-        from blueprints.settings.routes import settings_bp
+        from backend.blueprints.settings.routes import settings_bp
         app.register_blueprint(settings_bp)
     except ImportError:
         print("Settings blueprint not found - will add later")
@@ -288,7 +288,7 @@ async def initialize_database():
         
         # Seed default data
         async with AsyncSessionLocal() as session:
-            from models import Status, Task
+            from backend.models import Status, Task
             
             # Add default statuses for kanban board
             result = await session.execute(select(func.count(Status.id)))

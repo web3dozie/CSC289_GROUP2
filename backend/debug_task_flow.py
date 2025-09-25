@@ -6,7 +6,7 @@ import tempfile
 tmp_db = tempfile.NamedTemporaryFile(prefix='dbg_task_', suffix='.db', delete=False)
 os.environ['DATABASE_URL'] = f"sqlite+aiosqlite:///{tmp_db.name}"
 
-from app import create_app, initialize_database
+from backend.app import create_app, initialize_database
 
 async def main():
     app = create_app()

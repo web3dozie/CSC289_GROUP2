@@ -3,7 +3,7 @@ import asyncio
 
 os.environ['DATABASE_URL'] = 'sqlite+aiosqlite:///:memory:'
 
-from app import create_app
+from backend.app import create_app
 
 async def main():
     app = create_app()

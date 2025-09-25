@@ -1,6 +1,6 @@
 from quart import Blueprint, jsonify, request, session
-from models import UserSettings, auth_required
-from db_async import AsyncSessionLocal
+from backend.models import UserSettings, auth_required
+from backend.db_async import AsyncSessionLocal
 from sqlalchemy import select
 
 settings_bp = Blueprint('settings', __name__)
