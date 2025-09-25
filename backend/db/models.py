@@ -192,3 +192,18 @@ class Status(Base):
 
     # Relate statuses to tasks
     tasks: Mapped[list["Task"]] = relationship(back_populates="status")
+class Configuration(Base):
+    __tablename__ = "configuration"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
+    notes_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    timer_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    ai_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    auto_lock_minutes: Mapped[int] = mapped_column(Integer, default=10)
+    theme: Mapped[str] = mapped_column(String(50), default="light")
+    updated_on: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, onupdate=datetime.now
+    )
+
+    user = relationship("User", back_populates="settings")
