@@ -1,13 +1,16 @@
 <#
 run-backend.ps1 - start the Quart backend using Hypercorn
-Usage: .\run-backend.ps1 [-Bind '127.0.0.1:5001'] [-Reload:$true]
+Usage: .\run-backend.ps1 [-Bind '127.0.0.1:5001'] [-Reload:$true] [-H]
 #>
 
 param(
     [string]$Bind = '127.0.0.1:5001',
     [switch]$Reload = $true,
-    [switch]$UseHypercorn = $false
+    [switch]$UseHypercorn = $false,
+    [switch]$H
 )
+
+if ($H) { $UseHypercorn = $true }
 
 Write-Host 'Starting backend with Hypercorn...' -ForegroundColor Cyan
 
@@ -48,12 +51,13 @@ if (Test-Path $requirementsFile) {
     Write-Host "No requirements.txt found at $requirementsFile - skipping pip install." -ForegroundColor Yellow
 }
 
-# Set PYTHONPATH to backend so top-level imports like "from db_async import ..." resolve
-$backendPath = (Join-Path (Get-Location) 'backend')
-$env:PYTHONPATH = $backendPath
+# Set PYTHONPATH to root so top-level imports like "from backend.db_async import ..." resolve
+$rootPath = Get-Location
+$env:PYTHONPATH = $rootPath
 Write-Host ("PYTHONPATH={0}" -f $env:PYTHONPATH) -ForegroundColor Green
 
 # Default DATABASE_URL if not set
+$backendPath = Join-Path (Get-Location) 'backend'
 if (-not $env:DATABASE_URL) {
     $env:DATABASE_URL = "sqlite+aiosqlite:///" + (Join-Path $backendPath 'taskline.db')
     Write-Host "DATABASE_URL not set, defaulting to: $env:DATABASE_URL" -ForegroundColor Yellow
@@ -119,26 +123,3 @@ if ($UseHypercorn) {
 
     Write-Host 'Quart dev server exited.' -ForegroundColor Yellow
 }
-
-# Build hypercorn arguments
-$hypercornModule = 'hypercorn'
-$application = 'backend.app:app'
-# Prefer using a single worker with asyncio worker class to avoid multiprocessing issues on Windows
-$args = @('-m', $hypercornModule, $application, '--bind', $Bind, '--workers', '1', '--worker-class', 'asyncio')
-if ($Reload) { $args += '--reload' }
-
-Write-Host 'Running Hypercorn...' -ForegroundColor Cyan
-
-# Try running hypercorn directly (in-process call); if it raises, fallback to Start-Process
-try {
-    & $venvPython @args
-} catch {
-    Write-Host 'Direct run failed; falling back to Start-Process' -ForegroundColor Yellow
-    $proc = Start-Process -FilePath $venvPython -ArgumentList $args -NoNewWindow -Wait -PassThru
-    if ($proc.ExitCode -ne 0) {
-        Write-Host "Hypercorn exited with code $($proc.ExitCode)" -ForegroundColor Red
-        exit $proc.ExitCode
-    }
-}
-
-Write-Host 'Hypercorn exited.' -ForegroundColor Yellow

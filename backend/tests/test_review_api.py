@@ -22,7 +22,7 @@ async def test_review_journal_and_summaries(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", db_uri)
 
     # import and create app after env var is set
-    from app import create_app, initialize_database
+    from backend.app import create_app, initialize_database
 
     app = create_app()
 

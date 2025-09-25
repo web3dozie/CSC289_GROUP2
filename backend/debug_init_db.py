@@ -1,7 +1,7 @@
 import os
 os.environ['DATABASE_URL']='sqlite+aiosqlite:///:memory:'
 import asyncio
-from app import initialize_database
+from backend.app import initialize_database
 
 async def main():
     try:

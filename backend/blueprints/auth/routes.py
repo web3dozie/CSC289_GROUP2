@@ -1,8 +1,8 @@
 from quart import Blueprint, request, jsonify, session
 from datetime import datetime
 from sqlalchemy import select
-from db_async import AsyncSessionLocal
-from models import User, UserSettings, hash_pin, validate_pin, auth_required
+from backend.db_async import AsyncSessionLocal
+from backend.models import User, UserSettings, hash_pin, validate_pin, auth_required
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 

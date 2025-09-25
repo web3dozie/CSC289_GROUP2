@@ -6,7 +6,7 @@ import hashlib
 
 from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
-from db_async import Base
+from backend.db_async import Base
 
 class User(Base):
     __tablename__ = 'users'
