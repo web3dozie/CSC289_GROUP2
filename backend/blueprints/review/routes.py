@@ -21,7 +21,9 @@ async def get_journal():
     else:
         end_date = date.today()
 
-    user_id = session.get('user_id', 1)
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
 
     async with AsyncSessionLocal() as s:
         result = await s.execute(
@@ -46,8 +48,12 @@ async def create_journal():
     entry_date = data.get('entry_date', date.today().isoformat())
     entry_date = date.fromisoformat(entry_date)
 
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+
     entry = JournalEntry(
-        user_id=session.get('user_id', 1),
+        user_id=user_id,
         entry_date=entry_date,
         content=data['content']
     )
@@ -60,7 +66,9 @@ async def create_journal():
 @review_bp.route('/api/review/journal/<int:entry_id>', methods=['PUT'])
 @auth_required
 async def update_journal(entry_id):
-    user_id = session.get('user_id', 1)
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
     async with AsyncSessionLocal() as s:
         try:
             entry = await s.get(JournalEntry, entry_id)
@@ -88,7 +96,9 @@ async def update_journal(entry_id):
 @review_bp.route('/api/review/journal/<int:entry_id>', methods=['DELETE'])
 @auth_required
 async def delete_journal(entry_id):
-    user_id = session.get('user_id', 1)
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
     async with AsyncSessionLocal() as s:
         entry = await s.get(JournalEntry, entry_id)
         if not entry or entry.user_id != user_id:
@@ -103,7 +113,9 @@ async def daily_summary():
     target_date = request.args.get('date', date.today().isoformat())
     target_date = date.fromisoformat(target_date)
 
-    user_id = session.get('user_id', 1)
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
 
     # Tasks completed on that day (for this user)
     async with AsyncSessionLocal() as s:
@@ -134,7 +146,9 @@ async def weekly_summary():
     start_of_week = today - timedelta(days=today.weekday())
     end_of_week = start_of_week + timedelta(days=6)
 
-    user_id = session.get('user_id', 1)
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
 
     # Tasks completed this week (for this user)
     async with AsyncSessionLocal() as s:
@@ -169,7 +183,9 @@ async def weekly_summary():
 @auth_required
 async def get_insights():
     # Simple insights
-    user_id = session.get('user_id', 1)
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
 
     async with AsyncSessionLocal() as s:
         result = await s.execute(select(func.count()).select_from(Task).where(Task.created_by == user_id))
