@@ -117,8 +117,8 @@ async def daily_summary():
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
 
-    # Tasks completed on that day (for this user)
     async with AsyncSessionLocal() as s:
+        # Tasks completed on that day
         result = await s.execute(
             select(func.count()).select_from(Task).where(
                 func.date(Task.created_at) == target_date,
@@ -128,13 +128,72 @@ async def daily_summary():
         )
         completed_tasks = result.scalar_one()
 
+        # Tasks created on that day
+        result = await s.execute(
+            select(func.count()).select_from(Task).where(
+                func.date(Task.created_at) == target_date,
+                Task.created_by == user_id
+            )
+        )
+        created_tasks = result.scalar_one()
+
+        # Overdue tasks (due date before today and not done)
+        today = date.today()
+        result = await s.execute(
+            select(func.count()).select_from(Task).where(
+                Task.due_date < today,
+                Task.done == False,
+                Task.archived == False,
+                Task.created_by == user_id
+            )
+        )
+        overdue_tasks = result.scalar_one()
+
+        # In progress tasks (not done, not archived)
+        result = await s.execute(
+            select(func.count()).select_from(Task).where(
+                Task.done == False,
+                Task.archived == False,
+                Task.created_by == user_id
+            )
+        )
+        in_progress_tasks = result.scalar_one()
+
+        # Time spent (sum of estimate_minutes for completed tasks today)
+        result = await s.execute(
+            select(func.coalesce(func.sum(Task.estimate_minutes), 0)).select_from(Task).where(
+                func.date(Task.created_at) == target_date,
+                Task.done == True,
+                Task.created_by == user_id
+            )
+        )
+        time_spent = result.scalar_one()
+
+        # Categories breakdown
+        result = await s.execute(
+            select(Task.category, func.count(Task.id))
+            .where(
+                func.date(Task.created_at) == target_date,
+                Task.created_by == user_id,
+                Task.category.isnot(None)
+            )
+            .group_by(Task.category)
+        )
+        categories = {row[0]: row[1] for row in result.all()}
+
+        # Journal entry
         result = await s.execute(select(JournalEntry).filter_by(entry_date=target_date, user_id=user_id))
         journal = result.scalars().first()
         journal_content = journal.content if journal else None
 
     return jsonify({
         'date': target_date.isoformat(),
-        'tasks_completed': completed_tasks,
+        'completed_tasks': completed_tasks,
+        'created_tasks': created_tasks,
+        'overdue_tasks': overdue_tasks,
+        'in_progress_tasks': in_progress_tasks,
+        'time_spent': time_spent,
+        'categories': categories,
         'journal_entry': journal_content
     })
 
@@ -150,8 +209,8 @@ async def weekly_summary():
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
 
-    # Tasks completed this week (for this user)
     async with AsyncSessionLocal() as s:
+        # Tasks completed this week
         result = await s.execute(
             select(func.count()).select_from(Task).where(
                 Task.created_at >= start_of_week,
@@ -160,8 +219,9 @@ async def weekly_summary():
                 Task.created_by == user_id
             )
         )
-        completed_tasks = result.scalar_one()
+        total_completed = result.scalar_one()
 
+        # Total tasks created this week
         result = await s.execute(
             select(func.count()).select_from(Task).where(
                 Task.created_at >= start_of_week,
@@ -171,12 +231,63 @@ async def weekly_summary():
         )
         total_tasks = result.scalar_one()
 
+        # Average daily completion
+        days_in_week = 7
+        average_daily = total_completed / days_in_week if days_in_week > 0 else 0
+
+        # Daily breakdown
+        daily_breakdown = {}
+        for i in range(7):
+            day = start_of_week + timedelta(days=i)
+            result = await s.execute(
+                select(func.count()).select_from(Task).where(
+                    func.date(Task.created_at) == day,
+                    Task.done == True,
+                    Task.created_by == user_id
+                )
+            )
+            daily_breakdown[day.strftime('%A')] = result.scalar_one()
+
+        # Most productive day
+        most_productive_day = max(daily_breakdown.items(), key=lambda x: x[1])[0] if daily_breakdown else None
+
+        # Total time spent (sum of estimate_minutes for completed tasks this week)
+        result = await s.execute(
+            select(func.coalesce(func.sum(Task.estimate_minutes), 0)).select_from(Task).where(
+                Task.created_at >= start_of_week,
+                Task.created_at <= end_of_week + timedelta(days=1),
+                Task.done == True,
+                Task.created_by == user_id
+            )
+        )
+        total_time_minutes = result.scalar_one()
+        total_time = total_time_minutes / 60 if total_time_minutes else 0  # Convert to hours
+
+        # Category performance
+        result = await s.execute(
+            select(Task.category, func.count(Task.id))
+            .where(
+                Task.created_at >= start_of_week,
+                Task.created_at <= end_of_week + timedelta(days=1),
+                Task.done == True,
+                Task.created_by == user_id,
+                Task.category.isnot(None)
+            )
+            .group_by(Task.category)
+        )
+        category_performance = {row[0]: {'completed': row[1]} for row in result.all()}
+
     return jsonify({
         'week_start': start_of_week.isoformat(),
         'week_end': end_of_week.isoformat(),
-        'tasks_completed': completed_tasks,
+        'total_completed': total_completed,
         'total_tasks': total_tasks,
-        'completion_rate': completed_tasks / total_tasks if total_tasks > 0 else 0
+        'completion_rate': total_completed / total_tasks if total_tasks > 0 else 0,
+        'average_daily': round(average_daily, 1),
+        'most_productive_day': most_productive_day,
+        'total_time': round(total_time, 1),
+        'daily_breakdown': daily_breakdown,
+        'category_performance': category_performance
     })
 
 @review_bp.route('/api/review/insights', methods=['GET'])
@@ -188,14 +299,29 @@ async def get_insights():
         return jsonify({'error': 'Authentication required'}), 401
 
     async with AsyncSessionLocal() as s:
+        # Basic stats
         result = await s.execute(select(func.count()).select_from(Task).where(Task.created_by == user_id))
         total_tasks = result.scalar_one()
 
         result = await s.execute(select(func.count()).select_from(Task).where(Task.done == True, Task.created_by == user_id))
         completed_tasks = result.scalar_one()
 
-        completion_rate = completed_tasks / total_tasks if total_tasks > 0 else 0
+        completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
 
+        # Average task time
+        result = await s.execute(
+            select(func.avg(Task.estimate_minutes)).select_from(Task).where(
+                Task.done == True,
+                Task.estimate_minutes.isnot(None),
+                Task.created_by == user_id
+            )
+        )
+        avg_task_time = result.scalar_one() or 0
+
+        # Productivity score (based on completion rate and other factors)
+        productivity_score = min(100, completion_rate * 1.2)  # Simple calculation
+
+        # Most productive day
         result = await s.execute(
             select(func.date(Task.created_at).label('date'), func.count(Task.id).label('count'))
             .where(Task.done == True, Task.created_by == user_id)
@@ -204,12 +330,71 @@ async def get_insights():
         )
         productive_days = result.first()
 
+        # Performance trends (last 4 weeks)
+        performance_trends = []
+        for weeks_ago in range(4, 0, -1):
+            week_start = date.today() - timedelta(days=date.today().weekday() + (weeks_ago * 7))
+            week_end = week_start + timedelta(days=6)
+
+            result = await s.execute(
+                select(func.count()).select_from(Task).where(
+                    Task.created_at >= week_start,
+                    Task.created_at <= week_end + timedelta(days=1),
+                    Task.done == True,
+                    Task.created_by == user_id
+                )
+            )
+            weekly_completed = result.scalar_one()
+
+            performance_trends.append({
+                'period': f'Week {5 - weeks_ago}',
+                'score': min(100, weekly_completed * 10)  # Simple scoring
+            })
+
+        # Strengths and improvements based on data
+        strengths = []
+        improvements = []
+
+        if completion_rate > 70:
+            strengths.append("High task completion rate")
+        if avg_task_time < 60:
+            strengths.append("Efficient task completion time")
+        if productive_days and productive_days.count > 3:
+            strengths.append("Consistent daily productivity")
+
+        if completion_rate < 50:
+            improvements.append("Focus on completing more tasks")
+        if total_tasks < 5:
+            improvements.append("Create more tasks to build momentum")
+        if not productive_days:
+            improvements.append("Start completing tasks regularly")
+
+        # Recommendations
+        recommendations = []
+        if completion_rate < 70:
+            recommendations.append({
+                'title': 'Increase Completion Rate',
+                'description': 'Try breaking tasks into smaller, more manageable steps'
+            })
+        if avg_task_time > 120:
+            recommendations.append({
+                'title': 'Optimize Task Time',
+                'description': 'Consider setting time limits for tasks to improve efficiency'
+            })
+
         insights = {
             'total_tasks': total_tasks,
             'completed_tasks': completed_tasks,
             'overall_completion_rate': completion_rate,
-            'most_productive_day': productive_days.date.isoformat() if productive_days else None,
-            'tasks_on_most_productive_day': productive_days.count if productive_days else 0
+            'productivity_score': round(productivity_score, 1),
+            'completion_rate': round(completion_rate, 1),
+            'avg_task_time': round(avg_task_time, 1),
+            'most_productive_day': productive_days.date if productive_days else None,
+            'tasks_on_most_productive_day': productive_days.count if productive_days else 0,
+            'performance_trends': performance_trends,
+            'strengths': strengths,
+            'improvements': improvements,
+            'recommendations': recommendations
         }
 
         return jsonify(insights)
