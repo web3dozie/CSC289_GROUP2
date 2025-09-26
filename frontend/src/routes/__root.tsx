@@ -1,17 +1,21 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
 import Header from '../components/landing/Header'
 import Hero from '../components/landing/Hero'
-import WhyDifferent from '../components/landing/WhyDifferent'
-import Features from '../components/landing/Features'
-import Views from '../components/landing/Views'
-import CoachChat from '../components/landing/CoachChat'
 import Tutorial from '../components/landing/Tutorial'
-import Analytics from '../components/landing/Analytics'
 import Privacy from '../components/landing/Privacy'
 import FAQ from '../components/landing/FAQ'
 import CTA from '../components/landing/CTA'
 import Footer from '../components/landing/Footer'
 import Login from '../components/landing/Login'
+import SignUp from '../components/landing/SignUp'
+import Overview from '../components/landing/Overview'
+import { AuthGuard } from '../components/AuthGuard'
+import { AppLayout } from '../components/AppLayout'
+import { TaskList } from '../components/views/TaskList'
+import { TaskBoard } from '../components/views/TaskBoard'
+import { TaskCalendar } from '../components/views/TaskCalendar'
+import { TaskReview } from '../components/views/TaskReview'
+import { Settings } from '../components/views/Settings'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -30,12 +34,7 @@ const indexRoute = createRoute({
         <Header />
         <main id="main">
           <Hero />
-          <WhyDifferent />
-          <Features />
-          <Views />
-          <CoachChat />
           <Tutorial />
-          <Analytics />
           <Privacy />
           <FAQ />
           <CTA />
@@ -49,9 +48,83 @@ const indexRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
-  component: Login,
+  component: function LoginPage() {
+    return (
+      <AuthGuard requireAuth={false}>
+        <Login />
+      </AuthGuard>
+    )
+  },
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute])
+const signupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/signup',
+  component: function SignupPage() {
+    return (
+      <AuthGuard requireAuth={false}>
+        <SignUp />
+      </AuthGuard>
+    )
+  },
+})
+
+const overviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/overview',
+  component: Overview,
+})
+
+// App routes (protected)
+const appRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/app',
+  component: function AppShell() {
+    return (
+      <AuthGuard requireAuth={true}>
+        <AppLayout />
+      </AuthGuard>
+    )
+  },
+})
+
+// Individual app views
+const listRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/list',
+  component: TaskList,
+})
+
+const boardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/board',
+  component: TaskBoard,
+})
+
+const calendarRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/calendar',
+  component: TaskCalendar,
+})
+
+const reviewRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/review',
+  component: TaskReview,
+})
+
+const settingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings',
+  component: Settings,
+})
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  loginRoute,
+  signupRoute,
+  overviewRoute,
+  appRoute.addChildren([listRoute, boardRoute, calendarRoute, reviewRoute, settingsRoute])
+])
 
 export const router = createRouter({ routeTree })

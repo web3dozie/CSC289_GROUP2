@@ -44,12 +44,12 @@ const Header: React.FC = () => {
               >
                 Open App
               </Link>
-              <a
-                href="/OVERVIEW.md"
+              <Link
+                to="/overview"
                 className="hidden md:inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 rounded-md"
               >
                 Read Overview
-              </a>
+              </Link>
               
               <button
                 className="md:hidden p-2 text-gray-700 hover:text-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 rounded-md"
@@ -84,13 +84,13 @@ const Header: React.FC = () => {
                 >
                   Open App
                 </Link>
-                <a
-                  href="/OVERVIEW.md"
+                <Link
+                  to="/overview"
                   className="block w-full text-center px-4 py-2 text-base font-medium text-purple-600 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Read Overview
-                </a>
+                </Link>
               </div>
             </nav>
           </div>

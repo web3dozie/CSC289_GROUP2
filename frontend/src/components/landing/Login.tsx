@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock } from 'lucide-react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, isLoading, error, clearError } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    clearError();
 
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
-      // For now, just log the credentials
-      console.log('Login attempt with username:', username, 'and PIN:', pin);
-      // TODO: Implement actual authentication
-    }, 1000);
+    try {
+      await login(pin);
+      navigate({ to: '/app' });
+    } catch (error) {
+      // Error is handled by the auth context
+    }
   };
 
   return (
@@ -29,27 +30,12 @@ const Login: React.FC = () => {
             <Lock className="w-8 h-8 text-purple-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Enter your credentials to access Task Line</p>
+          <p className="text-gray-600">Enter your PIN to access Task Line</p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                required
-              />
-            </div>
-
             <div>
               <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-2">
                 PIN Code
@@ -78,9 +64,15 @@ const Login: React.FC = () => {
               </p>
             </div>
 
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={!username.trim() || pin.length < 4 || isLoading}
+              disabled={pin.length < 4 || isLoading}
               className="w-full inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
             >
               {isLoading ? (
@@ -98,9 +90,9 @@ const Login: React.FC = () => {
               <p className="text-sm text-gray-600">
                 Don't have credentials yet?
               </p>
-              <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
+              <Link to="/signup" className="text-sm text-purple-600 hover:text-purple-700 font-medium">
                 Set up your account
-              </button>
+              </Link>
             </div>
           </div>
         </div>

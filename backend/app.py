@@ -1,287 +1,334 @@
-#!/usr/bin/env python3
-"""
-Momentum Task Manager - Phase 1
-A clean, Flask API for task management
-Author: Issagha Diallo 
-Created: 9/12/2025
-"""
+# try:
+#     from . import bootstrap_shim
+# except Exception:
+#     try:
+#         import bootstrap_shim
+#     except Exception:
+#         pass
+
 import os
-from functools import wraps
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
+from quart import Quart, jsonify, request, session
+from quart_cors import cors
 from datetime import datetime
 
-# Create the db object up front.
-# We'll attach it to the app later inside create_app().
-db = SQLAlchemy()
+from backend.db_async import engine, AsyncSessionLocal, Base
+from sqlalchemy import select, func, text
+from backend.models import auth_required
 
-# -----------------------------
-# Input validation decorator
-# -----------------------------
-def validate_json(*expected_fields):
-    """
-    Small helper to make sure we actually got JSON
-    and that certain fields are present and non-empty.
-    """
-    def decorator(f):
-        @wraps(f)
-        def fn(*args, **kwargs):
-            # Must be JSON (e.g., Content-Type: application/json)
-            if not request.is_json:
-                return jsonify({'error': 'Content-Type must be application/json'}), 400
-
-            # Try to parse the body without blowing up on bad JSON
-            data = request.get_json(silent=True)
-            if data is None:
-                return jsonify({'error': 'Malformed JSON'}), 400
-
-            # Make sure required fields exist and aren't just whitespace
-            for field in expected_fields:
-                if field not in data:
-                    return jsonify({'error': f'{field} is required'}), 400
-                if isinstance(data[field], str) and not data[field].strip():
-                    return jsonify({'error': f'{field} cannot be empty'}), 400
-
-            return f(*args, **kwargs)
-        return fn
-    return decorator
-
-# -----------------------------
-# Database Model
-# -----------------------------
-class Task(db.Model):
-    """
-    Tiny task table for Phase 1: title + done + created_at.
-    Keep it simple for now; easy to extend later.
-    """
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    done = db.Column(db.Boolean, default=False)
-    # Using a naive timestamp for Phase 1. We can swap to UTC-aware in Phase 2.
-    created_at = db.Column(db.DateTime, default=datetime.now)
-
-    def to_dict(self):
-        # Shape the object exactly how the API returns it.
-        return {
-            'id': self.id,
-            'title': self.title,
-            'done': self.done,
-            'created_at': self.created_at.isoformat()
-        }
-
-# -----------------------------
-# App Factory
-# -----------------------------
 def create_app():
-    """
-    Build the Flask app, wire up extensions, and register routes.
-    Using a factory keeps testing and config changes straightforward.
-    """
-    app = Flask(__name__)
-
-    # Allow the frontend (usually running on a different port) to call us.
-    CORS(app)
-
-    # SQLite is perfect for local dev. No setup required.
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///momentum.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-    # In production, this should come from the environment.
+    """Create and configure the Quart app"""
+    app = Quart(__name__)
+    
+    # Enable CORS for frontend communication
+    cors(app)
+    
+    # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-
-    # Attach the db instance to this app.
-    db.init_app(app)
-
-    # Optional: simple rate limiting so we don’t get hammered in a demo.
-    # If the package isn’t installed, we just skip it.
-    try:
-        from flask_limiter import Limiter
-        from flask_limiter.util import get_remote_address
-        Limiter(
-            key_func=get_remote_address,
-            app=app,
-            default_limits=["200 per hour"],  # global default
-            storage_uri="memory://"          # swap to Redis for real deployments
-        )
-    except Exception:
-        pass
-
-    # All endpoints live in one place.
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite+aiosqlite:///taskline.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Import models to ensure they're registered
+    import backend.models
+    
+    # Register routes
     register_routes(app)
-
+    
+    # Database initialization
+    @app.before_serving
+    async def startup():
+        try:
+            await initialize_database()
+        except Exception:
+            import logging
+            logging.exception("Database initialization failed")
+    
+    @app.after_serving
+    async def shutdown():
+        try:
+            await engine.dispose()
+            import logging
+            logging.info("Database engine disposed")
+        except Exception:
+            import logging
+            logging.exception("Engine disposal failed")
+    
     return app
 
-# -----------------------------
-# Routes
-# -----------------------------
 def register_routes(app):
-    """Hook up all endpoints and error handlers."""
-
-    # Quick landing page so you know the server is alive.
+    """Register all route blueprints"""
+    
     @app.route('/')
-    def home():
+    async def home():
         return jsonify({
-            'message': 'Welcome to Momentum Task Manager API!',
+            'message': 'Welcome to Task Line API!',
             'version': '1.0',
             'endpoints': {
+                'auth': '/api/auth',
                 'tasks': '/api/tasks',
+                'review': '/api/review',
+                'settings': '/api/settings',
                 'health': '/api/health'
             }
         })
-
-    # Simple health check for pings/monitoring.
+    
     @app.route('/api/health')
-    def health_check():
+    async def health_check():
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
             'database': 'connected'
         })
-
-    # List tasks, newest first. Supports a basic limit.
-    @app.route('/api/tasks', methods=['GET'])
-    def get_tasks():
-        """
-        Query params:
-          - limit (int): max number of tasks (default 50, max 100)
-        """
+    
+    @app.route('/api/export', methods=['GET'])
+    @auth_required
+    async def export_data():
+        """Export all user data as JSON"""
         try:
-            limit = min(int(request.args.get('limit', 50)), 100)
-            tasks = Task.query.order_by(Task.created_at.desc()).limit(limit).all()
-            return jsonify([task.to_dict() for task in tasks])
-        except ValueError:
-            return jsonify({'error': 'limit must be a valid integer'}), 400
+            from backend.models import Task, JournalEntry, UserSettings, Status
+            from sqlalchemy import select
+            from sqlalchemy.orm import selectinload
+            
+            async with AsyncSessionLocal() as db_session:
+                # Export tasks
+                task_result = await db_session.execute(
+                    select(Task).options(selectinload(Task.status))
+                    .where(Task.created_by == session['user_id'])
+                )
+                tasks = [task.to_dict() for task in task_result.scalars().all()]
+                
+                # Export journal entries
+                journal_result = await db_session.execute(
+                    select(JournalEntry).where(JournalEntry.user_id == session['user_id'])
+                )
+                journal_entries = [entry.to_dict() for entry in journal_result.scalars().all()]
+                
+                # Export settings
+                settings_result = await db_session.execute(
+                    select(UserSettings).where(UserSettings.user_id == session['user_id'])
+                )
+                settings = [setting.to_dict() for setting in settings_result.scalars().all()]
+                
+                export_data = {
+                    'version': '1.0',
+                    'exported_at': datetime.now().isoformat(),
+                    'tasks': tasks,
+                    'journal_entries': journal_entries,
+                    'settings': settings
+                }
+                
+                return jsonify(export_data)
+                
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
-    # Create a task. Title is required and capped at 200 chars.
-    @app.route('/api/tasks', methods=['POST'])
-    @validate_json('title')
-    def create_task():
-        """
-        Body:
-          - title (str, <= 200)
-        """
+            return jsonify({'error': 'Failed to export data'}), 500
+    
+    @app.route('/api/import', methods=['POST'])
+    @auth_required
+    async def import_data():
+        """Import user data from JSON"""
         try:
-            data = request.get_json()
-            title = data['title'].strip()
+            data = await request.get_json()
+            
+            if not data or 'version' not in data:
+                return jsonify({'error': 'Invalid import data format'}), 400
+            
+            from backend.models import Task, JournalEntry, UserSettings, Status
+            from sqlalchemy import select
+            from datetime import datetime
+            
+            async with AsyncSessionLocal() as db_session:
+                imported_count = {'tasks': 0, 'journal_entries': 0, 'settings': 0}
+                
+                # Import tasks
+                if 'tasks' in data:
+                    for task_data in data['tasks']:
+                        # Skip if task with same title and created_at already exists
+                        existing_result = await db_session.execute(
+                            select(Task).where(
+                                Task.title == task_data['title'],
+                                Task.created_by == session['user_id']
+                            )
+                        )
+                        if existing_result.scalars().first():
+                            continue  # Skip duplicate
+                            
+                        task = Task(
+                            title=task_data['title'],
+                            description=task_data.get('description', ''),
+                            notes=task_data.get('notes', ''),
+                            done=task_data.get('done', False),
+                            category=task_data.get('category'),
+                            priority=task_data.get('priority', False),
+                            due_date=datetime.fromisoformat(task_data['due_date']).date() if task_data.get('due_date') else None,
+                            estimate_minutes=task_data.get('estimate_minutes'),
+                            order=task_data.get('order', 0),
+                            status_id=task_data.get('status', {}).get('id', 1) if task_data.get('status') else 1,
+                            created_at=datetime.fromisoformat(task_data['created_at']) if task_data.get('created_at') else datetime.now(),
+                            updated_on=datetime.fromisoformat(task_data['updated_on']) if task_data.get('updated_on') else datetime.now(),
+                            closed_on=datetime.fromisoformat(task_data['closed_on']) if task_data.get('closed_on') else None,
+                            created_by=session['user_id']
+                        )
+                        db_session.add(task)
+                        imported_count['tasks'] += 1
+                
+                # Import journal entries
+                if 'journal_entries' in data:
+                    for entry_data in data['journal_entries']:
+                        # Skip if entry with same date and content already exists
+                        existing_result = await db_session.execute(
+                            select(JournalEntry).where(
+                                JournalEntry.entry_date == datetime.fromisoformat(entry_data['entry_date']).date(),
+                                JournalEntry.content == entry_data['content'],
+                                JournalEntry.user_id == session['user_id']
+                            )
+                        )
+                        if existing_result.scalars().first():
+                            continue  # Skip duplicate
+                            
+                        entry = JournalEntry(
+                            user_id=session['user_id'],
+                            entry_date=datetime.fromisoformat(entry_data['entry_date']).date(),
+                            content=entry_data['content'],
+                            created_at=datetime.fromisoformat(entry_data['created_at']) if entry_data.get('created_at') else datetime.now(),
+                            updated_on=datetime.fromisoformat(entry_data['updated_on']) if entry_data.get('updated_on') else datetime.now()
+                        )
+                        db_session.add(entry)
+                        imported_count['journal_entries'] += 1
+                
+                # Import settings (update existing or create new)
+                if 'settings' in data and data['settings']:
+                    settings_data = data['settings'][0]  # Assume single settings object
+                    existing_result = await db_session.execute(
+                        select(UserSettings).where(UserSettings.user_id == session['user_id'])
+                    )
+                    existing_settings = existing_result.scalars().first()
+                    
+                    if existing_settings:
+                        # Update existing
+                        existing_settings.notes_enabled = settings_data.get('notes_enabled', True)
+                        existing_settings.timer_enabled = settings_data.get('timer_enabled', True)
+                        existing_settings.ai_url = settings_data.get('ai_url')
+                        existing_settings.auto_lock_minutes = settings_data.get('auto_lock_minutes', 10)
+                        existing_settings.theme = settings_data.get('theme', 'light')
+                    else:
+                        # Create new
+                        new_settings = UserSettings(
+                            user_id=session['user_id'],
+                            notes_enabled=settings_data.get('notes_enabled', True),
+                            timer_enabled=settings_data.get('timer_enabled', True),
+                            ai_url=settings_data.get('ai_url'),
+                            auto_lock_minutes=settings_data.get('auto_lock_minutes', 10),
+                            theme=settings_data.get('theme', 'light')
+                        )
+                        db_session.add(new_settings)
+                    
+                    imported_count['settings'] += 1
+                
+                await db_session.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Data imported successfully',
+                    'imported': imported_count
+                })
+                
+        except Exception:
+            import logging
+            logging.exception("Failed to import data")
+            return jsonify({'error': 'Failed to import data'}), 500
+    
+    @app.route('/favicon.ico')
+    async def favicon():
+        return ('', 204)
+    
+    # Register blueprints (we'll add these as we create them)
+    try:
+        from backend.blueprints.auth.routes import auth_bp
+        app.register_blueprint(auth_bp)
+    except ImportError:
+        print("Auth blueprint not found - will add later")
 
-            if len(title) > 200:
-                return jsonify({'error': 'Title too long (max 200 characters)'}), 400
+    try:
+        from backend.blueprints.tasks.routes import tasks_bp
+        app.register_blueprint(tasks_bp)
+    except ImportError:
+        print("Tasks blueprint not found - will add later")    
+    try:
+        from backend.blueprints.review.routes import review_bp
+        app.register_blueprint(review_bp)
+    except ImportError:
+        print("Review blueprint not found - will add later")
 
-            task = Task(title=title)
-            db.session.add(task)
-            db.session.commit()
-            return jsonify(task.to_dict()), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-
-    # Fetch a single task by id.
-    @app.route('/api/tasks/<int:task_id>', methods=['GET'])
-    def get_task(task_id):
-        # SQLAlchemy 2.x style lookup (no deprecation warning).
-        task = db.session.get(Task, task_id)
-        if task is None:
-            return jsonify({'error': 'Resource not found'}), 404
-        return jsonify(task.to_dict())
-
-    # Update title/done for a task.
-    @app.route('/api/tasks/<int:task_id>', methods=['PUT'])
-    def update_task(task_id):
-        task = db.session.get(Task, task_id)
-        if task is None:
-            return jsonify({'error': 'Resource not found'}), 404
-
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-
-        try:
-            if 'title' in data:
-                title = data['title'].strip() if data['title'] else ''
-                if not title:
-                    return jsonify({'error': 'Title cannot be empty'}), 400
-                if len(title) > 200:
-                    return jsonify({'error': 'Title too long (max 200 characters)'}), 400
-                task.title = title
-
-            if 'done' in data:
-                task.done = bool(data['done'])
-
-            db.session.commit()
-            return jsonify(task.to_dict())
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-
-    # Permanently delete a task by id.
-    @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
-    def delete_task(task_id):
-        task = db.session.get(Task, task_id)
-        if task is None:
-            return jsonify({'error': 'Resource not found'}), 404
-
-        try:
-            db.session.delete(task)
-            db.session.commit()
-            return '', 204
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-
-    # Consistent JSON error responses.
+    try:
+        from backend.blueprints.settings.routes import settings_bp
+        app.register_blueprint(settings_bp)
+    except ImportError:
+        print("Settings blueprint not found - will add later")
+    # Error handlers
     @app.errorhandler(404)
-    def not_found_error(error):
+    async def not_found(error):
         return jsonify({'error': 'Resource not found'}), 404
-
+    
     @app.errorhandler(400)
-    def bad_request_error(error):
+    async def bad_request(error):
         return jsonify({'error': 'Bad request'}), 400
-
+    
     @app.errorhandler(500)
-    def internal_error(error):
-        db.session.rollback()
+    async def internal_error(error):
         return jsonify({'error': 'Internal server error'}), 500
 
-# -----------------------------
-# Startup
-# -----------------------------
-def initialize_database(app):
-    """
-    Create tables on first run and seed a single welcome task
-    so the list view has something to show.
-    """
-    with app.app_context():
-        try:
-            db.create_all()
-            print("Database initialized successfully!")
-            if Task.query.count() == 0:
-                db.session.add(Task(title="Welcome to Momentum! Edit or delete this task to get started."))
-                db.session.commit()
-                print("Sample task created!")
-        except Exception as e:
-            print(f"Database initialization failed: {e}")
+async def initialize_database():
+    """Initialize database with tables and default data"""
+    try:
+        # Create tables
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            
+            # Enable WAL mode for better concurrency
+            await conn.execute(text("PRAGMA journal_mode=WAL"))
+            # Enable foreign key constraints
+            await conn.execute(text("PRAGMA foreign_keys=ON"))
+            
+        print("Database tables created successfully!")
+        print("WAL mode and foreign key constraints enabled!")
+        
+        # Seed default data
+        async with AsyncSessionLocal() as session:
+            from backend.models import Status, Task
+            
+            # Add default statuses for kanban board
+            result = await session.execute(select(func.count(Status.id)))
+            status_count = result.scalar_one()
+            
+            if status_count == 0:
+                default_statuses = [
+                    Status(id=1, description="Todo"),
+                    Status(id=2, description="In Progress"),
+                    Status(id=3, description="Done")
+                ]
+                for status in default_statuses:
+                    session.add(status)
+                print("Default statuses created!")
+            
+            await session.commit()
+            
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
 
 def main():
-    print("Starting Momentum Task Manager...")
-    print("Phase 1: Basic CRUD Operations")
-
-    app = create_app()
-    initialize_database(app)
-
-    print("Server starting on http://localhost:8000")
-    print("API endpoints available at http://localhost:8000/api/tasks")
-    print("Health check at http://localhost:8000/api/health")
-    print("Press Ctrl+C to stop the server")
-
+    print("Starting Task Line API...")
+    print("Server starting on http://localhost:5000")
+    print("Health check at http://localhost:5000/api/health")
+    print("Press Ctrl+C to stop")
+    
+    debug_mode = os.environ.get('TASKLINE_DEBUG', '0') == '1'
     app.run(
-        debug=True,
-        host='127.0.0.1',
-        port=8000
+        debug=debug_mode,
+        host='localhost',
+        port=5001
     )
+
+# Create app instance
+app = create_app()
 
 if __name__ == '__main__':
     main()
-
