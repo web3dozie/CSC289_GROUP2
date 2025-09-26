@@ -50,12 +50,12 @@ async def create_task():
             await db_session.commit()
             await db_session.refresh(task)
             
-            return jsonify({
-                'success': True,
-                'message': 'Task created successfully',
-                'task_id': task.id
-            }), 201
-            
+            # Re-query with selectinload so related objects (status) are loaded safely
+            result = await db_session.execute(
+                select(Task).options(selectinload(Task.status)).where(Task.id == task.id)
+            )
+            task = result.scalars().first()
+            return jsonify(task.to_dict()), 201            
     except Exception as e:
         return jsonify({'error': 'Failed to create task'}), 500
 
