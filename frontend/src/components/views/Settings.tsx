@@ -5,6 +5,7 @@ import {
   useUpdateSettings,
   useAuthChangePin
 } from '../../lib/hooks'
+import { useTheme } from '../../contexts/ThemeContext'
 import type { UserSettings } from '../../lib/api'
 
 interface SettingSectionProps {
@@ -15,12 +16,12 @@ interface SettingSectionProps {
 }
 
 const SettingSection: React.FC<SettingSectionProps> = ({ title, description, icon: Icon, children }) => (
-  <div className="bg-white border border-gray-200 rounded-lg p-6">
+  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
     <div className="flex items-start mb-4">
-      <Icon className="w-6 h-6 text-purple-600 mr-3 mt-0.5" />
+      <Icon className="w-6 h-6 text-purple-600 dark:text-purple-400 mr-3 mt-0.5" />
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-600 mt-1">{description}</p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{description}</p>
       </div>
     </div>
     <div className="ml-9">
@@ -33,9 +34,10 @@ export const Settings: React.FC = () => {
   const { data: settings, isLoading } = useSettings()
   const updateSettings = useUpdateSettings()
   const changePin = useAuthChangePin()
+  const { theme, setTheme: setThemeContext } = useTheme()
 
   // Local state for form inputs
-  const [theme, setTheme] = useState(settings?.theme || 'light')
+  const [themeForm, setThemeForm] = useState(theme)
   const [autoLockMinutes, setAutoLockMinutes] = useState(settings?.auto_lock_minutes?.toString() || '30')
   const [notesEnabled, setNotesEnabled] = useState(settings?.notes_enabled || false)
   const [timerEnabled, setTimerEnabled] = useState(settings?.timer_enabled || false)
@@ -53,7 +55,7 @@ export const Settings: React.FC = () => {
   // Update local state when settings load
   React.useEffect(() => {
     if (settings) {
-      setTheme(settings.theme)
+      setThemeForm(settings.theme as 'light' | 'dark' | 'auto')
       setAutoLockMinutes(settings.auto_lock_minutes.toString())
       setNotesEnabled(settings.notes_enabled)
       setTimerEnabled(settings.timer_enabled)
@@ -61,9 +63,14 @@ export const Settings: React.FC = () => {
     }
   }, [settings])
 
+  // Update form when theme context changes
+  React.useEffect(() => {
+    setThemeForm(theme)
+  }, [theme])
+
   const handleSaveSettings = async () => {
     const updates: Partial<UserSettings> = {
-      theme,
+      theme: themeForm,
       auto_lock_minutes: parseInt(autoLockMinutes),
       notes_enabled: notesEnabled,
       timer_enabled: timerEnabled,
@@ -71,6 +78,8 @@ export const Settings: React.FC = () => {
     }
 
     await updateSettings.mutateAsync(updates)
+    // Update theme context immediately for UI feedback
+    setThemeContext(themeForm)
   }
 
   const handleChangePin = async () => {
@@ -105,13 +114,13 @@ export const Settings: React.FC = () => {
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="animate-pulse space-y-6">
             {[...Array(4)].map((_, i) => (
               <div key={i}>
-                <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
-                <div className="h-20 bg-gray-200 rounded"></div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-4"></div>
+                <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
               </div>
             ))}
           </div>
@@ -123,12 +132,12 @@ export const Settings: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
         <div className="flex items-center">
-          <SettingsIcon className="w-8 h-8 text-purple-600 mr-3" />
+          <SettingsIcon className="w-8 h-8 text-purple-600 dark:text-purple-400 mr-3" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
               Customize your Task Line experience
             </p>
           </div>
@@ -144,7 +153,7 @@ export const Settings: React.FC = () => {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Theme
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -154,17 +163,21 @@ export const Settings: React.FC = () => {
                       type="radio"
                       name="theme"
                       value={option.value}
-                      checked={theme === option.value}
-                      onChange={(e) => setTheme(e.target.value)}
+                      checked={themeForm === option.value}
+                      onChange={(e) => {
+                        const newTheme = e.target.value as 'light' | 'dark' | 'auto'
+                        setThemeForm(newTheme)
+                        setThemeContext(newTheme) // Apply immediately
+                      }}
                       className="sr-only"
                     />
                     <div className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      theme === option.value
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      themeForm === option.value
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                     }`}>
-                      <div className="font-medium text-sm">{option.label}</div>
-                      <div className="text-xs text-gray-500 mt-1">{option.description}</div>
+                      <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{option.label}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{option.description}</div>
                     </div>
                   </label>
                 ))}
@@ -181,7 +194,7 @@ export const Settings: React.FC = () => {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Auto-lock (minutes)
               </label>
               <select
@@ -201,16 +214,16 @@ export const Settings: React.FC = () => {
             <div className="pt-4 border-t border-gray-200">
               <button
                 onClick={() => setShowPinChange(!showPinChange)}
-                className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 <Key className="w-4 h-4 mr-2" />
                 Change PIN
               </button>
 
               {showPinChange && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Current PIN
                     </label>
                     <div className="relative">
@@ -235,7 +248,7 @@ export const Settings: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       New PIN
                     </label>
                     <div className="relative">
@@ -260,7 +273,7 @@ export const Settings: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Confirm New PIN
                     </label>
                     <div className="relative">
@@ -292,7 +305,7 @@ export const Settings: React.FC = () => {
                         setNewPin('')
                         setConfirmPin('')
                       }}
-                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                      className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                     >
                       Cancel
                     </button>
@@ -319,8 +332,8 @@ export const Settings: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium text-gray-900">Task Notes</div>
-                <div className="text-sm text-gray-500">Add detailed notes to your tasks</div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">Task Notes</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Add detailed notes to your tasks</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -335,8 +348,8 @@ export const Settings: React.FC = () => {
 
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium text-gray-900">Pomodoro Timer</div>
-                <div className="text-sm text-gray-500">Use built-in timer for focused work sessions</div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">Pomodoro Timer</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Use built-in timer for focused work sessions</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -358,7 +371,7 @@ export const Settings: React.FC = () => {
           icon={Cpu}
         >
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               AI API URL (Optional)
             </label>
             <input
@@ -368,14 +381,14 @@ export const Settings: React.FC = () => {
               placeholder="https://your-ai-api.com"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Leave empty to use default AI integration
             </p>
           </div>
         </SettingSection>
 
         {/* Save Button */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <div className="flex justify-end">
             <button
               onClick={handleSaveSettings}

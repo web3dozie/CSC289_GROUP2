@@ -34,17 +34,17 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
 
   return (
     <div
-      className={`min-h-32 p-2 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-        !isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
-      } ${isToday ? 'bg-blue-50 border-blue-300' : ''}`}
+      className={`min-h-32 p-2 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+        !isCurrentMonth ? 'bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500' : ''
+      } ${isToday ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600' : ''}`}
       onClick={() => onDateClick(date)}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className={`text-sm font-medium ${isToday ? 'text-blue-600' : ''}`}>
+        <span className={`text-sm font-medium ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'}`}>
           {date.getDate()}
         </span>
         {dayTasks.length > 0 && (
-          <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+          <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded-full">
             {dayTasks.length}
           </span>
         )}
@@ -55,7 +55,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         {overdueTasks.slice(0, 2).map(task => (
           <div
             key={task.id}
-            className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-red-200"
+            className="text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-red-200 dark:hover:bg-red-800"
             onClick={(e) => {
               e.stopPropagation()
               onTaskClick(task)
@@ -70,7 +70,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         {pendingTasks.slice(0, 2).map(task => (
           <div
             key={task.id}
-            className="text-xs bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-yellow-200"
+            className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800"
             onClick={(e) => {
               e.stopPropagation()
               onTaskClick(task)
@@ -85,7 +85,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         {completedTasks.slice(0, 2).map(task => (
           <div
             key={task.id}
-            className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-green-200 line-through"
+            className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-green-200 dark:hover:bg-green-800 line-through"
             onClick={(e) => {
               e.stopPropagation()
               onTaskClick(task)
@@ -98,7 +98,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
 
         {/* Show indicator if there are more tasks */}
         {dayTasks.length > 6 && (
-          <div className="text-xs text-gray-500 text-center">
+          <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
             +{dayTasks.length - 6} more
           </div>
         )}
@@ -248,9 +248,9 @@ export const TaskCalendar: React.FC = () => {
     return (
       <div className="space-y-6">
         {sections.map((section) => (
-          <div key={section.title} className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <CalendarIcon className="w-5 h-5 text-gray-500 mr-2" />
+          <div key={section.title} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+              <CalendarIcon className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" />
               {section.title}
             </h3>
 
@@ -263,8 +263,8 @@ export const TaskCalendar: React.FC = () => {
                   if (dateTasks.length === 0) return null
 
                   return (
-                    <div key={date.toISOString()} className="border-l-4 border-purple-200 pl-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    <div key={date.toISOString()} className="border-l-4 border-purple-200 dark:border-purple-700 pl-4">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {date.toLocaleDateString('en-US', {
                           weekday: 'long',
                           month: 'short',
@@ -290,7 +290,7 @@ export const TaskCalendar: React.FC = () => {
                   const dateKey = date.toISOString().split('T')[0]
                   return !section.tasksByDate![dateKey]?.length
                 }) && (
-                  <p className="text-gray-500 text-center py-4">
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                     No upcoming tasks
                   </p>
                 )}
@@ -299,7 +299,7 @@ export const TaskCalendar: React.FC = () => {
               // Today/Tomorrow sections
               <div className="space-y-2">
                 {section.tasks!.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                     No tasks {section.title.toLowerCase()}
                   </p>
                 ) : (
@@ -325,17 +325,17 @@ export const TaskCalendar: React.FC = () => {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
             <div className="grid grid-cols-7 gap-1 mb-4">
               {[...Array(7)].map((_, i) => (
-                <div key={i} className="h-8 bg-gray-200 rounded"></div>
+                <div key={i} className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
               {[...Array(42)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
               ))}
             </div>
           </div>
@@ -347,8 +347,8 @@ export const TaskCalendar: React.FC = () => {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="text-center text-red-600">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="text-center text-red-600 dark:text-red-400">
             <p>Failed to load calendar. Please try again.</p>
           </div>
         </div>
@@ -359,47 +359,47 @@ export const TaskCalendar: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {viewMode === 'calendar' && (
               <>
                 <button
                   onClick={() => navigateMonth('prev')}
-                  className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                 </h1>
                 <button
                   onClick={() => navigateMonth('next')}
-                  className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
                 <button
                   onClick={goToToday}
-                  className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                  className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
                 >
                   Today
                 </button>
               </>
             )}
             {viewMode === 'agenda' && (
-              <h1 className="text-2xl font-bold text-gray-900">Agenda</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Agenda</h1>
             )}
           </div>
           <div className="flex items-center space-x-2">
             {/* View Toggle Buttons */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('calendar')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center ${
                   viewMode === 'calendar'
-                    ? 'bg-white shadow text-gray-900'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white dark:bg-gray-800 shadow text-gray-900 dark:text-gray-100'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
                 <Grid3X3 className="w-4 h-4 mr-1" />
@@ -409,8 +409,8 @@ export const TaskCalendar: React.FC = () => {
                 onClick={() => setViewMode('agenda')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center ${
                   viewMode === 'agenda'
-                    ? 'bg-white shadow text-gray-900'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white dark:bg-gray-800 shadow text-gray-900 dark:text-gray-100'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
                 <List className="w-4 h-4 mr-1" />
@@ -432,11 +432,11 @@ export const TaskCalendar: React.FC = () => {
         {/* Calendar Grid or Agenda View */}
         <div className={viewMode === 'calendar' ? "lg:col-span-2" : "lg:col-span-3"}>
           {viewMode === 'calendar' ? (
-            <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
               {/* Day headers */}
-              <div className="grid grid-cols-7 bg-gray-50 border-b">
+              <div className="grid grid-cols-7 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 {dayNames.map(day => (
-                  <div key={day} className="p-4 text-center text-sm font-medium text-gray-700">
+                  <div key={day} className="p-4 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
                     {day}
                   </div>
                 ))}
@@ -464,10 +464,10 @@ export const TaskCalendar: React.FC = () => {
 
         {/* Selected Date Tasks - Only show in calendar view */}
         {viewMode === 'calendar' && (
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
             <div className="flex items-center mb-4">
-              <CalendarIcon className="w-5 h-5 text-gray-500 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">
+              <CalendarIcon className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {selectedDate
                   ? selectedDate.toLocaleDateString('en-US', {
                       weekday: 'long',
@@ -483,7 +483,7 @@ export const TaskCalendar: React.FC = () => {
             {selectedDate ? (
               <div className="space-y-3">
                 {selectedDateTasks.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                     No tasks for this date
                   </p>
                 ) : (
@@ -500,7 +500,7 @@ export const TaskCalendar: React.FC = () => {
                 )}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                 Click on a date to see tasks
               </p>
             )}
