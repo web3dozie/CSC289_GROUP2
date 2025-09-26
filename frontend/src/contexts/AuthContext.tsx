@@ -13,9 +13,9 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   isLocked: boolean
-  login: (pin: string) => Promise<void>
+  login: (username: string, pin: string) => Promise<void>
   logout: () => Promise<void>
-  setup: (data: { pin: string; username?: string; email?: string }) => Promise<void>
+  setup: (data: { pin: string; username: string; email?: string }) => Promise<void>
   changePin: (data: { currentPin: string; newPin: string }) => Promise<void>
   unlock: (pin: string) => Promise<void>
   updateActivity: () => void
@@ -90,10 +90,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [user, isLoading])
 
-  const login = async (pin: string) => {
+  const login = async (username: string, pin: string) => {
     try {
       setError(null)
-      const result = await loginMutation.mutateAsync({ pin })
+      const result = await loginMutation.mutateAsync({ username, pin })
       setUser({ id: result.user_id, username: result.username })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed'
@@ -116,7 +116,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  const setup = async (data: { pin: string; username?: string; email?: string }) => {
+  const setup = async (data: { pin: string; username: string; email?: string }) => {
     try {
       setError(null)
       const result = await setupMutation.mutateAsync(data)
@@ -157,7 +157,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const unlock = useCallback(async (pin: string) => {
     try {
       setError(null)
-      await loginMutation.mutateAsync({ pin })
+      if (!user) throw new Error('No user session')
+      await loginMutation.mutateAsync({ username: user.username, pin })
       setIsLocked(false)
       updateActivity()
     } catch (error) {
@@ -165,7 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(message)
       throw error
     }
-  }, [loginMutation, updateActivity])
+  }, [loginMutation, updateActivity, user])
 
   // Auto-lock logic
   useEffect(() => {

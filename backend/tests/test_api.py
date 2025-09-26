@@ -41,7 +41,7 @@ async def create_user_and_login(client, pin='1234', username='testuser'):
     # If user already exists, attempt login to establish session
     if resp.status_code == 400:
         # try login
-        login_resp = await client.post('/api/auth/login', json={'pin': pin})
+        login_resp = await client.post('/api/auth/login', json={'pin': pin, 'username': username})
         assert login_resp.status_code in (200, 201)
         return await login_resp.get_json()
     # otherwise fail

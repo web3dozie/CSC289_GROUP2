@@ -12,11 +12,14 @@ async def setup_auth():
     """Initial PIN setup for first-time users"""
     data = await request.get_json()
     
-    if not data or 'pin' not in data:
-        return jsonify({'error': 'PIN is required'}), 400
+    if not data or 'pin' not in data or 'username' not in data:
+        return jsonify({'error': 'PIN and username are required'}), 400
     
     pin = data['pin'].strip()
-    username = data.get('username', 'admin').strip()
+    username = data['username'].strip()
+    
+    if not username:
+        return jsonify({'error': 'Username cannot be empty'}), 400
     
     if not validate_pin(pin):
         return jsonify({'error': 'PIN must be 4-8 digits'}), 400
@@ -67,26 +70,32 @@ async def setup_auth():
 
 @auth_bp.route('/login', methods=['POST'])
 async def login():
-    """Authenticate with PIN"""
+    """Authenticate with username and PIN"""
     data = await request.get_json()
     
-    if not data or 'pin' not in data:
-        return jsonify({'error': 'PIN is required'}), 400
+    if not data or 'pin' not in data or 'username' not in data:
+        return jsonify({'error': 'Username and PIN are required'}), 400
     
     pin = data['pin'].strip()
+    username = data['username'].strip()
+    
+    if not username:
+        return jsonify({'error': 'Username cannot be empty'}), 400
     
     try:
         async with AsyncSessionLocal() as db_session:
-            result = await db_session.execute(select(User))
+            result = await db_session.execute(
+                select(User).where(User.username == username)
+            )
             user = result.scalar_one_or_none()
             
             if not user:
-                return jsonify({'error': 'Error, wrong PIN'}), 401
+                return jsonify({'error': 'Invalid username or PIN'}), 401
 
             # Verify PIN and migrate legacy SHA-256 -> bcrypt if needed
             is_valid, new_hash = verify_and_migrate_pin(pin, user.pin_hash)
             if not is_valid:
-                return jsonify({'error': 'Error, wrong PIN'}), 401
+                return jsonify({'error': 'Invalid username or PIN'}), 401
 
             # If migration produced a new bcrypt hash, save it
             if new_hash:

@@ -56,7 +56,7 @@ export const authApi = {
       }
     ),
 
-  login: (data: { pin: string }) =>
+  login: (data: { username: string; pin: string }) =>
     apiRequest<{ success: boolean; message: string; user_id: number; username: string }>(
       '/api/auth/login',
       {
