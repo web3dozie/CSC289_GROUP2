@@ -147,7 +147,7 @@ def verify_and_migrate_pin(pin: str, stored_hash: str) -> tuple[bool, str | None
     """Verify PIN against stored_hash.
 
     Returns tuple (is_valid, new_hash_or_none). If stored_hash is an old
-    unsalted SHA-256, verify using hashlib and if valid return a new bcrypt
+    unsalted SHA-256, verify using hashlib and if valid return a new pbkdf2_sha256
     hash to replace the old one (migration path).
     """
     # Detect old SHA-256 hex digests (64 chars, 0-9a-f)
