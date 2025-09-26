@@ -41,6 +41,7 @@ class Task(Base):
     description = Column(Text)
     notes = Column(Text)
     done = Column(Boolean, default=False)
+    archived = Column(Boolean, default=False)
     category = Column(String(50), nullable=True)
     priority = Column(Boolean, default=False)
     due_date = Column(Date, nullable=True)
@@ -62,6 +63,7 @@ class Task(Base):
             'description': self.description,
             'notes': self.notes,
             'done': self.done,
+            'archived': self.archived,
             'category': self.category,
             'priority': self.priority,
             'due_date': self.due_date.isoformat() if self.due_date else None,

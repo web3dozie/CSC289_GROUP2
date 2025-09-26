@@ -8,6 +8,7 @@ export const queryKeys = {
   kanban: ['tasks', 'kanban'] as const,
   calendar: ['tasks', 'calendar'] as const,
   categories: ['tasks', 'categories'] as const,
+  archived: ['tasks', 'archived'] as const,
   journal: ['review', 'journal'] as const,
   dailySummary: ['review', 'summary', 'daily'] as const,
   weeklySummary: ['review', 'summary', 'weekly'] as const,
@@ -148,6 +149,28 @@ export const useDeleteTask = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
       queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
     },
+  })
+}
+
+export const useArchiveCompletedTasks = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: tasksApi.archiveCompleted,
+    onSuccess: () => {
+      // Invalidate tasks queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks })
+      queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
+      queryClient.invalidateQueries({ queryKey: queryKeys.archived })
+    },
+  })
+}
+
+export const useArchivedTasks = () => {
+  return useQuery({
+    queryKey: queryKeys.archived,
+    queryFn: tasksApi.getArchived,
   })
 }
 

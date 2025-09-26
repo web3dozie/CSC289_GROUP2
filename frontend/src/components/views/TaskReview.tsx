@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
-import { BookOpen, TrendingUp, Calendar, Plus, Edit, X, BarChart3, Target, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { BookOpen, TrendingUp, Calendar, Plus, Edit, X, BarChart3, Target, CheckCircle, Clock, AlertCircle, Archive } from 'lucide-react'
 import {
   useJournal,
   useCreateJournalEntry,
   useUpdateJournalEntry,
   useDailySummary,
   useWeeklySummary,
-  useInsights
+  useInsights,
+  useArchivedTasks
 } from '../../lib/hooks'
 import type { JournalEntry } from '../../lib/api'
 
@@ -192,7 +193,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ entry, onSave, onCancel }
 }
 
 export const TaskReview: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'journal' | 'daily' | 'weekly' | 'insights'>('journal')
+  const [activeTab, setActiveTab] = useState<'journal' | 'daily' | 'weekly' | 'insights' | 'archived'>('journal')
   const [showJournalEditor, setShowJournalEditor] = useState(false)
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
 
@@ -200,6 +201,7 @@ export const TaskReview: React.FC = () => {
   const { data: dailySummary, isLoading: dailyLoading } = useDailySummary()
   const { data: weeklySummary, isLoading: weeklyLoading } = useWeeklySummary()
   const { data: insights, isLoading: insightsLoading } = useInsights()
+  const { data: archivedTasks = [], isLoading: archivedLoading } = useArchivedTasks()
 
   const createJournalEntry = useCreateJournalEntry()
   const updateJournalEntry = useUpdateJournalEntry()
@@ -223,7 +225,8 @@ export const TaskReview: React.FC = () => {
     { id: 'journal', label: 'Journal', icon: BookOpen },
     { id: 'daily', label: 'Daily Summary', icon: Calendar },
     { id: 'weekly', label: 'Weekly Summary', icon: BarChart3 },
-    { id: 'insights', label: 'Insights', icon: TrendingUp }
+    { id: 'insights', label: 'Insights', icon: TrendingUp },
+    { id: 'archived', label: 'Archived Tasks', icon: Archive }
   ]
 
   return (
@@ -616,6 +619,59 @@ export const TaskReview: React.FC = () => {
                   <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No insights available</h3>
                   <p className="text-gray-500">Complete more tasks and use the journal to unlock productivity insights.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Archived Tasks Tab */}
+          {activeTab === 'archived' && (
+            <div className="space-y-6">
+              {archivedLoading ? (
+                <div className="animate-pulse space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-20 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+              ) : archivedTasks.length === 0 ? (
+                <div className="text-center py-12">
+                  <Archive className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No archived tasks</h3>
+                  <p className="text-gray-500">Completed tasks will appear here after you archive them.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Archived Tasks ({archivedTasks.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {archivedTasks.map(task => (
+                        <div key={task.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">{task.title}</h4>
+                              {task.description && (
+                                <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                              )}
+                              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                {task.category && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-200 text-gray-800">
+                                    {task.category}
+                                  </span>
+                                )}
+                                {task.priority && <span>High Priority</span>}
+                                {task.due_date && (
+                                  <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>
+                                )}
+                                <span>Completed: {new Date(task.updated_on || task.created_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

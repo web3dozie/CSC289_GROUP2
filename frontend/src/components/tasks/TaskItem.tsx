@@ -55,13 +55,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     (isOverdue ? `overdue, due ${formatDate(task.due_date)}` :
      isDueSoon ? `due soon, ${formatDate(task.due_date)}` :
      `due ${formatDate(task.due_date)}`) : 'no due date'
+  const archiveText = task.archived ? 'archived' : ''
 
   return (
     <article
       className={`bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
-        task.done ? 'opacity-75' : ''
+        task.archived ? 'opacity-50 bg-gray-50' : task.done ? 'opacity-75' : ''
       }`}
-      aria-label={`Task: ${task.title}, ${taskStatus}, ${priorityText}, ${dueDateText}`}
+      aria-label={`Task: ${task.title}, ${taskStatus}, ${archiveText}, ${priorityText}, ${dueDateText}`}
     >
       {/* Header with checkbox and actions */}
       <header className="flex items-start justify-between mb-2">
@@ -75,7 +76,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             aria-label={`${task.done ? 'Mark as incomplete' : 'Mark as complete'}: ${task.title}`}
           />
           <h3 className={`font-medium text-gray-900 flex-1 ${
-            task.done ? 'line-through text-gray-500' : ''
+            task.archived ? 'text-gray-500' : task.done ? 'line-through text-gray-500' : ''
           }`}>
             {task.title}
           </h3>
@@ -133,7 +134,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       {/* Description */}
       {task.description && (
         <p className={`text-sm text-gray-600 mb-3 ${
-          task.done ? 'line-through' : ''
+          task.archived ? 'text-gray-400' : task.done ? 'line-through' : ''
         }`}>
           {task.description}
         </p>

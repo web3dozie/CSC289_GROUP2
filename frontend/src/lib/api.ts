@@ -84,6 +84,7 @@ export interface Task {
   description?: string
   notes?: string
   done: boolean
+  archived: boolean
   category?: string
   priority: boolean
   due_date?: string
@@ -155,6 +156,14 @@ export const tasksApi = {
 
   getCategories: () =>
     apiRequest<string[]>('/api/tasks/categories'),
+
+  archiveCompleted: () =>
+    apiRequest<{ message: string; archived_count: number }>('/api/tasks/archive-completed', {
+      method: 'POST',
+    }),
+
+  getArchived: () =>
+    apiRequest<Task[]>('/api/tasks/archived'),
 }
 
 // Review API

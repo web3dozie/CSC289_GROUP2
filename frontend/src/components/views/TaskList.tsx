@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react'
-import { Plus, Search, SortAsc, SortDesc, GripVertical } from 'lucide-react'
-import { useTasks, useUpdateTask, useDeleteTask } from '../../lib/hooks'
+import { Plus, Search, SortAsc, SortDesc, GripVertical, Archive } from 'lucide-react'
+import { useTasks, useUpdateTask, useDeleteTask, useArchiveCompletedTasks } from '../../lib/hooks'
 import { TaskItem, TaskModal, DeleteConfirmation, CompletionNotesModal } from '../tasks'
 import type { Task } from '../../lib/api'
 
@@ -31,6 +31,7 @@ export const TaskList: React.FC = () => {
   const { data: tasks = [], isLoading, error } = useTasks()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const archiveCompletedTasks = useArchiveCompletedTasks()
 
   // Filter and sort tasks
   const filteredAndSortedTasks = React.useMemo(() => {
@@ -131,6 +132,16 @@ export const TaskList: React.FC = () => {
       setDeletingTask(null)
     } catch (error) {
       console.error('Failed to delete task:', error)
+    }
+  }
+
+  const handleArchiveCompleted = async () => {
+    try {
+      const result = await archiveCompletedTasks.mutateAsync()
+      alert(`Successfully archived ${result.archived_count} completed tasks!`)
+    } catch (error) {
+      console.error('Failed to archive completed tasks:', error)
+      alert('Failed to archive completed tasks. Please try again.')
     }
   }
 
@@ -309,13 +320,23 @@ export const TaskList: React.FC = () => {
               {filteredAndSortedTasks.length} of {tasks.length} tasks
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Task
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleArchiveCompleted}
+              disabled={archiveCompletedTasks.isPending}
+              className="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              {archiveCompletedTasks.isPending ? 'Archiving...' : 'Archive Completed'}
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Task
+            </button>
+          </div>
         </div>
 
         {/* Filters and Search */}

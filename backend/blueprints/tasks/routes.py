@@ -17,7 +17,7 @@ async def get_tasks():
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task).options(selectinload(Task.status))
-                .where(Task.created_by == session['user_id'])
+                .where(and_(Task.created_by == session['user_id'], Task.archived == False))
                 .order_by(Task.priority.desc(), Task.updated_on.desc())
             )
             tasks = result.scalars().all()
@@ -73,7 +73,7 @@ async def get_kanban_board():
             for status in statuses:
                 task_result = await db_session.execute(
                     select(Task).options(selectinload(Task.status))
-                    .where(and_(Task.created_by == session['user_id'], Task.status_id == status.id))
+                    .where(and_(Task.created_by == session['user_id'], Task.status_id == status.id, Task.archived == False))
                     .order_by(Task.priority.desc(), Task.updated_on.desc())
                 )
                 tasks = task_result.scalars().all()
@@ -146,6 +146,8 @@ async def update_task(task_id):
                 task.description = data['description']
             if 'done' in data:
                 task.done = bool(data['done'])
+            if 'archived' in data:
+                task.archived = bool(data['archived'])
             if 'category' in data:
                 task.category = data['category']
             if 'priority' in data:
@@ -194,7 +196,7 @@ async def get_calendar_tasks():
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task).options(selectinload(Task.status))
-                .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None)))
+                .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None), Task.archived == False))
                 .order_by(Task.due_date, Task.priority.desc(), Task.updated_on.desc())
             )
             tasks = result.scalars().all()
@@ -214,3 +216,50 @@ async def get_calendar_tasks():
     except Exception:
         logging.exception("Failed to fetch calendar tasks")
         return jsonify({'error': 'Failed to fetch calendar tasks'}), 500
+
+@tasks_bp.route('/archived', methods=['GET'])
+@auth_required
+async def get_archived_tasks():
+    """Get all archived tasks for the user"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            result = await db_session.execute(
+                select(Task).options(selectinload(Task.status))
+                .where(and_(Task.created_by == session['user_id'], Task.archived == True))
+                .order_by(Task.updated_on.desc())
+            )
+            tasks = result.scalars().all()
+            return jsonify([task.to_dict() for task in tasks])
+    except Exception as e:
+        logging.exception("Failed to fetch archived tasks")
+        return jsonify({'error': 'Failed to fetch archived tasks'}), 500
+
+@tasks_bp.route('/archive-completed', methods=['POST'])
+@auth_required
+async def archive_completed_tasks():
+    """Archive all completed tasks for the user"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            # Find all completed tasks that are not already archived
+            result = await db_session.execute(
+                select(Task)
+                .where(and_(Task.created_by == session['user_id'], Task.done == True, Task.archived == False))
+            )
+            tasks_to_archive = result.scalars().all()
+            
+            if not tasks_to_archive:
+                return jsonify({'message': 'No completed tasks to archive', 'archived_count': 0})
+            
+            # Archive them
+            for task in tasks_to_archive:
+                task.archived = True
+            
+            await db_session.commit()
+            
+            return jsonify({
+                'message': f'Successfully archived {len(tasks_to_archive)} completed tasks',
+                'archived_count': len(tasks_to_archive)
+            })
+    except Exception as e:
+        logging.exception("Failed to archive completed tasks")
+        return jsonify({'error': 'Failed to archive completed tasks'}), 500
