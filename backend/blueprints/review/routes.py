@@ -29,8 +29,8 @@ async def get_journal():
             select(JournalEntry)
             .where(
                 JournalEntry.user_id == user_id,
-                JournalEntry.entry_date >= start_date,
-                JournalEntry.entry_date <= end_date,
+                func.date(JournalEntry.entry_date) >= start_date,
+                func.date(JournalEntry.entry_date) <= end_date,
             )
             .order_by(JournalEntry.entry_date.desc())
         )
@@ -115,7 +115,7 @@ async def daily_summary():
             select(func.count())
             .select_from(Task)
             .where(
-                func.date(Task.created_at) == target_date,
+                func.date(Task.created_on) == target_date,
                 Task.done == True,
                 Task.created_by == user_id,
             )
@@ -153,8 +153,8 @@ async def weekly_summary():
             select(func.count())
             .select_from(Task)
             .where(
-                Task.created_at >= start_of_week,
-                Task.created_at <= end_of_week + timedelta(days=1),
+                Task.created_on >= start_of_week,
+                Task.created_on <= end_of_week + timedelta(days=1),
                 Task.done == True,
                 Task.created_by == user_id,
             )
@@ -165,8 +165,8 @@ async def weekly_summary():
             select(func.count())
             .select_from(Task)
             .where(
-                Task.created_at >= start_of_week,
-                Task.created_at <= end_of_week + timedelta(days=1),
+                Task.created_on >= start_of_week,
+                Task.created_on <= end_of_week + timedelta(days=1),
                 Task.created_by == user_id,
             )
         )
@@ -206,11 +206,11 @@ async def get_insights():
 
         result = await s.execute(
             select(
-                func.date(Task.created_at).label("date"),
+                func.date(Task.created_on).label("date"),
                 func.count(Task.id).label("count"),
             )
             .where(Task.done == True, Task.created_by == user_id)
-            .group_by(func.date(Task.created_at))
+            .group_by(func.date(Task.created_on))
             .order_by(func.count(Task.id).desc())
         )
         productive_days = result.first()
