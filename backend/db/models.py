@@ -125,6 +125,8 @@ class Task(Base):
     parent_id: Mapped[int | None] = mapped_column(
         ForeignKey("task.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    # Completion flag
+    done: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # TODO: Set default datetimes
     closed_on: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     due_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -172,6 +174,7 @@ class Task(Base):
                 else None
             ),
             "tags": [getattr(t, "name", None) for t in tags],
+            "done": getattr(self, "done", False),
             "parent_id": getattr(self, "parent_id", None),
             "due_date": _iso(getattr(self, "due_date", None)),
             "created_on": _iso(getattr(self, "created_on", None)),

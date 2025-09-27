@@ -17,9 +17,9 @@ async def get_tasks():
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task)
-                .options(selectinload(Task.status))
+                .options(selectinload(Task.status), selectinload(Task.tags))
                 .where(Task.created_by == session["user_id"])
-                .order_by(Task.priority.desc(), Task.updated_on.desc())
+                # .order_by(Task.priority.desc(), Task.updated_on.desc())
             )
             tasks = result.scalars().all()
             return jsonify([task.to_dict() for task in tasks])
@@ -39,22 +39,38 @@ async def create_task():
 
     try:
         async with AsyncSessionLocal() as db_session:
+            # pick a default status if none provided
+            if data.get("status_id"):
+                status_id = int(data["status_id"])
+            else:
+                # try to find a sensible default status row (Todo/In Progress)
+                res = await db_session.execute(select(Status).limit(1))
+                first_status = res.scalars().first()
+                status_id = first_status.id if first_status else 1
+
+            # ensure due_date is a datetime
+            if data.get("due_date"):
+                # accept YYYY-MM-DD date strings
+                due_date = datetime.strptime(data["due_date"], "%Y-%m-%d")
+            else:
+                due_date = datetime.now()
+
             task = Task(
                 title=data["title"].strip(),
                 description=data.get("description", ""),
                 category=data.get("category"),
-                priority=bool(data.get("priority", False)),
-                due_date=(
-                    datetime.strptime(data["due_date"], "%Y-%m-%d").date()
-                    if data.get("due_date")
-                    else None
-                ),
+                # Priority field is not currently implemented
+                # priority=bool(data.get("priority", False)),
+                due_date=due_date,
+                status_id=status_id,
+                created_on=datetime.now(),
+                updated_on=datetime.now(),
                 created_by=session["user_id"],
             )
+
             db_session.add(task)
             await db_session.commit()
             await db_session.refresh(task)
-
             return (
                 jsonify(
                     {
@@ -65,8 +81,10 @@ async def create_task():
                 ),
                 201,
             )
-
     except Exception as e:
+        import traceback
+
+        traceback.print_exc()  # show the real error in test output
         return jsonify({"error": "Failed to create task"}), 500
 
 
@@ -84,7 +102,7 @@ async def get_kanban_board():
             for status in statuses:
                 task_result = await db_session.execute(
                     select(Task)
-                    .options(selectinload(Task.status))
+                    .options(selectinload(Task.status), selectinload(Task.tags))
                     .where(
                         and_(
                             Task.created_by == session["user_id"],
@@ -127,7 +145,7 @@ async def get_task(task_id):
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task)
-                .options(selectinload(Task.status))
+                .options(selectinload(Task.status), selectinload(Task.tags))
                 .where(Task.id == task_id, Task.created_by == session["user_id"])
             )
             task = result.scalars().first()
@@ -175,7 +193,7 @@ async def update_task(task_id):
             # Re-query with selectinload so related objects (status) are loaded safely
             result = await db_session.execute(
                 select(Task)
-                .options(selectinload(Task.status))
+                .options(selectinload(Task.status), selectinload(Task.tags))
                 .where(Task.id == task_id)
             )
             task = result.scalars().first()
