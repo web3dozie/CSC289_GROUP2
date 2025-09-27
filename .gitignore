@@ -65,3 +65,7 @@ venv/
 
 # pip build/wheel metadata
 pip-wheel-metadata/
+
+# JetBrains IDEs
+.idea/
+
