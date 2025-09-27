@@ -26,10 +26,10 @@ async def setup_auth():
     
     try:
         async with AsyncSessionLocal() as db_session:
-            # Check if any user exists
-            result = await db_session.execute(select(User))
+            # Check if username already exists
+            result = await db_session.execute(select(User).where(User.username == username))
             if result.first():
-                return jsonify({'error': 'User already exists'}), 400
+                return jsonify({'error': 'Username already exists'}), 400
             
             # Create new user
             new_user = User(
