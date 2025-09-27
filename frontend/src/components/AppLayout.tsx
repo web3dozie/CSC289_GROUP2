@@ -7,7 +7,8 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  User
+  User,
+  Timer
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Board', href: '/app/board', icon: Kanban },
   { name: 'Calendar', href: '/app/calendar', icon: Calendar },
   { name: 'Review', href: '/app/review', icon: BarChart3 },
+  { name: 'Timer', href: '/app/timer', icon: Timer },
 ]
 
 export const AppLayout: React.FC = () => {

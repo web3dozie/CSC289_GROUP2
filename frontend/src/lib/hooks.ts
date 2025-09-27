@@ -252,3 +252,6 @@ export const useUpdateSettings = () => {
     },
   })
 }
+
+// Timer hooks
+export { usePomodoroTimer } from './hooks/timer'

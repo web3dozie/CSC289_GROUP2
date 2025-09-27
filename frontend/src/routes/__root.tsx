@@ -16,6 +16,7 @@ import { TaskBoard } from '../components/views/TaskBoard'
 import { TaskCalendar } from '../components/views/TaskCalendar'
 import { TaskReview } from '../components/views/TaskReview'
 import { Settings } from '../components/views/Settings'
+import { PomodoroTimer } from '../components/views/PomodoroTimer'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -113,6 +114,12 @@ const reviewRoute = createRoute({
   component: TaskReview,
 })
 
+const timerRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/timer',
+  component: PomodoroTimer,
+})
+
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/settings',
@@ -124,7 +131,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   signupRoute,
   overviewRoute,
-  appRoute.addChildren([listRoute, boardRoute, calendarRoute, reviewRoute, settingsRoute])
+  appRoute.addChildren([listRoute, boardRoute, calendarRoute, reviewRoute, timerRoute, settingsRoute])
 ])
 
 export const router = createRouter({ routeTree })
