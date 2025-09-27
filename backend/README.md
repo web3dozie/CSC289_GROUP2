@@ -47,10 +47,55 @@ Enable recommended SQLite PRAGMAs (WAL, foreign_keys)
 # filepath: c:\Users\acarr\Documents\GitHub\CSC289_GROUP2\backend\db_async.py
 # ...existing code...
 import sqlite3
+```markdown
+# Task Line — Backend
+
+This document describes the backend for Task Line, how to run it locally, and how it maps to the project's low-level requirements.
+
+Summary
+- Backend is a Quart-based async API using SQLAlchemy ORM with an SQLite development database.
+- Structure: modular "monolith" using Blueprints for auth, tasks, review, settings (see backend/blueprints).
+- Key files:
+  - `backend/db/models.py` — SQLAlchemy ORM models.
+  - `backend/db/engine_async.py` — async engine / session factory used by the app.
+  - `backend/app.py` — app factory / initialization and DB seed logic.
+  - `backend/blueprints/*` — API endpoints by domain.
+  - `backend/tests/*` — pytest tests for API and models.
+
+Quick status vs LOW-LEVEL-REQUIREMENTS
+- Present / implemented:
+  - Async engine, Base, models, and blueprints for auth, tasks, review, settings.
+  - Tests demonstrating async SQLite usage.
+- Missing / recommended changes:
+  - WAL + PRAGMA foreign_keys enforcement on connect (recommended for reliability).
+  - Alembic migrations (use `backend/alembic/`); ensure env.py targets `backend.db.models.Base.metadata`.
+  - Export/import API endpoints are not present (required by the spec).
+  - Committed local DB file should be removed from the repo and replaced with migrations + seed script.
+
+Requirements
+- Python 3.12+ (project uses modern async features).
+- Recommended dev tools: pip, virtualenv, alembic.
+- Runs on Windows (PowerShell snippets below).
+
+Local setup (PowerShell)
+1. Create and activate venv
+   .\venv\Scripts\Activate.ps1
+
+2. Install dependencies
+   pip install -r requirements.txt
+   pip install alembic  # if using migrations
+
+3. (Optional) Add dev tools
+   pip install pytest ruff black isort
+
+Enable recommended SQLite PRAGMAs (WAL, foreign_keys)
+- Recommended change: add a PRAGMA listener in `backend/db/engine_async.py` so dev and tests use WAL and foreign keys are enforced.
+- Example (place near engine creation):
+
+```python
+import sqlite3
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
-
-# ...existing code that creates `engine` ...
 
 @event.listens_for(Engine, "connect")
 def _set_sqlite_pragma(dbapi_connection, connection_record):
@@ -60,7 +105,6 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
         cursor.execute("PRAGMA journal_mode=WAL;")
         cursor.execute("PRAGMA foreign_keys=ON;")
         cursor.close()
-# ...existing code...
 ```
 
 Migrations (recommended)
@@ -68,17 +112,15 @@ Migrations (recommended)
    cd backend
    alembic init alembic
 
-2. Configure alembic/env.py to import Base.metadata from backend.models:
-   - Replace the target_metadata with your models' metadata (e.g., from backend.models import Base; target_metadata = Base.metadata).
+2. Configure `backend/alembic/env.py` to import Base.metadata from `backend.db.models`:
+   - Example: `from backend.db.models import Base; target_metadata = Base.metadata`
 
 3. Create and apply migrations
    alembic revision --autogenerate -m "Initial schema"
    alembic upgrade head
 
 Seeding / init
-- If you currently rely on a committed backend/taskline.db, replace that flow with:
-  - Alembic migrations + a seed script (backend/init_db.py) which inserts required default rows (statuses, default settings).
-- Recommended pattern: migration + seed script run during local setup or CI.
+- Replace any committed `backend/taskline.db` flow with Alembic migrations + a seed script (`backend/db/init_db.py`) which inserts required default rows (statuses, default settings).
 
 Run the app (development)
 - Simple invocation (depends on app entry):
@@ -105,8 +147,8 @@ Remove committed local DB and caches
   git commit -m "Remove tracked local DB and bytecode caches"
 
 API notes
-- The repository provides auth, tasks, review, and settings blueprints. Confirm exact endpoints by opening backend/blueprints/*/routes.py.
-- Export/import endpoints described in the low-level requirements are not implemented; add them under backend/blueprints/export or extend settings blueprint.
+- The repository provides auth, tasks, review, and settings blueprints. Confirm exact endpoints by opening `backend/blueprints/*/routes.py`.
+- Export/import endpoints described in the low-level requirements are not implemented; add them under `backend/blueprints/export` or extend the settings blueprint.
 
 Recommended next changes (small, prioritized)
 - Enforce WAL and foreign_keys (db_async.py) — low friction, improves reliability.
@@ -117,7 +159,7 @@ Recommended next changes (small, prioritized)
 
 If you want, I can:
 - Create the WAL PRAGMA patch and a small seed script.
-- Scaffold an Alembic env.py configured to use backend.models.Base.
+- Scaffold an Alembic env.py configured to use `backend.db.models.Base`.
 - Draft export/import endpoints.
 
 ## API
