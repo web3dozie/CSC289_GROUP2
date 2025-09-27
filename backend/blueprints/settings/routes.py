@@ -1,7 +1,14 @@
 from quart import Blueprint, jsonify, request, session
 import logging
-from backend.models import UserSettings, auth_required
-from backend.db_async import AsyncSessionLocal
+try:
+    from backend.models import UserSettings, auth_required
+    from backend.db_async import AsyncSessionLocal
+except ImportError:
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from models import UserSettings, auth_required
+    from db_async import AsyncSessionLocal
 from sqlalchemy import select
 
 settings_bp = Blueprint('settings', __name__)

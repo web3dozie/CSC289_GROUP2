@@ -2,8 +2,15 @@ from quart import Blueprint, request, jsonify, session
 import logging
 from datetime import datetime
 from sqlalchemy import select
-from backend.db_async import AsyncSessionLocal
-from backend.models import User, UserSettings, hash_pin, validate_pin, auth_required, verify_and_migrate_pin
+try:
+    from backend.db_async import AsyncSessionLocal
+    from backend.models import User, UserSettings, hash_pin, validate_pin, auth_required, verify_and_migrate_pin
+except ImportError:
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from db_async import AsyncSessionLocal
+    from models import User, UserSettings, hash_pin, validate_pin, auth_required, verify_and_migrate_pin
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 

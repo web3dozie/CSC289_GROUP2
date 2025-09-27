@@ -3,8 +3,15 @@ import logging
 from datetime import datetime, date, timedelta
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
-from backend.db_async import AsyncSessionLocal
-from backend.models import Task, Status, auth_required
+try:
+    from backend.db_async import AsyncSessionLocal
+    from backend.models import Task, Status, auth_required
+except ImportError:
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from db_async import AsyncSessionLocal
+    from models import Task, Status, auth_required
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 

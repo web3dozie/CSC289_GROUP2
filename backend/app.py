@@ -11,9 +11,15 @@ from quart import Quart, jsonify, request, session
 from quart_cors import cors
 from datetime import datetime
 
-from backend.db_async import engine, AsyncSessionLocal, Base
+try:
+    # When running from project root
+    from backend.db_async import engine, AsyncSessionLocal, Base
+    from backend.models import auth_required
+except ImportError:
+    # When running from backend directory
+    from db_async import engine, AsyncSessionLocal, Base
+    from models import auth_required
 from sqlalchemy import select, func, text
-from backend.models import auth_required
 
 def create_app():
     """Create and configure the Quart app"""
@@ -28,7 +34,10 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Import models to ensure they're registered
-    import backend.models
+    try:
+        import backend.models
+    except ImportError:
+        import models
     
     # Register routes
     register_routes(app)
@@ -84,7 +93,10 @@ def register_routes(app):
     async def export_data():
         """Export all user data as JSON"""
         try:
-            from backend.models import Task, JournalEntry, UserSettings, Status
+            try:
+                from backend.models import Task, JournalEntry, UserSettings, Status
+            except ImportError:
+                from models import Task, JournalEntry, UserSettings, Status
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
             
@@ -131,7 +143,10 @@ def register_routes(app):
             if not data or 'version' not in data:
                 return jsonify({'error': 'Invalid import data format'}), 400
             
-            from backend.models import Task, JournalEntry, UserSettings, Status
+            try:
+                from backend.models import Task, JournalEntry, UserSettings, Status
+            except ImportError:
+                from models import Task, JournalEntry, UserSettings, Status
             from sqlalchemy import select
             from datetime import datetime
             
@@ -242,24 +257,36 @@ def register_routes(app):
     
     # Register blueprints (we'll add these as we create them)
     try:
-        from backend.blueprints.auth.routes import auth_bp
+        try:
+            from backend.blueprints.auth.routes import auth_bp
+        except ImportError:
+            from blueprints.auth.routes import auth_bp
         app.register_blueprint(auth_bp)
     except ImportError:
         print("Auth blueprint not found - will add later")
 
     try:
-        from backend.blueprints.tasks.routes import tasks_bp
+        try:
+            from backend.blueprints.tasks.routes import tasks_bp
+        except ImportError:
+            from blueprints.tasks.routes import tasks_bp
         app.register_blueprint(tasks_bp)
     except ImportError:
         print("Tasks blueprint not found - will add later")    
     try:
-        from backend.blueprints.review.routes import review_bp
+        try:
+            from backend.blueprints.review.routes import review_bp
+        except ImportError:
+            from blueprints.review.routes import review_bp
         app.register_blueprint(review_bp)
     except ImportError:
         print("Review blueprint not found - will add later")
 
     try:
-        from backend.blueprints.settings.routes import settings_bp
+        try:
+            from backend.blueprints.settings.routes import settings_bp
+        except ImportError:
+            from blueprints.settings.routes import settings_bp
         app.register_blueprint(settings_bp)
     except ImportError:
         print("Settings blueprint not found - will add later")
@@ -293,7 +320,10 @@ async def initialize_database():
         
         # Seed default data
         async with AsyncSessionLocal() as session:
-            from backend.models import Status, Task
+            try:
+                from backend.models import Status, Task
+            except ImportError:
+                from models import Status, Task
             
             # Add default statuses for kanban board
             result = await session.execute(select(func.count(Status.id)))

@@ -1,8 +1,17 @@
 from quart import Blueprint, jsonify, request, session
-from backend.models import JournalEntry, Task, auth_required
+try:
+    from backend.models import JournalEntry, Task, auth_required
+except ImportError:
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from models import JournalEntry, Task, auth_required
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, select
-from backend.db_async import AsyncSessionLocal
+try:
+    from backend.db_async import AsyncSessionLocal
+except ImportError:
+    from db_async import AsyncSessionLocal
 
 review_bp = Blueprint('review', __name__)
 
