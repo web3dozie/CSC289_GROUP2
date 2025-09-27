@@ -29,8 +29,8 @@ async def get_journal():
             select(JournalEntry)
             .where(
                 JournalEntry.user_id == user_id,
-                JournalEntry.entry_date >= start_date,
-                JournalEntry.entry_date <= end_date,
+                func.date(JournalEntry.entry_date) >= start_date,
+                func.date(JournalEntry.entry_date) <= end_date,
             )
             .order_by(JournalEntry.entry_date.desc())
         )
@@ -47,10 +47,12 @@ async def create_journal():
 
     entry_date = data.get("entry_date", date.today().isoformat())
     entry_date = date.fromisoformat(entry_date)
+    # Store as a datetime at midnight to match the JournalEntry DateTime column
+    entry_datetime = datetime.combine(entry_date, datetime.min.time())
 
     entry = JournalEntry(
         user_id=session.get("user_id", 1),
-        entry_date=entry_date,
+        entry_date=entry_datetime,
         content=data["content"],
     )
     async with AsyncSessionLocal() as s:
