@@ -1,10 +1,12 @@
 from quart import Blueprint, request, jsonify, session
 import logging
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from sqlalchemy import select
 from backend.db_async import AsyncSessionLocal
-from backend.models import User, UserSettings, hash_pin, validate_pin, auth_required, verify_and_migrate_pin
+from backend.models import User, UserSession, UserSettings, hash_pin, validate_pin, auth_required, verify_and_migrate_pin
 
+auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @auth_bp.route('/setup', methods=['POST'])
@@ -93,14 +95,45 @@ async def login():
                 user.pin_hash = new_hash
                 await db_session.commit()
 
-            session['user_id'] = user.id
-            session['username'] = user.username
+            # Generate unique session ID for tracking this login
+            session_id = secrets.token_hex(32)
+            
+            # Get client info for security tracking
+            ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+            user_agent = request.headers.get("User-Agent", "Unknown")
+            
+            # Check if user wants "remember me" (longer session)
+            remember_me = data.get("remember_me", False)
+            
+            # Set session expiry - 30 days if remember me, otherwise 24 hours
+            if remember_me:
+                expires_at = datetime.now() + timedelta(days=30)
+            else:
+                expires_at = datetime.now() + timedelta(hours=24)
+            
+            # Create session record in database
+            user_session = UserSession(
+                session_id=session_id,
+                user_id=user.id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                is_remember_me=remember_me,
+                expires_at=expires_at
+            )
+            db_session.add(user_session)
+            await db_session.commit()
+            
+            # Set up the user session
+            session["user_id"] = user.id
+            session["username"] = user.username
+            session["session_id"] = session_id
             
             return jsonify({
-                'success': True,
-                'message': 'Login successful',
-                'user_id': user.id,
-                'username': user.username
+                "success": True,
+                "message": "Login successful",
+                "user_id": user.id,
+                "username": user.username,
+                "remember_me": remember_me
             })
             
     except Exception:
@@ -110,9 +143,30 @@ async def login():
 @auth_bp.route('/logout', methods=['POST'])
 @auth_required
 async def logout():
-    """End session"""
-    session.clear()
-    return jsonify({'success': True, 'message': 'Logged out successfully'})
+    """End session and mark it inactive in database"""
+    try:
+        # Mark the current session as inactive in database
+        current_session_id = session.get('session_id')
+        if current_session_id:
+            async with AsyncSessionLocal() as db_session:
+                result = await db_session.execute(
+                    select(UserSession).where(
+                        UserSession.session_id == current_session_id
+                    )
+                )
+                user_session = result.scalar_one_or_none()
+                if user_session:
+                    user_session.is_active = False
+                    await db_session.commit()
+        
+        # Clear browser session
+        session.clear()
+        return jsonify({'success': True, 'message': 'Logged out successfully'})
+        
+    except Exception:
+        # Even if database update fails, clear the browser session
+        session.clear()
+        return jsonify({'success': True, 'message': 'Logged out successfully'})
 
 @auth_bp.route('/pin', methods=['PUT'])
 @auth_required

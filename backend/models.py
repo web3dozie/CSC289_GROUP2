@@ -23,7 +23,7 @@ class User(Base):
     tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
     journal_entries = relationship("JournalEntry", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSettings", back_populates="user", cascade="all, delete-orphan")
-
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
 class Status(Base):
     __tablename__ = 'statuses'
     
@@ -168,3 +168,46 @@ def verify_and_migrate_pin(pin: str, stored_hash: str) -> tuple[bool, str | None
 
 def validate_pin(pin: str) -> bool:
     return pin.isdigit() and 4 <= len(pin) <= 8
+
+class UserSession(Base):
+    __tablename__ = 'user_sessions'
+    
+    id = Column(Integer, primary_key=True)
+    # Unique ID for each login session - helps us track different devices/browsers
+    session_id = Column(String(128), unique=True, nullable=False)
+    # Which user this session belongs to
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    # When the user first logged in
+    created_at = Column(DateTime, default=datetime.now)
+    # When they last did something (click, navigate, etc.)
+    last_activity = Column(DateTime, default=datetime.now)
+    # Their IP address - helps identify suspicious logins from new locations
+    ip_address = Column(String(45), nullable=True)
+    # Browser/device info - so users can see "Chrome on iPhone" vs "Firefox on Windows"
+    user_agent = Column(Text, nullable=True)
+    # Did they check "Remember me" when logging in?
+    is_remember_me = Column(Boolean, default=False)
+    # Is this session still valid, or did the user log out?
+    is_active = Column(Boolean, default=True)
+    # When this session should automatically expire
+    expires_at = Column(DateTime, nullable=True)
+    
+    # Connect back to the User model so we can find all sessions for a user
+    user = relationship("User", back_populates="sessions")
+    
+    def to_dict(self):
+        """
+        Convert session info to a format the frontend can easily use.
+        Shows users their active logins in a readable way.
+        """
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'created_at': self.created_at.isoformat(),
+            'last_activity': self.last_activity.isoformat(),
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
+            'is_remember_me': self.is_remember_me,
+            'is_active': self.is_active,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None
+        }

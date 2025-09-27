@@ -26,7 +26,17 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite+aiosqlite:///taskline.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
+
+    # Session management configuration
+    app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 hour default
+    app.config["SESSION_COOKIE_SECURE"] = True  # HTTPS only in production
+    app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent XSS attacks
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
+    # Session management configuration
+    app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 hour default
+    app.config["SESSION_COOKIE_SECURE"] = True  # HTTPS only in production
+    app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent XSS attacks
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection    
     # Import models to ensure they're registered
     import backend.models
     
@@ -260,6 +270,11 @@ def register_routes(app):
 
     try:
         from backend.blueprints.settings.routes import settings_bp
+
+        # Session management blueprint
+        from backend.blueprints.sessions.routes import sessions_bp
+        app.register_blueprint(sessions_bp)
+        print("Sessions blueprint registered")
         app.register_blueprint(settings_bp)
     except ImportError:
         print("Settings blueprint not found - will add later")
