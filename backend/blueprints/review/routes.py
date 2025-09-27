@@ -29,8 +29,8 @@ async def get_journal():
             select(JournalEntry)
             .where(
                 JournalEntry.user_id == user_id,
-                func.date(JournalEntry.entry_date) >= start_date,
-                func.date(JournalEntry.entry_date) <= end_date,
+                JournalEntry.entry_date >= start_date,
+                JournalEntry.entry_date <= end_date,
             )
             .order_by(JournalEntry.entry_date.desc())
         )
