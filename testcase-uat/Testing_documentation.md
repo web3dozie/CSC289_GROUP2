@@ -3,7 +3,7 @@
 ## 1. Test Plan (UAT Scope)
 - **Objective**: Validate that end users can log in to the TMS, add/edit/delete tasks, and toggle UI modes (Dark/Light).
 - **In Scope**:
-  - Login with 4-digit PIN
+  - Login with 4-8 digit PIN
   - Task creation
   - Task editing
   - Task deletion
@@ -11,7 +11,7 @@
 - **Out of Scope**: API testing, performance testing, backend DB validation.
 - **Entry Criteria**:
   - Application is deployed and accessible at `http://localhost:5173/`.
-  - Test data (PIN = `1234`, sample tasks) available.
+  - Test data (PIN = `12345`, sample tasks) available.
 - **Exit Criteria**:
   - All critical UAT test cases pass.
   - No high-priority defects remain open.
@@ -29,7 +29,7 @@
 ## 3. UAT Test Cases
 
 ### ✅ Test Case ID: UAT_TMS_001
-**Title**: Verify Login with valid 4-digit PIN  
+**Title**: Verify Login with valid 4-8 digit PIN  
 - **Precondition**: User is on login page.  
 - **Steps**:  
   1. Open browser → navigate to `${URL}`  
@@ -68,7 +68,7 @@
 - **Steps**:  
   1. Click edit button for `Review PR`  
   2. Clear text and enter `${Taskadd}` (`Review PR today`)  
-  3. Click **Save**  
+  3. Click **UpdateTask**  
 - **Expected Result**: Task title is updated to `Review PR today`  
 
 ---
@@ -94,7 +94,7 @@
 ---
 
 ## 4. Test Data
-- **PIN**: `1234`  
+- **PIN**: `12345`  
 - **Task 1**: `Review PR`  
 - **Task 2**: `Set an alarm`  
 - **Edited Task**: `Review PR today`

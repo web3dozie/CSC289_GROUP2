@@ -1,5 +1,5 @@
-***Documentation on how to run User Acceptance Testing and What it does?***
-##What is UAT?
+***Documentation on how to run User Acceptance Testing and What it does?***  
+### What is UAT? ###
 User Acceptance Test(UAT) is to validate that the software meets the business requirement and works as expected to the end user.
 
 PreRequisite for TMS web app:
@@ -27,8 +27,13 @@ For testing Requirement:
 
 After installations, the app and the testscipt should be on same directory to run and app should be running on background.  
 To run the app:  
-./dev.ps1  
-To run the test:  
+./run-backend.ps1 and ./run-frontend.ps1  
+To run individual test:  
+example1: for login  
+robot --include login UAT_TMS.robot  
+example2: for addition of task  
+robot --include add UAT_TMS.robot  
+To run full test:  
 robot UAT_TMS.robot  
 
 ## Report for the UAT  
