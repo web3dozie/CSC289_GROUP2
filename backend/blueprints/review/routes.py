@@ -2,6 +2,7 @@ from quart import Blueprint, jsonify, request, session
 from backend.db.models import JournalEntry, Task, auth_required
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from backend.db.engine_async import AsyncSessionLocal
 
 review_bp = Blueprint("review", __name__)
@@ -78,14 +79,19 @@ async def update_journal(entry_id):
             if "content" in data:
                 entry.content = data["content"]
             if "entry_date" in data:
-                entry.entry_date = date.fromisoformat(data["entry_date"])
+                # Convert incoming date string to a datetime at midnight to match the
+                # JournalEntry.entry_date DateTime column and satisfy type checkers
+                new_date = date.fromisoformat(data["entry_date"])
+                entry.entry_date = datetime.combine(new_date, datetime.min.time())
 
             await s.commit()
             return jsonify(entry.to_dict())
-        except Exception as e:
+        except (ValueError, SQLAlchemyError) as e:
+            # ValueError can come from date parsing; SQLAlchemyError from DB ops.
             try:
                 await s.rollback()
-            except Exception:
+            except SQLAlchemyError:
+                # best-effort rollback; if it fails we can't do much here
                 pass
             return jsonify({"error": str(e)}), 500
 
@@ -125,7 +131,10 @@ async def daily_summary():
         completed_tasks = result.scalar_one()
 
         result = await s.execute(
-            select(JournalEntry).filter_by(entry_date=target_date, user_id=user_id)
+            select(JournalEntry).where(
+                func.date(JournalEntry.entry_date) == target_date,
+                JournalEntry.user_id == user_id,
+            )
         )
         journal = result.scalars().first()
         journal_content = journal.content if journal else None
