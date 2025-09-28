@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import wraps
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from quart import jsonify, request, session
+from quart import jsonify, session
 import inspect
 import hashlib
 from sqlalchemy import (
@@ -12,9 +12,9 @@ from sqlalchemy import (
     Table,
     Column,
     Integer,
-    UniqueConstraint,
-    CheckConstraint,
-    Index,
+    # UniqueConstraint,
+    # CheckConstraint,
+    # Index,
 )
 
 
@@ -23,9 +23,12 @@ class Base(DeclarativeBase):
 
 
 def _iso(dt):
+    # If dt is None, or doesn't provide isoformat(), return None
+    if dt is None:
+        return None
     try:
         return dt.isoformat()
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         return None
 
 
@@ -127,11 +130,16 @@ class Task(Base):
     )
     # Completion flag
     done: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    # TODO: Set default datetimes
-    closed_on: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    due_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    created_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    updated_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    closed_on: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, default=None
+    )
+    due_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=None)
+    created_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
+    updated_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
     created_by: Mapped[int] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -194,9 +202,12 @@ class Category(Base):
     name: Mapped[str] = mapped_column(String(140), nullable=False)
     description: Mapped[str | None] = mapped_column(String(140), nullable=True)
     color_hex: Mapped[str] = mapped_column(String(6), nullable=False)
-    # TODO: Set default datetimes
-    created_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    updated_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
+    updated_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
     created_by: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
 
     # Relating categories to tasks that are so labeled
@@ -222,9 +233,12 @@ class Tag(Base):
     name: Mapped[str] = mapped_column(String(140), nullable=False)
     description: Mapped[str | None] = mapped_column(String(140), nullable=True)
     color_hex: Mapped[str] = mapped_column(String(6), nullable=False)
-    # TODO: Set default datetimes
-    created_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    updated_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
+    updated_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
     created_by: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
 
     # Relates tags to tasks (Many to Many) -- This abstracts our join table
@@ -257,7 +271,6 @@ class Tag(Base):
 #     created_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 #     updated_on: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
-#     # TODO: Relationships
 #     parent: Mapped["Task"] = relationship(back_populates="sucessor_pointer", foreign_keys=[parent_id])
 
 
@@ -268,9 +281,12 @@ class Status(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(25), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(String(140), nullable=True)
-    # TODO: Set default datetimes
-    created_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    updated_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
+    updated_on: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
     created_by: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
 
     # Relate statuses to tasks
