@@ -23,6 +23,7 @@ async def get_tasks():
             tasks = result.scalars().all()
             return jsonify([task.to_dict() for task in tasks])
     except Exception as e:
+        logging.exception("Failed to fetch tasks")
         return jsonify({'error': 'Failed to fetch tasks'}), 500
 
 @tasks_bp.route('/', methods=['POST'])
@@ -57,6 +58,7 @@ async def create_task():
             task = result.scalars().first()
             return jsonify(task.to_dict()), 201            
     except Exception as e:
+        logging.exception("Failed to create task")
         return jsonify({'error': 'Failed to create task'}), 500
 
 @tasks_bp.route('/kanban', methods=['GET'])
@@ -87,6 +89,7 @@ async def get_kanban_board():
             return jsonify(kanban_data)
             
     except Exception as e:
+        logging.exception("Failed to fetch kanban board")
         return jsonify({'error': 'Failed to fetch kanban board'}), 500
 
 @tasks_bp.route('/categories', methods=['GET'])
@@ -103,6 +106,7 @@ async def get_categories():
             categories = [row[0] for row in result.all()]
             return jsonify(categories)
     except Exception as e:
+        logging.exception("Failed to fetch categories")
         return jsonify({'error': 'Failed to fetch categories'}), 500
 
 
@@ -184,6 +188,7 @@ async def delete_task(task_id):
     except Exception:
         logging.exception("Failed to delete task")
         return jsonify({'error': 'Failed to delete task'}), 500
+
 
 @tasks_bp.route('/calendar', methods=['GET'])
 @auth_required
