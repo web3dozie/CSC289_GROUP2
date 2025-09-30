@@ -353,13 +353,13 @@ export const TaskBoard: React.FC = () => {
   }
 
   // Extract tasks from the kanban data structure
-  const todoData = kanbanData?.todo || {}
-  const inProgressData = kanbanData?.in_progress || {}
-  const doneData = kanbanData?.done || {}
+  const todoData = kanbanData?.todo
+  const inProgressData = kanbanData?.in_progress
+  const doneData = kanbanData?.done
 
-  const todo = Array.isArray(todoData) ? todoData : (todoData.tasks || [])
-  const inProgress = Array.isArray(inProgressData) ? inProgressData : (inProgressData.tasks || [])
-  const done = Array.isArray(doneData) ? doneData : (doneData.tasks || [])
+  const todo = todoData?.tasks || []
+  const inProgress = inProgressData?.tasks || []
+  const done = doneData?.tasks || []
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

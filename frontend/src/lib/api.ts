@@ -94,6 +94,7 @@ export interface Task {
     id: number
     name: string
   }
+  status_id?: number  // Add this field for updates
   created_at: string
   updated_on?: string
   closed_on?: string

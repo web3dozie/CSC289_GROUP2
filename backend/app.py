@@ -12,12 +12,29 @@ from quart_cors import cors
 from datetime import datetime
 from sqlalchemy import select, func, text
 
+# Add the backend directory to Python path for imports
+import sys
+import os
+
+# Add both current directory and parent directory to path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, current_dir)
+sys.path.insert(0, parent_dir)
+
 # Import environment variables
-from backend.config import DATABASE_URL, SECRET_KEY
+try:
+    from backend.config import DATABASE_URL, SECRET_KEY
+except ImportError:
+    from config import DATABASE_URL, SECRET_KEY
 
 # Imports for running the full app
-from backend.db.engine_async import async_engine, AsyncSessionLocal
-from backend.db.models import Base, Status, Task, auth_required
+try:
+    from backend.db.engine_async import async_engine, AsyncSessionLocal
+    from backend.db.models import Base, Status, Task, auth_required
+except ImportError:
+    from db.engine_async import async_engine, AsyncSessionLocal
+    from db.models import Base, Status, Task, auth_required
 
 def create_app():
     """Create and configure the Quart app"""
@@ -90,7 +107,10 @@ def register_routes(app):
     async def export_data():
         """Export all user data as JSON"""
         try:
-            from backend.db.models import Task, JournalEntry, Configuration, Status
+            try:
+                from backend.db.models import Task, JournalEntry, Configuration, Status
+            except ImportError:
+                from db.models import Task, JournalEntry, Configuration, Status
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
             
@@ -137,7 +157,10 @@ def register_routes(app):
             if not data or 'version' not in data:
                 return jsonify({'error': 'Invalid import data format'}), 400
             
-            from backend.db.models import Task, JournalEntry, Configuration, Status
+            try:
+                from backend.db.models import Task, JournalEntry, Configuration, Status
+            except ImportError:
+                from db.models import Task, JournalEntry, Configuration, Status
             from sqlalchemy import select
             from datetime import datetime
             
@@ -246,24 +269,36 @@ def register_routes(app):
 
     # Register blueprints (we'll add these as we create them)
     try:
-        from backend.blueprints.auth.routes import auth_bp
+        try:
+            from backend.blueprints.auth.routes import auth_bp
+        except ImportError:
+            from blueprints.auth.routes import auth_bp
         app.register_blueprint(auth_bp)
     except ImportError:
         print("Auth blueprint not found - will add later")
 
     try:
-        from backend.blueprints.tasks.routes import tasks_bp
+        try:
+            from backend.blueprints.tasks.routes import tasks_bp
+        except ImportError:
+            from blueprints.tasks.routes import tasks_bp
         app.register_blueprint(tasks_bp)
     except ImportError:
         print("Tasks blueprint not found - will add later")
     try:
-        from backend.blueprints.review.routes import review_bp
+        try:
+            from backend.blueprints.review.routes import review_bp
+        except ImportError:
+            from blueprints.review.routes import review_bp
         app.register_blueprint(review_bp)
     except ImportError:
         print("Review blueprint not found - will add later")
 
     try:
-        from backend.blueprints.settings.routes import settings_bp
+        try:
+            from backend.blueprints.settings.routes import settings_bp
+        except ImportError:
+            from blueprints.settings.routes import settings_bp
         app.register_blueprint(settings_bp)
     except ImportError:
         print("Settings blueprint not found - will add later")
@@ -307,7 +342,10 @@ async def initialize_database():
                 now = datetime.now()
                 
                 # First create a system user for seeding default data
-                from backend.db.models import User
+                try:
+                    from backend.db.models import User
+                except ImportError:
+                    from db.models import User
                 system_user = User(
                     id=0,
                     username="system",
