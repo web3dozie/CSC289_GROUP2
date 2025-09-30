@@ -17,7 +17,7 @@ async def get_tasks():
     try:
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
-                select(Task).options(selectinload(Task.status))
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags))
                 .where(Task.created_by == session['user_id'])
                 .order_by(Task.updated_on.desc())
             )
@@ -97,7 +97,7 @@ async def get_kanban_board():
 
             for status in statuses:
                 task_result = await db_session.execute(
-                    select(Task).options(selectinload(Task.status))
+                    select(Task).options(selectinload(Task.status), selectinload(Task.tags))
                     .where(and_(Task.created_by == session['user_id'], Task.status_id == status.id))
                     .order_by(Task.updated_on.desc())
                 )
@@ -219,7 +219,7 @@ async def get_calendar_tasks():
         print(f"Calendar request for user: {session.get('user_id')}")
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
-                select(Task).options(selectinload(Task.status))
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags))
                 .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None)))
                 .order_by(Task.due_date, Task.updated_on.desc())
             )
