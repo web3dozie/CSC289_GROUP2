@@ -10,75 +10,84 @@ import os
 from quart import Quart, jsonify, request, session
 from quart_cors import cors
 from datetime import datetime
-
-from backend.db_async import engine, AsyncSessionLocal, Base
 from sqlalchemy import select, func, text
+
+# Import environment variables
+from backend.config import DATABASE_URL, SECRET_KEY
+
+# Imports for running the full app
+from backend.db.engine_async import async_engine, AsyncSessionLocal
+from backend.db.models import Base, Status, Task
 from backend.models import auth_required
+
 
 def create_app():
     """Create and configure the Quart app"""
     app = Quart(__name__)
-    
+
     # Enable CORS for frontend communication
     cors(app)
-    
+
     # Configuration
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite+aiosqlite:///taskline.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # Import models to ensure they're registered
-    import backend.models
-    
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+    if not app.config["SECRET_KEY"]:
+        raise RuntimeError("SECRET_KEY is not set. Define it in .env or environment.")
+
+    app.config["DATABASE_URL"] = os.getenv("DATABASE_URL")
+    if not app.config["DATABASE_URL"]:
+        raise RuntimeError("DATABASE_URL is not set. Define it in .env or environment.")
+
     # Register routes
     register_routes(app)
-    
+
     # Database initialization
     @app.before_serving
     async def startup():
         try:
             await initialize_database()
-        except Exception:
-            import logging
-            logging.exception("Database initialization failed")
-    
+        except Exception as e:
+            print(f"Database initialization failed: {e}")
+
     @app.after_serving
     async def shutdown():
         try:
-            await engine.dispose()
-            import logging
-            logging.info("Database engine disposed")
-        except Exception:
-            import logging
-            logging.exception("Engine disposal failed")
-    
+            await async_engine.dispose()
+            print("Database engine disposed")
+        except Exception as e:
+            print(f"Engine disposal failed: {e}")
+
     return app
+
 
 def register_routes(app):
     """Register all route blueprints"""
-    
-    @app.route('/')
+
+    @app.route("/")
     async def home():
-        return jsonify({
-            'message': 'Welcome to Task Line API!',
-            'version': '1.0',
-            'endpoints': {
-                'auth': '/api/auth',
-                'tasks': '/api/tasks',
-                'review': '/api/review',
-                'settings': '/api/settings',
-                'health': '/api/health'
+        return jsonify(
+            {
+                "message": "Welcome to Task Line API!",
+                "version": "1.0",
+                "endpoints": {
+                    "auth": "/api/auth",
+                    "tasks": "/api/tasks",
+                    "review": "/api/review",
+                    "settings": "/api/settings",
+                    "health": "/api/health",
+                },
             }
-        })
-    
-    @app.route('/api/health')
+        )
+
+    @app.route("/api/health")
     async def health_check():
-        return jsonify({
-            'status': 'healthy',
-            'timestamp': datetime.now().isoformat(),
-            'database': 'connected'
-        })
-    
+        return jsonify(
+            {
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat(),
+                "database": "connected",
+            }
+        )
+
     @app.route('/api/export', methods=['GET'])
     @auth_required
     async def export_data():
@@ -120,7 +129,7 @@ def register_routes(app):
                 
         except Exception as e:
             return jsonify({'error': 'Failed to export data'}), 500
-    
+
     @app.route('/api/import', methods=['POST'])
     @auth_required
     async def import_data():
@@ -235,52 +244,58 @@ def register_routes(app):
             import logging
             logging.exception("Failed to import data")
             return jsonify({'error': 'Failed to import data'}), 500
-    
-    @app.route('/favicon.ico')
+
+    @app.route("/favicon.ico")
     async def favicon():
-        return ('', 204)
-    
+        return ("", 204)
+
     # Register blueprints (we'll add these as we create them)
     try:
         from backend.blueprints.auth.routes import auth_bp
+
         app.register_blueprint(auth_bp)
     except ImportError:
         print("Auth blueprint not found - will add later")
 
     try:
         from backend.blueprints.tasks.routes import tasks_bp
+
         app.register_blueprint(tasks_bp)
     except ImportError:
-        print("Tasks blueprint not found - will add later")    
+        print("Tasks blueprint not found - will add later")
     try:
         from backend.blueprints.review.routes import review_bp
+
         app.register_blueprint(review_bp)
     except ImportError:
         print("Review blueprint not found - will add later")
 
     try:
         from backend.blueprints.settings.routes import settings_bp
+
         app.register_blueprint(settings_bp)
     except ImportError:
         print("Settings blueprint not found - will add later")
+
     # Error handlers
     @app.errorhandler(404)
     async def not_found(error):
-        return jsonify({'error': 'Resource not found'}), 404
-    
+        return jsonify({"error": "Resource not found"}), 404
+
     @app.errorhandler(400)
     async def bad_request(error):
-        return jsonify({'error': 'Bad request'}), 400
-    
+        return jsonify({"error": "Bad request"}), 400
+
     @app.errorhandler(500)
     async def internal_error(error):
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({"error": "Internal server error"}), 500
+
 
 async def initialize_database():
     """Initialize database with tables and default data"""
     try:
         # Create tables
-        async with engine.begin() as conn:
+        async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
             # Enable WAL mode for better concurrency
@@ -298,21 +313,44 @@ async def initialize_database():
             # Add default statuses for kanban board
             result = await session.execute(select(func.count(Status.id)))
             status_count = result.scalar_one()
-            
+
             if status_count == 0:
+                now = datetime.now()
                 default_statuses = [
-                    Status(id=1, description="Todo"),
-                    Status(id=2, description="In Progress"),
-                    Status(id=3, description="Done")
+                    Status(
+                        id=1,
+                        title="Todo",
+                        description="Todo",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
+                    Status(
+                        id=2,
+                        title="In Progress",
+                        description="In Progress",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
+                    Status(
+                        id=3,
+                        title="Done",
+                        description="Done",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
                 ]
                 for status in default_statuses:
                     session.add(status)
                 print("Default statuses created!")
-            
+
             await session.commit()
-            
+
     except Exception as e:
         print(f"Database initialization failed: {e}")
+
 
 def main():
     print("Starting Task Line API...")
@@ -330,5 +368,5 @@ def main():
 # Create app instance
 app = create_app()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

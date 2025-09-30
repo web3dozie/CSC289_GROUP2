@@ -1,17 +1,19 @@
 from quart import Blueprint, jsonify, request, session
-from backend.models import JournalEntry, Task, auth_required
+from backend.db.models import JournalEntry, Task, auth_required
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, select
-from backend.db_async import AsyncSessionLocal
+from sqlalchemy.exc import SQLAlchemyError
+from backend.db.engine_async import AsyncSessionLocal
 
-review_bp = Blueprint('review', __name__)
+review_bp = Blueprint("review", __name__)
 
-@review_bp.route('/api/review/journal', methods=['GET'])
+
+@review_bp.route("/api/review/journal", methods=["GET"])
 @auth_required
 async def get_journal():
     # Get query params for date range
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
     if start_date:
         start_date = date.fromisoformat(start_date)
     else:
@@ -30,23 +32,26 @@ async def get_journal():
             select(JournalEntry)
             .where(
                 JournalEntry.user_id == user_id,
-                JournalEntry.entry_date >= start_date,
-                JournalEntry.entry_date <= end_date
+                func.date(JournalEntry.entry_date) >= start_date,
+                func.date(JournalEntry.entry_date) <= end_date,
             )
             .order_by(JournalEntry.entry_date.desc())
         )
         entries = result.scalars().all()
         return jsonify([entry.to_dict() for entry in entries])
 
-@review_bp.route('/api/review/journal', methods=['POST'])
+
+@review_bp.route("/api/review/journal", methods=["POST"])
 @auth_required
 async def create_journal():
     data = await request.get_json()
-    if not data or 'content' not in data:
-        return jsonify({'error': 'Content is required'}), 400
+    if not data or "content" not in data:
+        return jsonify({"error": "Content is required"}), 400
 
-    entry_date = data.get('entry_date', date.today().isoformat())
+    entry_date = data.get("entry_date", date.today().isoformat())
     entry_date = date.fromisoformat(entry_date)
+    # Store as a datetime at midnight to match the JournalEntry DateTime column
+    entry_datetime = datetime.combine(entry_date, datetime.min.time())
 
     user_id = session.get('user_id')
     if not user_id:
@@ -54,7 +59,7 @@ async def create_journal():
 
     entry = JournalEntry(
         user_id=user_id,
-        entry_date=entry_date,
+        entry_date=entry_datetime,
         content=data['content']
     )
     async with AsyncSessionLocal() as s:
@@ -63,7 +68,8 @@ async def create_journal():
         await s.refresh(entry)
         return jsonify(entry.to_dict()), 201
 
-@review_bp.route('/api/review/journal/<int:entry_id>', methods=['PUT'])
+
+@review_bp.route("/api/review/journal/<int:entry_id>", methods=["PUT"])
 @auth_required
 async def update_journal(entry_id):
     user_id = session.get('user_id')
@@ -73,27 +79,32 @@ async def update_journal(entry_id):
         try:
             entry = await s.get(JournalEntry, entry_id)
             if not entry or entry.user_id != user_id:
-                return jsonify({'error': 'Journal entry not found'}), 404
+                return jsonify({"error": "Journal entry not found"}), 404
 
             data = await request.get_json()
             if not data:
-                return jsonify({'error': 'No data provided'}), 400
-            if 'content' in data:
-                entry.content = data['content']
-            if 'entry_date' in data:
-                entry.entry_date = date.fromisoformat(data['entry_date'])
+                return jsonify({"error": "No data provided"}), 400
+            if "content" in data:
+                entry.content = data["content"]
+            if "entry_date" in data:
+                # Convert incoming date string to a datetime at midnight to match the
+                # JournalEntry.entry_date DateTime column and satisfy type checkers
+                new_date = date.fromisoformat(data["entry_date"])
+                entry.entry_date = datetime.combine(new_date, datetime.min.time())
 
             await s.commit()
             return jsonify(entry.to_dict())
-        except Exception as e:
+        except (ValueError, SQLAlchemyError) as e:
+            # ValueError can come from date parsing; SQLAlchemyError from DB ops.
             try:
                 await s.rollback()
-            except Exception:
+            except SQLAlchemyError:
+                # best-effort rollback; if it fails we can't do much here
                 pass
-            return jsonify({'error': str(e)}), 500
+            return jsonify({"error": str(e)}), 500
 
 
-@review_bp.route('/api/review/journal/<int:entry_id>', methods=['DELETE'])
+@review_bp.route("/api/review/journal/<int:entry_id>", methods=["DELETE"])
 @auth_required
 async def delete_journal(entry_id):
     user_id = session.get('user_id')
@@ -102,15 +113,16 @@ async def delete_journal(entry_id):
     async with AsyncSessionLocal() as s:
         entry = await s.get(JournalEntry, entry_id)
         if not entry or entry.user_id != user_id:
-            return jsonify({'error': 'Journal entry not found'}), 404
+            return jsonify({"error": "Journal entry not found"}), 404
         await s.delete(entry)
         await s.commit()
-        return jsonify({'success': True}), 204
+        return jsonify({"success": True}), 204
 
-@review_bp.route('/api/review/summary/daily', methods=['GET'])
+
+@review_bp.route("/api/review/summary/daily", methods=["GET"])
 @auth_required
 async def daily_summary():
-    target_date = request.args.get('date', date.today().isoformat())
+    target_date = request.args.get("date", date.today().isoformat())
     target_date = date.fromisoformat(target_date)
 
     user_id = session.get('user_id')
@@ -120,10 +132,12 @@ async def daily_summary():
     async with AsyncSessionLocal() as s:
         # Tasks completed on that day
         result = await s.execute(
-            select(func.count()).select_from(Task).where(
-                func.date(Task.created_at) == target_date,
+            select(func.count())
+            .select_from(Task)
+            .where(
+                func.date(Task.created_on) == target_date,
                 Task.done == True,
-                Task.created_by == user_id
+                Task.created_by == user_id,
             )
         )
         completed_tasks = result.scalar_one()
@@ -197,7 +211,8 @@ async def daily_summary():
         'journal_entry': journal_content
     })
 
-@review_bp.route('/api/review/summary/weekly', methods=['GET'])
+
+@review_bp.route("/api/review/summary/weekly", methods=["GET"])
 @auth_required
 async def weekly_summary():
     # For the current week
@@ -212,21 +227,25 @@ async def weekly_summary():
     async with AsyncSessionLocal() as s:
         # Tasks completed this week
         result = await s.execute(
-            select(func.count()).select_from(Task).where(
-                Task.created_at >= start_of_week,
-                Task.created_at <= end_of_week + timedelta(days=1),
+            select(func.count())
+            .select_from(Task)
+            .where(
+                Task.created_on >= start_of_week,
+                Task.created_on <= end_of_week + timedelta(days=1),
                 Task.done == True,
-                Task.created_by == user_id
+                Task.created_by == user_id,
             )
         )
         total_completed = result.scalar_one()
 
         # Total tasks created this week
         result = await s.execute(
-            select(func.count()).select_from(Task).where(
-                Task.created_at >= start_of_week,
-                Task.created_at <= end_of_week + timedelta(days=1),
-                Task.created_by == user_id
+            select(func.count())
+            .select_from(Task)
+            .where(
+                Task.created_on >= start_of_week,
+                Task.created_on <= end_of_week + timedelta(days=1),
+                Task.created_by == user_id,
             )
         )
         total_tasks = result.scalar_one()
@@ -290,7 +309,8 @@ async def weekly_summary():
         'category_performance': category_performance
     })
 
-@review_bp.route('/api/review/insights', methods=['GET'])
+
+@review_bp.route("/api/review/insights", methods=["GET"])
 @auth_required
 async def get_insights():
     # Simple insights
@@ -303,7 +323,11 @@ async def get_insights():
         result = await s.execute(select(func.count()).select_from(Task).where(Task.created_by == user_id))
         total_tasks = result.scalar_one()
 
-        result = await s.execute(select(func.count()).select_from(Task).where(Task.done == True, Task.created_by == user_id))
+        result = await s.execute(
+            select(func.count())
+            .select_from(Task)
+            .where(Task.done == True, Task.created_by == user_id)
+        )
         completed_tasks = result.scalar_one()
 
         completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
@@ -323,9 +347,12 @@ async def get_insights():
 
         # Most productive day
         result = await s.execute(
-            select(func.date(Task.created_at).label('date'), func.count(Task.id).label('count'))
+            select(
+                func.date(Task.created_on).label("date"),
+                func.count(Task.id).label("count"),
+            )
             .where(Task.done == True, Task.created_by == user_id)
-            .group_by(func.date(Task.created_at))
+            .group_by(func.date(Task.created_on))
             .order_by(func.count(Task.id).desc())
         )
         productive_days = result.first()
