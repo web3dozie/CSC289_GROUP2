@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { authApi, tasksApi, reviewApi, settingsApi, healthApi } from './api'
+import { authApi, tasksApi, reviewApi, settingsApi, healthApi, type Task } from './api'
 
 // Query keys for consistent caching
 export const queryKeys = {
@@ -113,7 +113,8 @@ export const useCreateTask = () => {
 
   return useMutation({
     mutationFn: tasksApi.create,
-    onSuccess: () => {
+    onSuccess: (_result) => {
+      // The server returns the task_id, but we need to refetch to get the full task
       // Invalidate and refetch tasks
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks })
       queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
@@ -128,6 +129,101 @@ export const useUpdateTask = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof tasksApi.update>[1] }) =>
       tasksApi.update(id, data),
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.tasks })
+      await queryClient.cancelQueries({ queryKey: queryKeys.task(id) })
+      await queryClient.cancelQueries({ queryKey: queryKeys.kanban })
+      await queryClient.cancelQueries({ queryKey: queryKeys.calendar })
+
+      // Snapshot the previous values
+      const previousTasks = queryClient.getQueryData(queryKeys.tasks)
+      const previousTask = queryClient.getQueryData(queryKeys.task(id))
+      const previousKanban = queryClient.getQueryData(queryKeys.kanban)
+      const previousCalendar = queryClient.getQueryData(queryKeys.calendar)
+
+      // Optimistically update the cache
+      if (data.done !== undefined) {
+        // Update tasks list
+        queryClient.setQueryData(queryKeys.tasks, (old: Task[] | undefined) => {
+          if (!old) return old
+          return old.map(task =>
+            task.id === id ? { ...task, ...data, updated_on: new Date().toISOString() } : task
+          )
+        })
+
+        // Update individual task
+        queryClient.setQueryData(queryKeys.task(id), (old: Task | undefined) => {
+          if (!old) return old
+          return { ...old, ...data, updated_on: new Date().toISOString() }
+        })
+
+        // Update kanban view
+        queryClient.setQueryData(queryKeys.kanban, (old: any) => {
+          if (!old) return old
+          const currentTask = queryClient.getQueryData(queryKeys.task(id)) as Task | undefined
+          if (!currentTask) return old
+          const updatedTask = { ...currentTask, ...data, updated_on: new Date().toISOString() }
+          const newData = { ...old }
+
+          // Remove from current column
+          Object.keys(newData).forEach(key => {
+            newData[key] = newData[key].filter((task: Task) => task.id !== id)
+          })
+
+          // Add to appropriate column
+          const status = updatedTask.done ? 'done' : updatedTask.status?.name === 'in-progress' ? 'in-progress' : 'todo'
+          if (newData[status]) {
+            newData[status] = [...newData[status], updatedTask]
+          }
+
+          return newData
+        })
+
+        // Update calendar view if due_date changed
+        if (data.due_date !== undefined) {
+          queryClient.setQueryData(queryKeys.calendar, (old: any) => {
+            if (!old) return old
+            const currentTask = queryClient.getQueryData(queryKeys.task(id)) as Task | undefined
+            if (!currentTask) return old
+            const updatedTask = { ...currentTask, ...data, updated_on: new Date().toISOString() }
+            const newData = { ...old }
+
+            // Remove from old date
+            Object.keys(newData).forEach(date => {
+              newData[date] = newData[date].filter((task: Task) => task.id !== id)
+            })
+
+            // Add to new date
+            if (updatedTask.due_date) {
+              const dateKey = updatedTask.due_date.split('T')[0]
+              if (!newData[dateKey]) newData[dateKey] = []
+              newData[dateKey].push(updatedTask)
+            }
+
+            return newData
+          })
+        }
+      }
+
+      // Return a context object with the snapshotted values
+      return { previousTasks, previousTask, previousKanban, previousCalendar }
+    },
+    onError: (_err, { id }, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousTasks) {
+        queryClient.setQueryData(queryKeys.tasks, context.previousTasks)
+      }
+      if (context?.previousTask) {
+        queryClient.setQueryData(queryKeys.task(id), context.previousTask)
+      }
+      if (context?.previousKanban) {
+        queryClient.setQueryData(queryKeys.kanban, context.previousKanban)
+      }
+      if (context?.previousCalendar) {
+        queryClient.setQueryData(queryKeys.calendar, context.previousCalendar)
+      }
+    },
     onSuccess: (_, { id }) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks })
