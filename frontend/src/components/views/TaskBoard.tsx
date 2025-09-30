@@ -58,12 +58,12 @@ const Column: React.FC<ColumnProps> = ({
     if (!nextStatus) return
 
     const statusMap = {
-      'todo': false,
-      'in-progress': false,
-      'done': true
+      'todo': { status_id: 1, done: false },
+      'in-progress': { status_id: 2, done: false },
+      'done': { status_id: 3, done: true }
     }
 
-    onTaskUpdate(task.id, { done: statusMap[nextStatus] })
+    onTaskUpdate(task.id, statusMap[nextStatus] as any)
   }
 
   const columnColors = {
@@ -260,14 +260,17 @@ export const TaskBoard: React.FC = () => {
 
     if (!draggedTask) return
 
-    // Determine current column based on task status
+    // Determine current column based on task status_id
     let currentColumn: ColumnType
-    if (draggedTask.done) {
-      currentColumn = 'done'
+    if (!draggedTask.status) {
+      currentColumn = 'todo' // Default fallback
     } else {
-      // For simplicity, assume tasks without explicit status are in 'todo'
-      // In a real app, you'd want a more sophisticated status system
-      currentColumn = 'todo'
+      switch (draggedTask.status.id) {
+        case 1: currentColumn = 'todo'; break
+        case 2: currentColumn = 'in-progress'; break  
+        case 3: currentColumn = 'done'; break
+        default: currentColumn = 'todo'; break
+      }
     }
 
     // Don't do anything if dropping in the same column
@@ -281,9 +284,9 @@ export const TaskBoard: React.FC = () => {
 
     // Map column types to task status updates
     const statusUpdates: Record<ColumnType, Partial<Task>> = {
-      'todo': { done: false },
-      'in-progress': { done: false }, // You might want to add a separate status field
-      'done': { done: true }
+      'todo': { status_id: 1, done: false },
+      'in-progress': { status_id: 2, done: false },
+      'done': { status_id: 3, done: true }
     }
 
     try {

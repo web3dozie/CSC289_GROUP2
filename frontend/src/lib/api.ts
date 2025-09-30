@@ -147,6 +147,7 @@ export const tasksApi = {
     due_date?: string
     estimate_minutes?: number
     order?: number
+    status_id?: number
   }>) =>
     apiRequest<Task>(`/api/tasks/${id}`, {
       method: 'PUT',
