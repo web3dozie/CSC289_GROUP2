@@ -112,7 +112,11 @@ export const tasksApi = {
   },
 
   getKanban: () =>
-    apiRequest<{ todo: Task[]; 'in-progress': Task[]; done: Task[] }>('/api/tasks/kanban'),
+    apiRequest<{
+      todo?: { status_id: number; name: string; tasks: Task[] };
+      in_progress?: { status_id: number; name: string; tasks: Task[] };
+      done?: { status_id: number; name: string; tasks: Task[] };
+    }>('/api/tasks/kanban'),
 
   getCalendar: () =>
     apiRequest<{ [date: string]: Task[] }>('/api/tasks/calendar'),

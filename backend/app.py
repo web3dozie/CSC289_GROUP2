@@ -19,7 +19,6 @@ from backend.config import DATABASE_URL, SECRET_KEY
 from backend.db.engine_async import async_engine, AsyncSessionLocal
 from backend.db.models import Base, Status, Task, auth_required
 
-
 def create_app():
     """Create and configure the Quart app"""
     app = Quart(__name__)
@@ -35,7 +34,6 @@ def create_app():
     app.config["DATABASE_URL"] = os.getenv("DATABASE_URL")
     if not app.config["DATABASE_URL"]:
         raise RuntimeError("DATABASE_URL is not set. Define it in .env or environment.")
-
     # Register routes
     register_routes(app)
 
@@ -249,27 +247,23 @@ def register_routes(app):
     # Register blueprints (we'll add these as we create them)
     try:
         from backend.blueprints.auth.routes import auth_bp
-
         app.register_blueprint(auth_bp)
     except ImportError:
         print("Auth blueprint not found - will add later")
 
     try:
         from backend.blueprints.tasks.routes import tasks_bp
-
         app.register_blueprint(tasks_bp)
     except ImportError:
         print("Tasks blueprint not found - will add later")
     try:
         from backend.blueprints.review.routes import review_bp
-
         app.register_blueprint(review_bp)
     except ImportError:
         print("Review blueprint not found - will add later")
 
     try:
         from backend.blueprints.settings.routes import settings_bp
-
         app.register_blueprint(settings_bp)
     except ImportError:
         print("Settings blueprint not found - will add later")

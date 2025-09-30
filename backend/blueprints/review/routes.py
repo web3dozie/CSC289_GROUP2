@@ -145,7 +145,7 @@ async def daily_summary():
         # Tasks created on that day
         result = await s.execute(
             select(func.count()).select_from(Task).where(
-                func.date(Task.created_at) == target_date,
+                func.date(Task.created_on) == target_date,
                 Task.created_by == user_id
             )
         )
@@ -157,41 +157,34 @@ async def daily_summary():
             select(func.count()).select_from(Task).where(
                 Task.due_date < today,
                 Task.done == False,
-                Task.archived == False,
                 Task.created_by == user_id
             )
         )
         overdue_tasks = result.scalar_one()
 
-        # In progress tasks (not done, not archived)
+        # In progress tasks (not done)
         result = await s.execute(
             select(func.count()).select_from(Task).where(
                 Task.done == False,
-                Task.archived == False,
                 Task.created_by == user_id
             )
         )
         in_progress_tasks = result.scalar_one()
 
-        # Time spent (sum of estimate_minutes for completed tasks today)
-        result = await s.execute(
-            select(func.coalesce(func.sum(Task.estimate_minutes), 0)).select_from(Task).where(
-                func.date(Task.created_at) == target_date,
-                Task.done == True,
-                Task.created_by == user_id
-            )
-        )
-        time_spent = result.scalar_one()
+        # Time spent (since estimate_minutes field doesn't exist in new schema, set to 0)
+        time_spent = 0
 
-        # Categories breakdown
+        # Categories breakdown (using category_id instead of category string)
+        from backend.db.models import Category
         result = await s.execute(
-            select(Task.category, func.count(Task.id))
+            select(Category.name, func.count(Task.id))
+            .join(Task)
             .where(
-                func.date(Task.created_at) == target_date,
+                func.date(Task.created_on) == target_date,
                 Task.created_by == user_id,
-                Task.category.isnot(None)
+                Task.category_id.isnot(None)
             )
-            .group_by(Task.category)
+            .group_by(Category.name)
         )
         categories = {row[0]: row[1] for row in result.all()}
 
@@ -260,7 +253,7 @@ async def weekly_summary():
             day = start_of_week + timedelta(days=i)
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
-                    func.date(Task.created_at) == day,
+                    func.date(Task.created_on) == day,
                     Task.done == True,
                     Task.created_by == user_id
                 )
@@ -270,29 +263,22 @@ async def weekly_summary():
         # Most productive day
         most_productive_day = max(daily_breakdown.items(), key=lambda x: x[1])[0] if daily_breakdown else None
 
-        # Total time spent (sum of estimate_minutes for completed tasks this week)
-        result = await s.execute(
-            select(func.coalesce(func.sum(Task.estimate_minutes), 0)).select_from(Task).where(
-                Task.created_at >= start_of_week,
-                Task.created_at <= end_of_week + timedelta(days=1),
-                Task.done == True,
-                Task.created_by == user_id
-            )
-        )
-        total_time_minutes = result.scalar_one()
-        total_time = total_time_minutes / 60 if total_time_minutes else 0  # Convert to hours
+        # Total time spent (estimate_minutes field doesn't exist in new schema)
+        total_time = 0  # Convert to hours
 
         # Category performance
+        from backend.db.models import Category
         result = await s.execute(
-            select(Task.category, func.count(Task.id))
+            select(Category.name, func.count(Task.id))
+            .join(Task)
             .where(
-                Task.created_at >= start_of_week,
-                Task.created_at <= end_of_week + timedelta(days=1),
+                Task.created_on >= start_of_week,
+                Task.created_on <= end_of_week + timedelta(days=1),
                 Task.done == True,
                 Task.created_by == user_id,
-                Task.category.isnot(None)
+                Task.category_id.isnot(None)
             )
-            .group_by(Task.category)
+            .group_by(Category.name)
         )
         category_performance = {row[0]: {'completed': row[1]} for row in result.all()}
 
@@ -332,15 +318,8 @@ async def get_insights():
 
         completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
 
-        # Average task time
-        result = await s.execute(
-            select(func.avg(Task.estimate_minutes)).select_from(Task).where(
-                Task.done == True,
-                Task.estimate_minutes.isnot(None),
-                Task.created_by == user_id
-            )
-        )
-        avg_task_time = result.scalar_one() or 0
+        # Average task time (estimate_minutes field doesn't exist in new schema)
+        avg_task_time = 0
 
         # Productivity score (based on completion rate and other factors)
         productivity_score = min(100, completion_rate * 1.2)  # Simple calculation
@@ -365,8 +344,8 @@ async def get_insights():
 
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
-                    Task.created_at >= week_start,
-                    Task.created_at <= week_end + timedelta(days=1),
+                    Task.created_on >= week_start,
+                    Task.created_on <= week_end + timedelta(days=1),
                     Task.done == True,
                     Task.created_by == user_id
                 )
