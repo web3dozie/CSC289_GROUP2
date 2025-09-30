@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import select
 from backend.db.engine_async import AsyncSessionLocal
-from backend.db.models import User, Configuration, hash_pin, validate_pin, auth_required, verify_and_migrate_pin
+from backend.db.models import User, Configuration, auth_required, hash_pin, validate_pin, verify_and_migrate_pin
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -27,8 +27,8 @@ async def setup_auth():
 
     try:
         async with AsyncSessionLocal() as db_session:
-            # Check if any user exists
-            result = await db_session.execute(select(User))
+            # Check if any regular user exists (ignore system user)
+            result = await db_session.execute(select(User).where(User.id != 0))
             if result.first():
                 return jsonify({"error": "User already exists"}), 400
 

@@ -69,3 +69,11 @@ pip-wheel-metadata/
 # JetBrains IDEs
 .idea/
 
+# Debug and temporary files
+debug_*.py
+debug_*.db*
+*.db-shm
+*.db-wal
+test.db*
+temp_*.py
+

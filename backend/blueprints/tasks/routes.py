@@ -18,8 +18,8 @@ async def get_tasks():
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task).options(selectinload(Task.status))
-                .where(and_(Task.created_by == session['user_id'], Task.archived == False))
-                .order_by(Task.priority.desc(), Task.updated_on.desc())
+                .where(Task.created_by == session['user_id'])
+                .order_by(Task.updated_on.desc())
             )
             tasks = result.scalars().all()
             return jsonify([task.to_dict() for task in tasks])
@@ -58,10 +58,9 @@ async def create_task():
             task = Task(
                 title=data['title'].strip(),
                 description=data.get('description', ''),
-                category=data.get('category'),
-                priority=bool(data.get('priority', False)),
-                due_date=datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data.get('due_date') else None,
-                estimate_minutes=data.get('estimate_minutes'),
+                # category_id would need proper category handling - skip for now
+                status_id=status_id,
+                due_date=due_date,
                 created_by=session['user_id']
             )
 
@@ -99,14 +98,14 @@ async def get_kanban_board():
             for status in statuses:
                 task_result = await db_session.execute(
                     select(Task).options(selectinload(Task.status))
-                    .where(and_(Task.created_by == session['user_id'], Task.status_id == status.id, Task.archived == False))
-                    .order_by(Task.priority.desc(), Task.updated_on.desc())
+                    .where(and_(Task.created_by == session['user_id'], Task.status_id == status.id))
+                    .order_by(Task.updated_on.desc())
                 )
                 tasks = task_result.scalars().all()
 
-                kanban_data[status.description.lower().replace(" ", "_")] = {
+                kanban_data[status.title.lower().replace(" ", "_")] = {
                     "status_id": status.id,
-                    "name": status.description,
+                    "name": status.title,
                     "tasks": [task.to_dict() for task in tasks],
                 }
 
@@ -119,15 +118,16 @@ async def get_kanban_board():
 @tasks_bp.route("/categories", methods=["GET"])
 @auth_required
 async def get_categories():
-    """Get available categories from user's tasks"""
+    """Get available categories for the user"""
     try:
+        from backend.db.models import Category
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
-                select(Task.category)
-                .where(and_(Task.created_by == session['user_id'], Task.category.isnot(None)))
-                .distinct()
+                select(Category)
+                .where(Category.created_by == session['user_id'])
+                .order_by(Category.name)
             )
-            categories = [row[0] for row in result.all()]
+            categories = [category.to_dict() for category in result.scalars().all()]
             return jsonify(categories)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch categories'}), 500
@@ -170,18 +170,14 @@ async def update_task(task_id):
                 task.title = data['title']
             if 'description' in data:
                 task.description = data['description']
+            if 'notes' in data:
+                task.notes = data['notes']
             if 'done' in data:
                 task.done = bool(data['done'])
-            if 'archived' in data:
-                task.archived = bool(data['archived'])
-            if 'category' in data:
-                task.category = data['category']
-            if 'priority' in data:
-                task.priority = bool(data['priority'])
+            if 'category_id' in data:
+                task.category_id = data['category_id']
             if 'due_date' in data:
-                task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data['due_date'] else None
-            if 'estimate_minutes' in data:
-                task.estimate_minutes = data['estimate_minutes']
+                task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d') if data['due_date'] else None
             if 'status_id' in data:
                 task.status_id = int(data['status_id'])
 
@@ -224,8 +220,8 @@ async def get_calendar_tasks():
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task).options(selectinload(Task.status))
-                .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None), Task.archived == False))
-                .order_by(Task.due_date, Task.priority.desc(), Task.updated_on.desc())
+                .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None)))
+                .order_by(Task.due_date, Task.updated_on.desc())
             )
             tasks = result.scalars().all()
             
@@ -245,49 +241,5 @@ async def get_calendar_tasks():
         logging.exception("Failed to fetch calendar tasks")
         return jsonify({'error': 'Failed to fetch calendar tasks'}), 500
 
-@tasks_bp.route('/archived', methods=['GET'])
-@auth_required
-async def get_archived_tasks():
-    """Get all archived tasks for the user"""
-    try:
-        async with AsyncSessionLocal() as db_session:
-            result = await db_session.execute(
-                select(Task).options(selectinload(Task.status))
-                .where(and_(Task.created_by == session['user_id'], Task.archived == True))
-                .order_by(Task.updated_on.desc())
-            )
-            tasks = result.scalars().all()
-            return jsonify([task.to_dict() for task in tasks])
-    except Exception as e:
-        logging.exception("Failed to fetch archived tasks")
-        return jsonify({'error': 'Failed to fetch archived tasks'}), 500
-
-@tasks_bp.route('/archive-completed', methods=['POST'])
-@auth_required
-async def archive_completed_tasks():
-    """Archive all completed tasks for the user"""
-    try:
-        async with AsyncSessionLocal() as db_session:
-            # Find all completed tasks that are not already archived
-            result = await db_session.execute(
-                select(Task)
-                .where(and_(Task.created_by == session['user_id'], Task.done == True, Task.archived == False))
-            )
-            tasks_to_archive = result.scalars().all()
-            
-            if not tasks_to_archive:
-                return jsonify({'message': 'No completed tasks to archive', 'archived_count': 0})
-            
-            # Archive them
-            for task in tasks_to_archive:
-                task.archived = True
-            
-            await db_session.commit()
-            
-            return jsonify({
-                'message': f'Successfully archived {len(tasks_to_archive)} completed tasks',
-                'archived_count': len(tasks_to_archive)
-            })
-    except Exception as e:
-        logging.exception("Failed to archive completed tasks")
-        return jsonify({'error': 'Failed to archive completed tasks'}), 500
+# Note: Archived functionality removed as new schema doesn't have archived field
+# Could be replaced with a "Done" status or soft delete mechanism if needed

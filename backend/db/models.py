@@ -4,6 +4,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from quart import jsonify, session
 import inspect
 import hashlib
+import logging
+from passlib.hash import pbkdf2_sha256
 from sqlalchemy import (
     Boolean,
     String,
@@ -346,7 +348,37 @@ def auth_required(f):
 
 
 def hash_pin(pin: str) -> str:
-    return hashlib.sha256(pin.encode()).hexdigest()
+    """Hash a PIN using bcrypt (includes salt). Returns the bcrypt hash string.
+
+    Note: this replaces the previous unsalted SHA-256 storage. Existing old
+    SHA-256 hashes are detected by length (64 hex chars) and migrated on
+    successful login.
+    """
+    return pbkdf2_sha256.hash(pin)
+
+
+def verify_and_migrate_pin(pin: str, stored_hash: str) -> tuple[bool, str | None]:
+    """Verify PIN against stored_hash.
+
+    Returns tuple (is_valid, new_hash_or_none). If stored_hash is an old
+    unsalted SHA-256, verify using hashlib and if valid return a new pbkdf2_sha256
+    hash to replace the old one (migration path).
+    """
+    # Detect old SHA-256 hex digests (64 chars, 0-9a-f)
+    try:
+        if stored_hash and len(stored_hash) == 64 and all(c in '0123456789abcdef' for c in stored_hash.lower()):
+            # legacy SHA-256 verification
+            if hashlib.sha256(pin.encode()).hexdigest() == stored_hash:
+                # migrate to bcrypt
+                return True, pbkdf2_sha256.hash(pin)
+            return False, None
+
+        # Otherwise assume stored_hash is bcrypt or other passlib-supported format
+        is_valid = pbkdf2_sha256.verify(pin, stored_hash)
+        return is_valid, None
+    except Exception:
+        logging.exception("Error verifying PIN")
+        return False, None
 
 
 def validate_pin(pin: str) -> bool:

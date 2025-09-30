@@ -35,7 +35,7 @@ async def test_review_journal_and_summaries(tmp_path, monkeypatch):
         resp = await client.post("/api/auth/setup", json={"pin": "1234", "username": "testuser"})
         if resp.status_code == 400:
             # user exists - login
-            login = await client.post('/api/auth/login', json={'pin': '1234'})
+            login = await client.post('/api/auth/login', json={'pin': '1234', 'username': 'testuser'})
             assert login.status_code in (200, 201)
         else:
             assert resp.status_code in (200, 201)

@@ -17,8 +17,7 @@ from backend.config import DATABASE_URL, SECRET_KEY
 
 # Imports for running the full app
 from backend.db.engine_async import async_engine, AsyncSessionLocal
-from backend.db.models import Base, Status, Task
-from backend.models import auth_required
+from backend.db.models import Base, Status, Task, auth_required
 
 
 def create_app():
@@ -93,7 +92,7 @@ def register_routes(app):
     async def export_data():
         """Export all user data as JSON"""
         try:
-            from backend.models import Task, JournalEntry, UserSettings, Status
+            from backend.db.models import Task, JournalEntry, Configuration, Status
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
             
@@ -113,7 +112,7 @@ def register_routes(app):
                 
                 # Export settings
                 settings_result = await db_session.execute(
-                    select(UserSettings).where(UserSettings.user_id == session['user_id'])
+                    select(Configuration).where(Configuration.user_id == session['user_id'])
                 )
                 settings = [setting.to_dict() for setting in settings_result.scalars().all()]
                 
@@ -140,7 +139,7 @@ def register_routes(app):
             if not data or 'version' not in data:
                 return jsonify({'error': 'Invalid import data format'}), 400
             
-            from backend.models import Task, JournalEntry, UserSettings, Status
+            from backend.db.models import Task, JournalEntry, Configuration, Status
             from sqlalchemy import select
             from datetime import datetime
             
@@ -165,13 +164,11 @@ def register_routes(app):
                             description=task_data.get('description', ''),
                             notes=task_data.get('notes', ''),
                             done=task_data.get('done', False),
-                            category=task_data.get('category'),
-                            priority=task_data.get('priority', False),
-                            due_date=datetime.fromisoformat(task_data['due_date']).date() if task_data.get('due_date') else None,
-                            estimate_minutes=task_data.get('estimate_minutes'),
-                            order=task_data.get('order', 0),
+                            # Note: new schema uses category_id instead of category string
+                            # For now, skip category mapping - would need proper category creation
                             status_id=task_data.get('status', {}).get('id', 1) if task_data.get('status') else 1,
-                            created_at=datetime.fromisoformat(task_data['created_at']) if task_data.get('created_at') else datetime.now(),
+                            due_date=datetime.fromisoformat(task_data['due_date']) if task_data.get('due_date') else datetime.now(),
+                            created_on=datetime.fromisoformat(task_data['created_at']) if task_data.get('created_at') else datetime.now(),
                             updated_on=datetime.fromisoformat(task_data['updated_on']) if task_data.get('updated_on') else datetime.now(),
                             closed_on=datetime.fromisoformat(task_data['closed_on']) if task_data.get('closed_on') else None,
                             created_by=session['user_id']
@@ -185,7 +182,7 @@ def register_routes(app):
                         # Skip if entry with same date and content already exists
                         existing_result = await db_session.execute(
                             select(JournalEntry).where(
-                                JournalEntry.entry_date == datetime.fromisoformat(entry_data['entry_date']).date(),
+                                JournalEntry.entry_date == datetime.fromisoformat(entry_data['entry_date']),
                                 JournalEntry.content == entry_data['content'],
                                 JournalEntry.user_id == session['user_id']
                             )
@@ -195,7 +192,7 @@ def register_routes(app):
                             
                         entry = JournalEntry(
                             user_id=session['user_id'],
-                            entry_date=datetime.fromisoformat(entry_data['entry_date']).date(),
+                            entry_date=datetime.fromisoformat(entry_data['entry_date']),
                             content=entry_data['content'],
                             created_at=datetime.fromisoformat(entry_data['created_at']) if entry_data.get('created_at') else datetime.now(),
                             updated_on=datetime.fromisoformat(entry_data['updated_on']) if entry_data.get('updated_on') else datetime.now()
@@ -207,7 +204,7 @@ def register_routes(app):
                 if 'settings' in data and data['settings']:
                     settings_data = data['settings'][0]  # Assume single settings object
                     existing_result = await db_session.execute(
-                        select(UserSettings).where(UserSettings.user_id == session['user_id'])
+                        select(Configuration).where(Configuration.user_id == session['user_id'])
                     )
                     existing_settings = existing_result.scalars().first()
                     
@@ -220,7 +217,7 @@ def register_routes(app):
                         existing_settings.theme = settings_data.get('theme', 'light')
                     else:
                         # Create new
-                        new_settings = UserSettings(
+                        new_settings = Configuration(
                             user_id=session['user_id'],
                             notes_enabled=settings_data.get('notes_enabled', True),
                             timer_enabled=settings_data.get('timer_enabled', True),
@@ -308,14 +305,26 @@ async def initialize_database():
         
         # Seed default data
         async with AsyncSessionLocal() as session:
-            from backend.models import Status, Task
-            
             # Add default statuses for kanban board
             result = await session.execute(select(func.count(Status.id)))
             status_count = result.scalar_one()
 
             if status_count == 0:
                 now = datetime.now()
+                
+                # First create a system user for seeding default data
+                from backend.db.models import User
+                system_user = User(
+                    id=0,
+                    username="system",
+                    email="system@taskline.local",
+                    pin_hash="system",  # Won't be used for login
+                    created_on=now,
+                    config_data="{}"
+                )
+                session.add(system_user)
+                await session.flush()  # Ensure system user exists before statuses
+                
                 default_statuses = [
                     Status(
                         id=1,

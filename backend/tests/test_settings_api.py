@@ -1,5 +1,5 @@
 """
-Tests for user settings endpoints.
+Tests for user settings e                login = await client.post("/api/auth/login", json={"pin": "1234", "username": "settings_tester"})dpoints.
 
 Verifies retrieving and updating user settings, including toggles for notes
 and timer, updating AI URL, auto-lock minutes, and theme preferences.
@@ -28,7 +28,7 @@ async def test_settings_endpoints(tmp_path, monkeypatch):
         )
         if resp.status_code == 400:
             # user already exists; try to login to establish session
-            login = await client.post("/api/auth/login", json={"pin": "1234"})
+            login = await client.post("/api/auth/login", json={"pin": "1234", "username": "settings_tester"})
             assert login.status_code in (200, 201)
         else:
             assert resp.status_code in (200, 201)

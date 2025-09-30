@@ -1,5 +1,5 @@
 import hashlib
-from backend.models import verify_and_migrate_pin
+from backend.db.models import verify_and_migrate_pin
 from passlib.hash import pbkdf2_sha256
 
 
