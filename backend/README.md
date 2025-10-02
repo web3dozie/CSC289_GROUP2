@@ -107,10 +107,13 @@ Quick status vs LOW-LEVEL-REQUIREMENTS
 - Present / implemented:
   - Async engine, Base, models, and blueprints for auth, tasks, review, settings.
   - Tests demonstrating async SQLite usage.
-- Missing / recommended changes:
-  - WAL + PRAGMA foreign_keys enforcement on connect (recommended for reliability).
+  - ✅ WAL mode and foreign_keys PRAGMA enabled (see `backend/app.py:328-330`)
+  - ✅ Export/import API endpoints implemented (see `backend/app.py:105-264`)
+  - ✅ Archive functionality for tasks (archived column, archive endpoints)
+  - ✅ Task ordering support for drag-and-drop
+  - ✅ Priority and time estimation fields
+- Recommended changes:
   - Alembic migrations (use `backend/alembic/`); ensure env.py targets `backend.db.models.Base.metadata`.
-  - Export/import API endpoints are not present (required by the spec).
   - Committed local DB file should be removed from the repo and replaced with migrations + seed script.
 
 Requirements
@@ -129,24 +132,10 @@ Local setup (PowerShell)
 3. (Optional) Add dev tools
    pip install pytest ruff black isort
 
-Enable recommended SQLite PRAGMAs (WAL, foreign_keys)
-- Recommended change: add a PRAGMA listener in `backend/db/engine_async.py` so dev and tests use WAL and foreign keys are enforced.
-- Example (place near engine creation):
-
-```python
-import sqlite3
-from sqlalchemy import event
-from sqlalchemy.engine import Engine
-
-@event.listens_for(Engine, "connect")
-def _set_sqlite_pragma(dbapi_connection, connection_record):
-    # Only apply to SQLite DBAPI connections
-    if isinstance(dbapi_connection, sqlite3.Connection):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL;")
-        cursor.execute("PRAGMA foreign_keys=ON;")
-        cursor.close()
-```
+SQLite PRAGMAs (WAL, foreign_keys)
+- ✅ **Already implemented** in `backend/app.py:328-330`
+- WAL mode enabled for better concurrency
+- Foreign key constraints enforced
 
 Migrations (recommended)
 1. Initialize Alembic (one-time)
@@ -189,19 +178,13 @@ Remove committed local DB and caches
 
 API notes
 - The repository provides auth, tasks, review, and settings blueprints. Confirm exact endpoints by opening `backend/blueprints/*/routes.py`.
-- Export/import endpoints described in the low-level requirements are not implemented; add them under `backend/blueprints/export` or extend the settings blueprint.
+- Export/import endpoints are implemented in `backend/app.py` (lines 105-264).
 
 Recommended next changes (small, prioritized)
-- Enforce WAL and foreign_keys (db_async.py) — low friction, improves reliability.
-- Add Alembic and create initial migrations; remove committed DB.
-- Implement /api/export and /api/import endpoints.
-- Add DB indexes for performance on queried columns (status, category, due_date).
+- Complete Alembic setup and create initial migrations; remove committed DB.
+- Add DB indexes for performance on queried columns (status, category, due_date, archived, order).
 - Add CI job to run migrations and tests on PRs.
-
-If you want, I can:
-- Create the WAL PRAGMA patch and a small seed script.
-- Scaffold an Alembic env.py configured to use `backend.db.models.Base`.
-- Draft export/import endpoints.
+- Consider adding composite indexes for common query patterns (created_by + archived, created_by + done).
 
 ## API
 
@@ -216,11 +199,13 @@ Compact endpoint map (copy for quick reference):
   - GET /api/tasks — list tasks (query: status, category, page)
   - GET /api/tasks/calendar — tasks by date
   - GET /api/tasks/kanban — grouped tasks for Kanban
-  - POST /api/tasks — create task
+  - POST /api/tasks — create task (supports priority, estimate_minutes)
   - GET /api/tasks/{id} — get task
-  - PUT /api/tasks/{id} — update task (toggle complete, edit)
+  - PUT /api/tasks/{id} — update task (supports done, archived, priority, estimate_minutes, order)
   - DELETE /api/tasks/{id} — delete task
   - GET /api/tasks/categories — list categories
+  - POST /api/tasks/archive-completed — archive all completed tasks
+  - GET /api/tasks/archived — get archived tasks
 - Review (`/api/review`)
   - GET /api/review/journal — list journal entries
   - POST /api/review/journal — create entry
@@ -236,9 +221,9 @@ Compact endpoint map (copy for quick reference):
   - PUT /api/settings/ai-url — update AI service URL
   - PUT /api/settings/auto-lock — update auto-lock
   - PUT /api/settings/theme — update theme
-- Export / Import (recommended)
-  - GET /api/export — export full data (JSON)
-  - POST /api/import — import/merge JSON bundle
+- Export / Import ✅
+  - GET /api/export — export full data (JSON) - tasks, journal, settings
+  - POST /api/import — import/merge JSON bundle with duplicate detection
 
 For exact parameter names, request/response shapes, and authentication details, check the individual blueprint route files in `backend/blueprints/*/routes.py`.
 

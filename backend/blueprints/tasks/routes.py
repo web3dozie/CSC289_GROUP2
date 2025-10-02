@@ -61,6 +61,8 @@ async def create_task():
                 # category_id would need proper category handling - skip for now
                 status_id=status_id,
                 due_date=due_date,
+                priority=data.get('priority', False),
+                estimate_minutes=data.get('estimate_minutes'),
                 created_by=session['user_id']
             )
 
@@ -174,6 +176,14 @@ async def update_task(task_id):
                 task.notes = data['notes']
             if 'done' in data:
                 task.done = bool(data['done'])
+            if 'archived' in data:
+                task.archived = bool(data['archived'])
+            if 'priority' in data:
+                task.priority = bool(data['priority'])
+            if 'estimate_minutes' in data:
+                task.estimate_minutes = data['estimate_minutes']
+            if 'order' in data:
+                task.order = int(data['order'])
             if 'category_id' in data:
                 task.category_id = data['category_id']
             if 'due_date' in data:
@@ -224,9 +234,9 @@ async def get_calendar_tasks():
                 .order_by(Task.due_date, Task.updated_on.desc())
             )
             tasks = result.scalars().all()
-            
+
             print(f"Found {len(tasks)} tasks with due dates")
-            
+
             # Group tasks by due_date
             grouped_tasks = {}
             for task in tasks:
@@ -234,12 +244,65 @@ async def get_calendar_tasks():
                 if date_key not in grouped_tasks:
                     grouped_tasks[date_key] = []
                 grouped_tasks[date_key].append(task.to_dict())
-            
+
             print(f"Returning grouped tasks with {len(grouped_tasks)} date keys")
             return jsonify(grouped_tasks)
     except Exception:
         logging.exception("Failed to fetch calendar tasks")
         return jsonify({'error': 'Failed to fetch calendar tasks'}), 500
 
-# Note: Archived functionality removed as new schema doesn't have archived field
-# Could be replaced with a "Done" status or soft delete mechanism if needed
+
+@tasks_bp.route('/archive-completed', methods=['POST'])
+@auth_required
+async def archive_completed_tasks():
+    """Archive all completed tasks for the current user"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            # Find all completed tasks that are not already archived
+            result = await db_session.execute(
+                select(Task)
+                .where(and_(
+                    Task.created_by == session['user_id'],
+                    Task.done == True,
+                    Task.archived == False
+                ))
+            )
+            tasks = result.scalars().all()
+
+            # Mark them as archived
+            archived_count = 0
+            for task in tasks:
+                task.archived = True
+                archived_count += 1
+
+            await db_session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': f'Archived {archived_count} completed tasks',
+                'archived_count': archived_count
+            })
+    except Exception:
+        logging.exception("Failed to archive completed tasks")
+        return jsonify({'error': 'Failed to archive completed tasks'}), 500
+
+
+@tasks_bp.route('/archived', methods=['GET'])
+@auth_required
+async def get_archived_tasks():
+    """Get all archived tasks for the current user"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            result = await db_session.execute(
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags))
+                .where(and_(
+                    Task.created_by == session['user_id'],
+                    Task.archived == True
+                ))
+                .order_by(Task.updated_on.desc())
+            )
+            tasks = result.scalars().all()
+            return jsonify([task.to_dict() for task in tasks])
+    except Exception:
+        logging.exception("Failed to fetch archived tasks")
+        return jsonify({'error': 'Failed to fetch archived tasks'}), 500
