@@ -303,18 +303,67 @@ def register_routes(app):
     except ImportError:
         print("Settings blueprint not found - will add later")
 
-    # Error handlers
+    # Error handlers - Standardized error responses
+    try:
+        from backend.errors import (
+            APIError, ValidationError, AuthenticationError, AuthorizationError,
+            NotFoundError, DatabaseError, ServerError, error_response
+        )
+    except ImportError:
+        from errors import (
+            APIError, ValidationError, AuthenticationError, AuthorizationError,
+            NotFoundError, DatabaseError, ServerError, error_response
+        )
+    
+    @app.errorhandler(APIError)
+    async def handle_api_error(error: APIError):
+        """Handle custom API exceptions"""
+        import logging
+        if error.status_code >= 500:
+            logging.error(f"API Error: {error.message}", exc_info=True)
+        return jsonify(error.to_dict()), error.status_code
+    
     @app.errorhandler(404)
     async def not_found(error):
-        return jsonify({"error": "Resource not found"}), 404
+        return error_response("Resource not found", 404)
 
     @app.errorhandler(400)
     async def bad_request(error):
-        return jsonify({"error": "Bad request"}), 400
+        return error_response("Bad request", 400)
+    
+    @app.errorhandler(401)
+    async def unauthorized(error):
+        return error_response("Authentication required", 401)
+    
+    @app.errorhandler(403)
+    async def forbidden(error):
+        return error_response("Access denied", 403)
 
     @app.errorhandler(500)
     async def internal_error(error):
-        return jsonify({"error": "Internal server error"}), 500
+        import logging
+        logging.error(f"Internal server error: {error}", exc_info=True)
+        return error_response("Internal server error", 500)
+    
+    @app.errorhandler(Exception)
+    async def handle_unexpected_error(error):
+        """Catch-all handler for unexpected exceptions"""
+        import logging
+        logging.exception(f"Unexpected error: {error}")
+        
+        # In development, include error details
+        details = None
+        if app.debug:
+            details = {
+                "type": type(error).__name__,
+                "message": str(error)
+            }
+        
+        return error_response(
+            "An unexpected error occurred",
+            500,
+            details
+        )
 
 
 async def initialize_database():

@@ -36,7 +36,9 @@ async def test_settings_endpoints(tmp_path, monkeypatch):
         # GET settings
         r = await client.get("/api/settings")
         assert r.status_code == 200
-        settings = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        settings = response_data['data']
         assert "notes_enabled" in settings
 
         # PUT update settings
@@ -45,7 +47,9 @@ async def test_settings_endpoints(tmp_path, monkeypatch):
             json={"notes_enabled": False, "timer_enabled": False, "theme": "dark"},
         )
         assert r.status_code == 200
-        updated = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        updated = response_data['data']
         assert updated["notes_enabled"] is False
         assert updated["timer_enabled"] is False
         assert updated["theme"] == "dark"
@@ -53,13 +57,17 @@ async def test_settings_endpoints(tmp_path, monkeypatch):
         # PUT notes toggle
         r = await client.put("/api/settings/notes", json={"enabled": True})
         assert r.status_code == 200
-        data = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        data = response_data['data']
         assert data["notes_enabled"] is True
 
         # PUT timer toggle
         r = await client.put("/api/settings/timer", json={"enabled": True})
         assert r.status_code == 200
-        data = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        data = response_data['data']
         assert data["timer_enabled"] is True
 
         # PUT ai-url
@@ -67,17 +75,23 @@ async def test_settings_endpoints(tmp_path, monkeypatch):
             "/api/settings/ai-url", json={"url": "https://example.com/ai"}
         )
         assert r.status_code == 200
-        data = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        data = response_data['data']
         assert data["ai_url"] == "https://example.com/ai"
 
         # PUT auto-lock
         r = await client.put("/api/settings/auto-lock", json={"minutes": 5})
         assert r.status_code == 200
-        data = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        data = response_data['data']
         assert data["auto_lock_minutes"] == 5
 
         # PUT theme
         r = await client.put("/api/settings/theme", json={"theme": "light"})
         assert r.status_code == 200
-        data = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        data = response_data['data']
         assert data["theme"] == "light"

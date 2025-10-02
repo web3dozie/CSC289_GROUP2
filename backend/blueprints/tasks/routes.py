@@ -4,9 +4,55 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from backend.db.engine_async import AsyncSessionLocal
-from backend.db.models import Task, Status, auth_required
+from backend.db.models import Task, Status, Category, auth_required
+from backend.errors import ValidationError, NotFoundError, DatabaseError, success_response
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/api/tasks")
+
+
+async def resolve_category_name_to_id(category_name: str, db_session, user_id: int) -> int | None:
+    """
+    Resolve a category name to its database ID.
+    If the category doesn't exist, create it with a default color.
+
+    Args:
+        category_name: The name of the category (string from frontend)
+        db_session: Active database session
+        user_id: Current user's ID
+
+    Returns:
+        category_id (int) if found/created, None if category_name is empty
+    """
+    if not category_name or not category_name.strip():
+        return None
+
+    category_name = category_name.strip()
+
+    # Try to find existing category
+    result = await db_session.execute(
+        select(Category).where(
+            and_(
+                Category.name == category_name,
+                Category.created_by == user_id
+            )
+        )
+    )
+    existing_category = result.scalars().first()
+
+    if existing_category:
+        return existing_category.id
+
+    # Category doesn't exist, create it with default color
+    new_category = Category(
+        name=category_name,
+        description=f"Auto-created category: {category_name}",
+        color_hex="808080",  # Default gray color
+        created_by=user_id
+    )
+    db_session.add(new_category)
+    await db_session.flush()  # Flush to get the ID without committing
+
+    return new_category.id
 
 
 @tasks_bp.route("/", methods=["GET"])
@@ -17,14 +63,15 @@ async def get_tasks():
     try:
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
-                select(Task).options(selectinload(Task.status), selectinload(Task.tags))
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(Task.created_by == session['user_id'])
                 .order_by(Task.updated_on.desc())
             )
             tasks = result.scalars().all()
-            return jsonify([task.to_dict() for task in tasks])
+            return success_response([task.to_dict() for task in tasks])
     except Exception as e:
-        return jsonify({"error": "Failed to fetch tasks"}), 500
+        logging.exception("Failed to fetch tasks")
+        raise DatabaseError("Failed to fetch tasks")
 
 
 @tasks_bp.route("/", methods=["POST"])
@@ -35,7 +82,9 @@ async def create_task():
     data = await request.get_json()
 
     if not data or not data.get("title", "").strip():
-        return jsonify({"error": "Task title is required"}), 400
+        raise ValidationError("Task title is required", details={
+            'field': 'title'
+        })
 
     try:
         async with AsyncSessionLocal() as db_session:
@@ -55,33 +104,38 @@ async def create_task():
             else:
                 due_date = datetime.now()
 
+            # Resolve category name to category_id
+            category_id = None
+            if data.get('category'):
+                category_id = await resolve_category_name_to_id(
+                    data['category'],
+                    db_session,
+                    session['user_id']
+                )
+
             task = Task(
                 title=data['title'].strip(),
                 description=data.get('description', ''),
-                # category_id would need proper category handling - skip for now
+                category_id=category_id,
                 status_id=status_id,
                 due_date=due_date,
+                priority=data.get('priority', False),
+                estimate_minutes=data.get('estimate_minutes'),
                 created_by=session['user_id']
             )
 
             db_session.add(task)
             await db_session.commit()
             await db_session.refresh(task)
-            return (
-                jsonify(
-                    {
-                        "success": True,
-                        "message": "Task created successfully",
-                        "task_id": task.id,
-                    }
-                ),
-                201,
-            )
+            return success_response({
+                'message': 'Task created successfully',
+                'task_id': task.id
+            }, 201)
+    except ValidationError:
+        raise  # Re-raise validation errors
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()  # show the real error in test output
-        return jsonify({"error": "Failed to create task"}), 500
+        logging.exception("Failed to create task")
+        raise DatabaseError("Failed to create task")
 
 
 @tasks_bp.route("/kanban", methods=["GET"])
@@ -97,7 +151,7 @@ async def get_kanban_board():
 
             for status in statuses:
                 task_result = await db_session.execute(
-                    select(Task).options(selectinload(Task.status), selectinload(Task.tags))
+                    select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                     .where(and_(Task.created_by == session['user_id'], Task.status_id == status.id))
                     .order_by(Task.updated_on.desc())
                 )
@@ -109,18 +163,18 @@ async def get_kanban_board():
                     "tasks": [task.to_dict() for task in tasks],
                 }
 
-            return jsonify(kanban_data)
+            return success_response(kanban_data)
 
     except Exception as e:
-        return jsonify({"error": "Failed to fetch kanban board"}), 500
+        logging.exception("Failed to fetch kanban board")
+        raise DatabaseError("Failed to fetch kanban board")
 
 
 @tasks_bp.route("/categories", methods=["GET"])
 @auth_required
 async def get_categories():
-    """Get available categories for the user"""
+    """Get available categories for the user as a list of category names"""
     try:
-        from backend.db.models import Category
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Category)
@@ -128,9 +182,10 @@ async def get_categories():
                 .order_by(Category.name)
             )
             categories = [category.to_dict() for category in result.scalars().all()]
-            return jsonify(categories)
+            return success_response(categories)
     except Exception as e:
-        return jsonify({'error': 'Failed to fetch categories'}), 500
+        logging.exception("Failed to fetch categories")
+        raise DatabaseError('Failed to fetch categories')
 
 
 @tasks_bp.route("/<int:task_id>", methods=["GET"])
@@ -141,16 +196,18 @@ async def get_task(task_id):
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task)
-                .options(selectinload(Task.status), selectinload(Task.tags))
+                .options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(Task.id == task_id, Task.created_by == session["user_id"])
             )
             task = result.scalars().first()
             if not task:
-                return jsonify({"error": "Task not found"}), 404
-            return jsonify(task.to_dict())
-    except Exception:
+                raise NotFoundError("Task not found", details={'task_id': task_id})
+            return success_response(task.to_dict())
+    except NotFoundError:
+        raise  # Re-raise not found errors
+    except Exception as e:
         logging.exception("Failed to fetch task")
-        return jsonify({'error': 'Failed to fetch task'}), 500
+        raise DatabaseError('Failed to fetch task')
 
 
 @tasks_bp.route("/<int:task_id>", methods=["PUT"])
@@ -158,14 +215,16 @@ async def get_task(task_id):
 async def update_task(task_id):
     """Update a task's fields"""
     data = await request.get_json()
+    
+    if not data:
+        raise ValidationError('No data provided')
+        
     try:
         async with AsyncSessionLocal() as db_session:
             task = await db_session.get(Task, task_id)
             if not task or task.created_by != session["user_id"]:
-                return jsonify({"error": "Task not found"}), 404
+                raise NotFoundError("Task not found", details={'task_id': task_id})
 
-            if not data:
-                return jsonify({'error': 'No data provided'}), 400
             if 'title' in data:
                 task.title = data['title']
             if 'description' in data:
@@ -174,7 +233,24 @@ async def update_task(task_id):
                 task.notes = data['notes']
             if 'done' in data:
                 task.done = bool(data['done'])
-            if 'category_id' in data:
+            if 'archived' in data:
+                task.archived = bool(data['archived'])
+            if 'priority' in data:
+                task.priority = bool(data['priority'])
+            if 'estimate_minutes' in data:
+                task.estimate_minutes = data['estimate_minutes']
+            if 'order' in data:
+                task.order = int(data['order'])
+            # Handle category - accept both string name and integer ID
+            if 'category' in data:
+                # Frontend sends category as string name
+                task.category_id = await resolve_category_name_to_id(
+                    data['category'],
+                    db_session,
+                    session['user_id']
+                )
+            elif 'category_id' in data:
+                # Backwards compatibility: also accept category_id directly
                 task.category_id = data['category_id']
             if 'due_date' in data:
                 task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d') if data['due_date'] else None
@@ -185,14 +261,16 @@ async def update_task(task_id):
             # Re-query with selectinload so related objects (status) are loaded safely
             result = await db_session.execute(
                 select(Task)
-                .options(selectinload(Task.status), selectinload(Task.tags))
+                .options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(Task.id == task_id)
             )
             task = result.scalars().first()
-            return jsonify(task.to_dict())
-    except Exception:
+            return success_response(task.to_dict())
+    except (ValidationError, NotFoundError):
+        raise  # Re-raise known errors
+    except Exception as e:
         logging.exception("Failed to update task")
-        return jsonify({'error': 'Failed to update task'}), 500
+        raise DatabaseError('Failed to update task')
 
 
 @tasks_bp.route("/<int:task_id>", methods=["DELETE"])
@@ -203,29 +281,28 @@ async def delete_task(task_id):
         async with AsyncSessionLocal() as db_session:
             task = await db_session.get(Task, task_id)
             if not task or task.created_by != session["user_id"]:
-                return jsonify({"error": "Task not found"}), 404
+                raise NotFoundError("Task not found", details={'task_id': task_id})
             await db_session.delete(task)
             await db_session.commit()
             return ("", 204)
-    except Exception:
+    except NotFoundError:
+        raise  # Re-raise not found errors
+    except Exception as e:
         logging.exception("Failed to delete task")
-        return jsonify({'error': 'Failed to delete task'}), 500
+        raise DatabaseError('Failed to delete task')
 
 @tasks_bp.route('/calendar', methods=['GET'])
 @auth_required
 async def get_calendar_tasks():
     """Get tasks grouped by due date for calendar view"""
     try:
-        print(f"Calendar request for user: {session.get('user_id')}")
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
-                select(Task).options(selectinload(Task.status), selectinload(Task.tags))
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None)))
                 .order_by(Task.due_date, Task.updated_on.desc())
             )
             tasks = result.scalars().all()
-            
-            print(f"Found {len(tasks)} tasks with due dates")
             
             # Group tasks by due_date
             grouped_tasks = {}
@@ -235,11 +312,63 @@ async def get_calendar_tasks():
                     grouped_tasks[date_key] = []
                 grouped_tasks[date_key].append(task.to_dict())
             
-            print(f"Returning grouped tasks with {len(grouped_tasks)} date keys")
-            return jsonify(grouped_tasks)
-    except Exception:
+            return success_response(grouped_tasks)
+    except Exception as e:
         logging.exception("Failed to fetch calendar tasks")
-        return jsonify({'error': 'Failed to fetch calendar tasks'}), 500
+        raise DatabaseError('Failed to fetch calendar tasks')
 
-# Note: Archived functionality removed as new schema doesn't have archived field
-# Could be replaced with a "Done" status or soft delete mechanism if needed
+
+@tasks_bp.route('/archive-completed', methods=['POST'])
+@auth_required
+async def archive_completed_tasks():
+    """Archive all completed tasks for the current user"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            # Find all completed tasks that are not already archived
+            result = await db_session.execute(
+                select(Task)
+                .where(and_(
+                    Task.created_by == session['user_id'],
+                    Task.done == True,
+                    Task.archived == False
+                ))
+            )
+            tasks = result.scalars().all()
+
+            # Mark them as archived
+            archived_count = 0
+            for task in tasks:
+                task.archived = True
+                archived_count += 1
+
+            await db_session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': f'Archived {archived_count} completed tasks',
+                'archived_count': archived_count
+            })
+    except Exception:
+        logging.exception("Failed to archive completed tasks")
+        return jsonify({'error': 'Failed to archive completed tasks'}), 500
+
+
+@tasks_bp.route('/archived', methods=['GET'])
+@auth_required
+async def get_archived_tasks():
+    """Get all archived tasks for the current user"""
+    try:
+        async with AsyncSessionLocal() as db_session:
+            result = await db_session.execute(
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
+                .where(and_(
+                    Task.created_by == session['user_id'],
+                    Task.archived == True
+                ))
+                .order_by(Task.updated_on.desc())
+            )
+            tasks = result.scalars().all()
+            return jsonify([task.to_dict() for task in tasks])
+    except Exception:
+        logging.exception("Failed to fetch archived tasks")
+        return jsonify({'error': 'Failed to fetch archived tasks'}), 500

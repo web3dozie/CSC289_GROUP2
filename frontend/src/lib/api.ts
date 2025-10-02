@@ -1,10 +1,82 @@
 // API client for Task Line backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
+// Standardized API error response format
+interface APIErrorResponse {
+  success: false
+  error: {
+    code: number
+    message: string
+    details?: Record<string, any>
+  }
+}
+
+// Standardized API success response format
+interface APISuccessResponse<T> {
+  success: true
+  data: T
+}
+
+// Export the types for use in other modules
+export type { APIErrorResponse, APISuccessResponse }
+
 class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  public code: number
+  public details?: Record<string, any>
+
+  constructor(code: number, message: string, details?: Record<string, any>) {
     super(message)
     this.name = 'ApiError'
+    this.code = code
+    this.details = details
+  }
+
+  /**
+   * Check if the error is a specific HTTP error code
+   */
+  isStatus(status: number): boolean {
+    return this.code === status
+  }
+
+  /**
+   * Check if the error is a client error (4xx)
+   */
+  isClientError(): boolean {
+    return this.code >= 400 && this.code < 500
+  }
+
+  /**
+   * Check if the error is a server error (5xx)
+   */
+  isServerError(): boolean {
+    return this.code >= 500 && this.code < 600
+  }
+
+  /**
+   * Check if the error is a network error
+   */
+  isNetworkError(): boolean {
+    return this.code === 0
+  }
+
+  /**
+   * Get a user-friendly error message
+   */
+  getUserMessage(): string {
+    // Map technical errors to user-friendly messages
+    const userFriendlyMessages: Record<number, string> = {
+      0: 'Unable to connect to the server. Please check your internet connection.',
+      400: 'The request was invalid. Please check your input and try again.',
+      401: 'You need to log in to access this resource.',
+      403: 'You don\'t have permission to access this resource.',
+      404: 'The requested resource could not be found.',
+      409: 'This action conflicts with existing data.',
+      500: 'An error occurred on the server. Please try again later.',
+      502: 'The server is temporarily unavailable. Please try again later.',
+      503: 'The service is temporarily unavailable. Please try again later.',
+    }
+
+    return userFriendlyMessages[this.code] || this.message
   }
 }
 
@@ -26,29 +98,57 @@ async function apiRequest<T>(
   try {
     const response = await fetch(url, config)
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
-      throw new ApiError(response.status, errorData.message || `HTTP ${response.status}`)
-    }
-
     // Handle empty responses (like 204 No Content)
     if (response.status === 204) {
       return {} as T
     }
 
-    return await response.json()
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      // Try to parse standardized error format
+      if (data && typeof data === 'object' && 'success' in data && data.success === false) {
+        const errorData = data as APIErrorResponse
+        throw new ApiError(
+          errorData.error.code,
+          errorData.error.message,
+          errorData.error.details
+        )
+      }
+
+      // Fallback for non-standardized errors
+      const message = data?.error || data?.message || `HTTP ${response.status}`
+      throw new ApiError(response.status, message)
+    }
+
+    // Handle standardized success response format
+    if (data && typeof data === 'object' && 'success' in data && data.success === true) {
+      return (data as APISuccessResponse<T>).data
+    }
+
+    // Fallback for non-standardized success responses (backward compatibility)
+    return data as T
   } catch (error) {
     if (error instanceof ApiError) {
       throw error
     }
-    throw new ApiError(0, 'Network error')
+    
+    // Network error or other fetch failures
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new ApiError(0, 'Network error: Unable to reach the server')
+    }
+    
+    throw new ApiError(0, 'An unexpected error occurred')
   }
 }
+
+// Export ApiError for use in components
+export { ApiError }
 
 // Auth API
 export const authApi = {
   setup: (data: { pin: string; username?: string; email?: string }) =>
-    apiRequest<{ success: boolean; message: string; user_id: number; username: string }>(
+    apiRequest<{ message: string; user: { id: number; username: string } }>(
       '/api/auth/setup',
       {
         method: 'POST',
@@ -57,7 +157,7 @@ export const authApi = {
     ),
 
   login: (data: { username: string; pin: string }) =>
-    apiRequest<{ success: boolean; message: string; user_id: number; username: string }>(
+    apiRequest<{ message: string; user: { id: number; username: string } }>(
       '/api/auth/login',
       {
         method: 'POST',
@@ -66,12 +166,12 @@ export const authApi = {
     ),
 
   logout: () =>
-    apiRequest<{ success: boolean; message: string }>('/api/auth/logout', {
+    apiRequest<{ message: string }>('/api/auth/logout', {
       method: 'POST',
     }),
 
   changePin: (data: { current_pin: string; new_pin: string }) =>
-    apiRequest<{ success: boolean; message: string }>('/api/auth/pin', {
+    apiRequest<{ message: string }>('/api/auth/pin', {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -133,7 +233,7 @@ export const tasksApi = {
     due_date?: string
     estimate_minutes?: number
   }) =>
-    apiRequest<{ task_id: number }>('/api/tasks/', {
+    apiRequest<{ message: string; task_id: number }>('/api/tasks/', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

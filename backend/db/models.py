@@ -135,6 +135,14 @@ class Task(Base):
     closed_on: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True, default=None
     )
+    # Archive flag for soft delete
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Priority flag for important tasks
+    priority: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Estimated time in minutes
+    estimate_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Order for manual sorting/drag-drop
+    order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     due_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=None)
     created_on: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.now
@@ -172,23 +180,36 @@ class Task(Base):
     def to_dict(self) -> dict:
         status = getattr(self, "status", None)
         tags = getattr(self, "tags", None) or []
+        category = getattr(self, "category", None)
+
+        # Resolve category name from category relationship
+        category_name = getattr(category, "name", None) if category else None
+
         return {
             "id": getattr(self, "id", None),
             "title": getattr(self, "title", None),
             "description": getattr(self, "description", None),
             "notes": getattr(self, "notes", None),
-            "category_id": getattr(self, "category_id", None),
+            # Frontend expects 'category' as string, not category_id
+            "category": category_name,
             "status": (
-                {"id": status.id, "title": getattr(status, "title", None)}
+                # Frontend expects 'name' not 'title'
+                {"id": status.id, "name": getattr(status, "title", None)}
                 if status
                 else None
             ),
             "tags": [getattr(t, "name", None) for t in tags],
             "done": getattr(self, "done", False),
+            "archived": getattr(self, "archived", False),
+            "priority": getattr(self, "priority", False),
+            "estimate_minutes": getattr(self, "estimate_minutes", None),
+            "order": getattr(self, "order", 0),
             "parent_id": getattr(self, "parent_id", None),
             "due_date": _iso(getattr(self, "due_date", None)),
-            "created_on": _iso(getattr(self, "created_on", None)),
+            # Frontend expects 'created_at' not 'created_on'
+            "created_at": _iso(getattr(self, "created_on", None)),
             "updated_on": _iso(getattr(self, "updated_on", None)),
+            "closed_on": _iso(getattr(self, "closed_on", None)),
             "created_by": getattr(self, "created_by", None),
         }
 
@@ -338,7 +359,9 @@ def auth_required(f):
     @wraps(f)
     async def decorated_function(*args, **kwargs):
         if "user_id" not in session:
-            return jsonify({"error": "Authentication required"}), 401
+            # Use standardized error format
+            from backend.errors import AuthenticationError
+            raise AuthenticationError("Authentication required")
         if inspect.iscoroutinefunction(f):
             return await f(*args, **kwargs)
         else:

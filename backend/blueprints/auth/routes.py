@@ -2,8 +2,15 @@ from quart import Blueprint, request, jsonify, session
 import logging
 from datetime import datetime
 from sqlalchemy import select
-from backend.db.engine_async import AsyncSessionLocal
-from backend.db.models import User, Configuration, auth_required, hash_pin, validate_pin, verify_and_migrate_pin
+
+try:
+    from backend.db.engine_async import AsyncSessionLocal
+    from backend.db.models import User, Configuration, auth_required, hash_pin, validate_pin, verify_and_migrate_pin
+    from backend.errors import ValidationError, AuthenticationError, DatabaseError, success_response
+except ImportError:
+    from db.engine_async import AsyncSessionLocal
+    from db.models import User, Configuration, auth_required, hash_pin, validate_pin, verify_and_migrate_pin
+    from errors import ValidationError, AuthenticationError, DatabaseError, success_response
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -14,23 +21,31 @@ async def setup_auth():
     data = await request.get_json()
     
     if not data or 'pin' not in data or 'username' not in data:
-        return jsonify({'error': 'PIN and username are required'}), 400
+        raise ValidationError('PIN and username are required', details={
+            'missing_fields': [f for f in ['pin', 'username'] if f not in (data or {})]
+        })
     
     pin = data['pin'].strip()
     username = data['username'].strip()
     
     if not username:
-        return jsonify({'error': 'Username cannot be empty'}), 400
+        raise ValidationError('Username cannot be empty')
     
     if not validate_pin(pin):
-        return jsonify({"error": "PIN must be 4-8 digits"}), 400
+        raise ValidationError("PIN must be 4-8 digits", details={
+            'field': 'pin',
+            'requirement': '4-8 numeric digits'
+        })
 
     try:
         async with AsyncSessionLocal() as db_session:
             # Check if username already exists
             result = await db_session.execute(select(User).where(User.username == username))
             if result.first():
-                return jsonify({'error': 'Username already exists'}), 400
+                raise ValidationError('Username already exists', details={
+                    'field': 'username',
+                    'value': username
+                })
             
             # Create new user
             email = data.get("email", "").strip()
@@ -59,16 +74,19 @@ async def setup_auth():
             session['user_id'] = new_user.id
             session['username'] = username
             
-            return jsonify({
-                'success': True,
+            return success_response({
                 'message': 'Account created successfully',
-                'user_id': new_user.id,
-                'username': username
-            }), 201
+                'user': {
+                    'id': new_user.id,
+                    'username': username
+                }
+            }, 201)
             
-    except Exception:
+    except ValidationError:
+        raise  # Re-raise validation errors
+    except Exception as e:
         logging.exception("Failed to create account")
-        return jsonify({'error': 'Failed to create account'}), 500
+        raise DatabaseError('Failed to create account')
 
 
 @auth_bp.route("/login", methods=["POST"])
@@ -77,13 +95,15 @@ async def login():
     data = await request.get_json()
     
     if not data or 'pin' not in data or 'username' not in data:
-        return jsonify({'error': 'Username and PIN are required'}), 400
+        raise ValidationError('Username and PIN are required', details={
+            'missing_fields': [f for f in ['pin', 'username'] if f not in (data or {})]
+        })
     
     pin = data['pin'].strip()
     username = data['username'].strip()
     
     if not username:
-        return jsonify({'error': 'Username cannot be empty'}), 400
+        raise ValidationError('Username cannot be empty')
     
     try:
         async with AsyncSessionLocal() as db_session:
@@ -93,12 +113,12 @@ async def login():
             user = result.scalar_one_or_none()
             
             if not user:
-                return jsonify({'error': 'Invalid username or PIN'}), 401
+                raise AuthenticationError('Invalid username or PIN')
 
             # Verify PIN and migrate legacy SHA-256 -> bcrypt if needed
             is_valid, new_hash = verify_and_migrate_pin(pin, user.pin_hash)
             if not is_valid:
-                return jsonify({'error': 'Invalid username or PIN'}), 401
+                raise AuthenticationError('Invalid username or PIN')
 
             # If migration produced a new bcrypt hash, save it
             if new_hash:
@@ -108,16 +128,19 @@ async def login():
             session['user_id'] = user.id
             session['username'] = user.username
             
-            return jsonify({
-                'success': True,
+            return success_response({
                 'message': 'Login successful',
-                'user_id': user.id,
-                'username': user.username
+                'user': {
+                    'id': user.id,
+                    'username': user.username
+                }
             })
             
-    except Exception:
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
         logging.exception("Login failed")
-        return jsonify({'error': 'Login failed'}), 500
+        raise DatabaseError('Login failed')
 
 
 @auth_bp.route("/logout", methods=["POST"])
@@ -125,7 +148,7 @@ async def login():
 async def logout():
     """End session"""
     session.clear()
-    return jsonify({"success": True, "message": "Logged out successfully"})
+    return success_response({"message": "Logged out successfully"})
 
 
 @auth_bp.route("/pin", methods=["PUT"])
@@ -135,13 +158,18 @@ async def change_pin():
     data = await request.get_json()
 
     if not data or "current_pin" not in data or "new_pin" not in data:
-        return jsonify({"error": "Current PIN and new PIN are required"}), 400
+        raise ValidationError("Current PIN and new PIN are required", details={
+            'missing_fields': [f for f in ['current_pin', 'new_pin'] if f not in (data or {})]
+        })
 
     current_pin = data["current_pin"].strip()
     new_pin = data["new_pin"].strip()
 
     if not validate_pin(new_pin):
-        return jsonify({"error": "PIN must be 4-8 digits"}), 400
+        raise ValidationError("PIN must be 4-8 digits", details={
+            'field': 'new_pin',
+            'requirement': '4-8 numeric digits'
+        })
 
     try:
         async with AsyncSessionLocal() as db_session:
@@ -151,19 +179,21 @@ async def change_pin():
             user = result.scalar_one_or_none()
             
             if not user:
-                return jsonify({'error': 'Current PIN is incorrect'}), 401
+                raise AuthenticationError('User not found')
 
             # Verify current PIN
             is_valid, _ = verify_and_migrate_pin(current_pin, user.pin_hash)
             if not is_valid:
-                return jsonify({'error': 'Current PIN is incorrect'}), 401
+                raise AuthenticationError('Current PIN is incorrect')
 
             # Store new PIN using bcrypt
             user.pin_hash = hash_pin(new_pin)
             await db_session.commit()
             
-            return jsonify({'success': True, 'message': 'PIN updated successfully'})
+            return success_response({'message': 'PIN updated successfully'})
             
-    except Exception:
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
         logging.exception("Failed to update PIN")
-        return jsonify({'error': 'Failed to update PIN'}), 500
+        raise DatabaseError('Failed to update PIN')

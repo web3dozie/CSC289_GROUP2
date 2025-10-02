@@ -1,9 +1,16 @@
 from quart import Blueprint, jsonify, request, session
-from backend.db.models import JournalEntry, Task, auth_required
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
-from backend.db.engine_async import AsyncSessionLocal
+
+try:
+    from backend.db.models import JournalEntry, Task, auth_required
+    from backend.db.engine_async import AsyncSessionLocal
+    from backend.errors import ValidationError, NotFoundError, DatabaseError, success_response
+except ImportError:
+    from db.models import JournalEntry, Task, auth_required
+    from db.engine_async import AsyncSessionLocal
+    from errors import ValidationError, NotFoundError, DatabaseError, success_response
 
 review_bp = Blueprint("review", __name__)
 
@@ -25,20 +32,25 @@ async def get_journal():
 
     user_id = session.get('user_id')
     if not user_id:
-        return jsonify({'error': 'Authentication required'}), 401
+        raise ValidationError('Authentication required')
 
-    async with AsyncSessionLocal() as s:
-        result = await s.execute(
-            select(JournalEntry)
-            .where(
-                JournalEntry.user_id == user_id,
-                func.date(JournalEntry.entry_date) >= start_date,
-                func.date(JournalEntry.entry_date) <= end_date,
+    try:
+        async with AsyncSessionLocal() as s:
+            result = await s.execute(
+                select(JournalEntry)
+                .where(
+                    JournalEntry.user_id == user_id,
+                    func.date(JournalEntry.entry_date) >= start_date,
+                    func.date(JournalEntry.entry_date) <= end_date,
+                )
+                .order_by(JournalEntry.entry_date.desc())
             )
-            .order_by(JournalEntry.entry_date.desc())
-        )
-        entries = result.scalars().all()
-        return jsonify([entry.to_dict() for entry in entries])
+            entries = result.scalars().all()
+            return success_response([entry.to_dict() for entry in entries])
+    except Exception as e:
+        import logging
+        logging.exception("Failed to fetch journal entries")
+        raise DatabaseError('Failed to fetch journal entries')
 
 
 @review_bp.route("/api/review/journal", methods=["POST"])
@@ -46,7 +58,7 @@ async def get_journal():
 async def create_journal():
     data = await request.get_json()
     if not data or "content" not in data:
-        return jsonify({"error": "Content is required"}), 400
+        raise ValidationError("Content is required", details={'field': 'content'})
 
     entry_date = data.get("entry_date", date.today().isoformat())
     entry_date = date.fromisoformat(entry_date)
@@ -55,18 +67,23 @@ async def create_journal():
 
     user_id = session.get('user_id')
     if not user_id:
-        return jsonify({'error': 'Authentication required'}), 401
+        raise ValidationError('Authentication required')
 
-    entry = JournalEntry(
-        user_id=user_id,
-        entry_date=entry_datetime,
-        content=data['content']
-    )
-    async with AsyncSessionLocal() as s:
-        s.add(entry)
-        await s.commit()
-        await s.refresh(entry)
-        return jsonify(entry.to_dict()), 201
+    try:
+        entry = JournalEntry(
+            user_id=user_id,
+            entry_date=entry_datetime,
+            content=data['content']
+        )
+        async with AsyncSessionLocal() as s:
+            s.add(entry)
+            await s.commit()
+            await s.refresh(entry)
+            return success_response(entry.to_dict(), 201)
+    except Exception as e:
+        import logging
+        logging.exception("Failed to create journal entry")
+        raise DatabaseError('Failed to create journal entry')
 
 
 @review_bp.route("/api/review/journal/<int:entry_id>", methods=["PUT"])
@@ -74,16 +91,18 @@ async def create_journal():
 async def update_journal(entry_id):
     user_id = session.get('user_id')
     if not user_id:
-        return jsonify({'error': 'Authentication required'}), 401
-    async with AsyncSessionLocal() as s:
-        try:
+        raise ValidationError('Authentication required')
+        
+    try:
+        async with AsyncSessionLocal() as s:
             entry = await s.get(JournalEntry, entry_id)
             if not entry or entry.user_id != user_id:
-                return jsonify({"error": "Journal entry not found"}), 404
+                raise NotFoundError("Journal entry not found", details={'entry_id': entry_id})
 
             data = await request.get_json()
             if not data:
-                return jsonify({"error": "No data provided"}), 400
+                raise ValidationError("No data provided")
+                
             if "content" in data:
                 entry.content = data["content"]
             if "entry_date" in data:
@@ -93,15 +112,13 @@ async def update_journal(entry_id):
                 entry.entry_date = datetime.combine(new_date, datetime.min.time())
 
             await s.commit()
-            return jsonify(entry.to_dict())
-        except (ValueError, SQLAlchemyError) as e:
-            # ValueError can come from date parsing; SQLAlchemyError from DB ops.
-            try:
-                await s.rollback()
-            except SQLAlchemyError:
-                # best-effort rollback; if it fails we can't do much here
-                pass
-            return jsonify({"error": str(e)}), 500
+            return success_response(entry.to_dict())
+    except (ValidationError, NotFoundError):
+        raise  # Re-raise known errors
+    except (ValueError, SQLAlchemyError) as e:
+        import logging
+        logging.exception("Failed to update journal entry")
+        raise DatabaseError("Failed to update journal entry")
 
 
 @review_bp.route("/api/review/journal/<int:entry_id>", methods=["DELETE"])
@@ -109,14 +126,22 @@ async def update_journal(entry_id):
 async def delete_journal(entry_id):
     user_id = session.get('user_id')
     if not user_id:
-        return jsonify({'error': 'Authentication required'}), 401
-    async with AsyncSessionLocal() as s:
-        entry = await s.get(JournalEntry, entry_id)
-        if not entry or entry.user_id != user_id:
-            return jsonify({"error": "Journal entry not found"}), 404
-        await s.delete(entry)
-        await s.commit()
-        return jsonify({"success": True}), 204
+        raise ValidationError('Authentication required')
+        
+    try:
+        async with AsyncSessionLocal() as s:
+            entry = await s.get(JournalEntry, entry_id)
+            if not entry or entry.user_id != user_id:
+                raise NotFoundError("Journal entry not found", details={'entry_id': entry_id})
+            await s.delete(entry)
+            await s.commit()
+            return ("", 204)
+    except NotFoundError:
+        raise  # Re-raise not found errors
+    except Exception as e:
+        import logging
+        logging.exception("Failed to delete journal entry")
+        raise DatabaseError('Failed to delete journal entry')
 
 
 @review_bp.route("/api/review/summary/daily", methods=["GET"])
@@ -127,82 +152,91 @@ async def daily_summary():
 
     user_id = session.get('user_id')
     if not user_id:
-        return jsonify({'error': 'Authentication required'}), 401
+        raise ValidationError('Authentication required')
 
-    async with AsyncSessionLocal() as s:
-        # Tasks completed on that day
-        result = await s.execute(
-            select(func.count())
-            .select_from(Task)
-            .where(
-                func.date(Task.created_on) == target_date,
-                Task.done == True,
-                Task.created_by == user_id,
+    try:
+        async with AsyncSessionLocal() as s:
+            # Tasks completed on that day
+            result = await s.execute(
+                select(func.count())
+                .select_from(Task)
+                .where(
+                    func.date(Task.created_on) == target_date,
+                    Task.done == True,
+                    Task.created_by == user_id,
+                )
             )
-        )
-        completed_tasks = result.scalar_one()
+            completed_tasks = result.scalar_one()
 
-        # Tasks created on that day
-        result = await s.execute(
-            select(func.count()).select_from(Task).where(
-                func.date(Task.created_on) == target_date,
-                Task.created_by == user_id
+            # Tasks created on that day
+            result = await s.execute(
+                select(func.count()).select_from(Task).where(
+                    func.date(Task.created_on) == target_date,
+                    Task.created_by == user_id
+                )
             )
-        )
-        created_tasks = result.scalar_one()
+            created_tasks = result.scalar_one()
 
-        # Overdue tasks (due date before today and not done)
-        today = date.today()
-        result = await s.execute(
-            select(func.count()).select_from(Task).where(
-                Task.due_date < today,
-                Task.done == False,
-                Task.created_by == user_id
+            # Overdue tasks (due date before today and not done)
+            today = date.today()
+            result = await s.execute(
+                select(func.count()).select_from(Task).where(
+                    Task.due_date < today,
+                    Task.done == False,
+                    Task.created_by == user_id
+                )
             )
-        )
-        overdue_tasks = result.scalar_one()
+            overdue_tasks = result.scalar_one()
 
-        # In progress tasks (not done)
-        result = await s.execute(
-            select(func.count()).select_from(Task).where(
-                Task.done == False,
-                Task.created_by == user_id
+            # In progress tasks (not done)
+            result = await s.execute(
+                select(func.count()).select_from(Task).where(
+                    Task.done == False,
+                    Task.created_by == user_id
+                )
             )
-        )
-        in_progress_tasks = result.scalar_one()
+            in_progress_tasks = result.scalar_one()
 
-        # Time spent (since estimate_minutes field doesn't exist in new schema, set to 0)
-        time_spent = 0
+            # Time spent (since estimate_minutes field doesn't exist in new schema, set to 0)
+            time_spent = 0
 
-        # Categories breakdown (using category_id instead of category string)
-        from backend.db.models import Category
-        result = await s.execute(
-            select(Category.name, func.count(Task.id))
-            .join(Task)
-            .where(
-                func.date(Task.created_on) == target_date,
-                Task.created_by == user_id,
-                Task.category_id.isnot(None)
+            # Categories breakdown (using category_id instead of category string)
+            try:
+                from backend.db.models import Category
+            except ImportError:
+                from db.models import Category
+                
+            result = await s.execute(
+                select(Category.name, func.count(Task.id))
+                .join(Task)
+                .where(
+                    func.date(Task.created_on) == target_date,
+                    Task.created_by == user_id,
+                    Task.category_id.isnot(None)
+                )
+                .group_by(Category.name)
             )
-            .group_by(Category.name)
-        )
-        categories = {row[0]: row[1] for row in result.all()}
+            categories = {row[0]: row[1] for row in result.all()}
 
-        # Journal entry
-        result = await s.execute(select(JournalEntry).filter_by(entry_date=target_date, user_id=user_id))
-        journal = result.scalars().first()
-        journal_content = journal.content if journal else None
+            # Journal entry
+            result = await s.execute(select(JournalEntry).filter_by(entry_date=target_date, user_id=user_id))
+            journal = result.scalars().first()
+            journal_content = journal.content if journal else None
 
-    return jsonify({
-        'date': target_date.isoformat(),
-        'completed_tasks': completed_tasks,
-        'created_tasks': created_tasks,
-        'overdue_tasks': overdue_tasks,
-        'in_progress_tasks': in_progress_tasks,
-        'time_spent': time_spent,
-        'categories': categories,
-        'journal_entry': journal_content
-    })
+        return success_response({
+            'date': target_date.isoformat(),
+            'completed_tasks': completed_tasks,
+            'created_tasks': created_tasks,
+            'overdue_tasks': overdue_tasks,
+            'in_progress_tasks': in_progress_tasks,
+            'time_spent': time_spent,
+            'categories': categories,
+            'journal_entry': journal_content
+        })
+    except Exception as e:
+        import logging
+        logging.exception("Failed to fetch daily summary")
+        raise DatabaseError('Failed to fetch daily summary')
 
 
 @review_bp.route("/api/review/summary/weekly", methods=["GET"])
