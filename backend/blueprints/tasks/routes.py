@@ -5,7 +5,6 @@ from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from backend.db.engine_async import AsyncSessionLocal
 from backend.db.models import Task, Status, Category, auth_required
-from backend.errors import ValidationError, NotFoundError, DatabaseError, success_response
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/api/tasks")
 
@@ -181,8 +180,9 @@ async def get_categories():
                 .where(Category.created_by == session['user_id'])
                 .order_by(Category.name)
             )
-            categories = [category.to_dict() for category in result.scalars().all()]
-            return success_response(categories)
+            # Return just the category names as strings, not full objects
+            category_names = [category.name for category in result.scalars().all()]
+            return jsonify(category_names)
     except Exception as e:
         logging.exception("Failed to fetch categories")
         raise DatabaseError('Failed to fetch categories')
@@ -303,7 +303,9 @@ async def get_calendar_tasks():
                 .order_by(Task.due_date, Task.updated_on.desc())
             )
             tasks = result.scalars().all()
-            
+
+            print(f"Found {len(tasks)} tasks with due dates")
+
             # Group tasks by due_date
             grouped_tasks = {}
             for task in tasks:
@@ -311,9 +313,10 @@ async def get_calendar_tasks():
                 if date_key not in grouped_tasks:
                     grouped_tasks[date_key] = []
                 grouped_tasks[date_key].append(task.to_dict())
-            
-            return success_response(grouped_tasks)
-    except Exception as e:
+
+            print(f"Returning grouped tasks with {len(grouped_tasks)} date keys")
+            return jsonify(grouped_tasks)
+    except Exception:
         logging.exception("Failed to fetch calendar tasks")
         raise DatabaseError('Failed to fetch calendar tasks')
 
