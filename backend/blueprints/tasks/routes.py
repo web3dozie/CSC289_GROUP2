@@ -5,6 +5,7 @@ from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from backend.db.engine_async import AsyncSessionLocal
 from backend.db.models import Task, Status, Category, auth_required
+from backend.errors import ValidationError, NotFoundError, DatabaseError, success_response
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/api/tasks")
 
