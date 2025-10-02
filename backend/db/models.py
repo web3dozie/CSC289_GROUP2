@@ -66,6 +66,11 @@ class User(Base):
         single_parent=True,
     )
 
+    # Relating user to all their conversations (AI chat)
+    conversations: Mapped[list["Conversation"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
     def to_dict(self) -> dict:
         return {
             "id": getattr(self, "id", None),
@@ -323,6 +328,65 @@ class Status(Base):
             "created_on": _iso(getattr(self, "created_on", None)),
             "updated_on": _iso(getattr(self, "updated_on", None)),
             "created_by": getattr(self, "created_by", None),
+        }
+
+
+# Conversation Table for AI Chat
+class Conversation(Base):
+    __tablename__ = "conversation"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False, default="AI Chat")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now, onupdate=datetime.now
+    )
+
+    user: Mapped["User"] = relationship(back_populates="conversations")
+    messages: Mapped[list["Message"]] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="Message.created_at",
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": getattr(self, "id", None),
+            "user_id": getattr(self, "user_id", None),
+            "title": getattr(self, "title", None),
+            "created_at": _iso(getattr(self, "created_at", None)),
+            "updated_at": _iso(getattr(self, "updated_at", None)),
+        }
+
+
+# Message Table for AI Chat
+class Message(Base):
+    __tablename__ = "message"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("conversation.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    role: Mapped[str] = mapped_column(String(20), nullable=False)  # 'user' or 'assistant'
+    content: Mapped[str] = mapped_column(String(10000), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now, index=True
+    )
+
+    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": getattr(self, "id", None),
+            "conversation_id": getattr(self, "conversation_id", None),
+            "role": getattr(self, "role", None),
+            "content": getattr(self, "content", None),
+            "created_at": _iso(getattr(self, "created_at", None)),
         }
 
 
