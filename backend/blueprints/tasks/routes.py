@@ -12,16 +12,43 @@ tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 @tasks_bp.route('', methods=['GET'])
 @auth_required
 async def get_tasks():
-    """Get all tasks for the user"""
+    """Get all tasks for the user with pagination"""
     try:
+        # Get the page number and items per page from the URL (default to page 1, 20 items)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        
+        # Figure out how many items to skip based on which page we're on
+        offset = (page - 1) * per_page
+        
         async with AsyncSessionLocal() as db_session:
+            # Count how many total tasks this user has
+            count_result = await db_session.execute(
+                select(func.count(Task.id))
+                .where(Task.created_by == session['user_id'])
+            )
+            total = count_result.scalar()
+            
+            # Get just the tasks for this page (not all tasks)
             result = await db_session.execute(
                 select(Task).options(selectinload(Task.status))
                 .where(Task.created_by == session['user_id'])
                 .order_by(Task.priority.desc(), Task.updated_on.desc())
+                .limit(per_page)
+                .offset(offset)
             )
             tasks = result.scalars().all()
-            return jsonify([task.to_dict() for task in tasks])
+            
+            # Send back the tasks plus info about pagination
+            return jsonify({
+                'tasks': [task.to_dict() for task in tasks],
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total,
+                    'pages': (total + per_page - 1) // per_page
+                }
+            })
     except Exception as e:
         logging.exception("Failed to fetch tasks")
         return jsonify({'error': 'Failed to fetch tasks'}), 500
