@@ -4,9 +4,54 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from backend.db.engine_async import AsyncSessionLocal
-from backend.db.models import Task, Status, auth_required
+from backend.db.models import Task, Status, Category, auth_required
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/api/tasks")
+
+
+async def resolve_category_name_to_id(category_name: str, db_session, user_id: int) -> int | None:
+    """
+    Resolve a category name to its database ID.
+    If the category doesn't exist, create it with a default color.
+
+    Args:
+        category_name: The name of the category (string from frontend)
+        db_session: Active database session
+        user_id: Current user's ID
+
+    Returns:
+        category_id (int) if found/created, None if category_name is empty
+    """
+    if not category_name or not category_name.strip():
+        return None
+
+    category_name = category_name.strip()
+
+    # Try to find existing category
+    result = await db_session.execute(
+        select(Category).where(
+            and_(
+                Category.name == category_name,
+                Category.created_by == user_id
+            )
+        )
+    )
+    existing_category = result.scalars().first()
+
+    if existing_category:
+        return existing_category.id
+
+    # Category doesn't exist, create it with default color
+    new_category = Category(
+        name=category_name,
+        description=f"Auto-created category: {category_name}",
+        color_hex="808080",  # Default gray color
+        created_by=user_id
+    )
+    db_session.add(new_category)
+    await db_session.flush()  # Flush to get the ID without committing
+
+    return new_category.id
 
 
 @tasks_bp.route("/", methods=["GET"])
@@ -17,7 +62,7 @@ async def get_tasks():
     try:
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
-                select(Task).options(selectinload(Task.status), selectinload(Task.tags))
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(Task.created_by == session['user_id'])
                 .order_by(Task.updated_on.desc())
             )
@@ -55,10 +100,19 @@ async def create_task():
             else:
                 due_date = datetime.now()
 
+            # Resolve category name to category_id
+            category_id = None
+            if data.get('category'):
+                category_id = await resolve_category_name_to_id(
+                    data['category'],
+                    db_session,
+                    session['user_id']
+                )
+
             task = Task(
                 title=data['title'].strip(),
                 description=data.get('description', ''),
-                # category_id would need proper category handling - skip for now
+                category_id=category_id,
                 status_id=status_id,
                 due_date=due_date,
                 priority=data.get('priority', False),
@@ -99,7 +153,7 @@ async def get_kanban_board():
 
             for status in statuses:
                 task_result = await db_session.execute(
-                    select(Task).options(selectinload(Task.status), selectinload(Task.tags))
+                    select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                     .where(and_(Task.created_by == session['user_id'], Task.status_id == status.id))
                     .order_by(Task.updated_on.desc())
                 )
@@ -120,17 +174,17 @@ async def get_kanban_board():
 @tasks_bp.route("/categories", methods=["GET"])
 @auth_required
 async def get_categories():
-    """Get available categories for the user"""
+    """Get available categories for the user as a list of category names"""
     try:
-        from backend.db.models import Category
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Category)
                 .where(Category.created_by == session['user_id'])
                 .order_by(Category.name)
             )
-            categories = [category.to_dict() for category in result.scalars().all()]
-            return jsonify(categories)
+            # Return just the category names as strings, not full objects
+            category_names = [category.name for category in result.scalars().all()]
+            return jsonify(category_names)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch categories'}), 500
 
@@ -143,7 +197,7 @@ async def get_task(task_id):
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task)
-                .options(selectinload(Task.status), selectinload(Task.tags))
+                .options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(Task.id == task_id, Task.created_by == session["user_id"])
             )
             task = result.scalars().first()
@@ -184,7 +238,16 @@ async def update_task(task_id):
                 task.estimate_minutes = data['estimate_minutes']
             if 'order' in data:
                 task.order = int(data['order'])
-            if 'category_id' in data:
+            # Handle category - accept both string name and integer ID
+            if 'category' in data:
+                # Frontend sends category as string name
+                task.category_id = await resolve_category_name_to_id(
+                    data['category'],
+                    db_session,
+                    session['user_id']
+                )
+            elif 'category_id' in data:
+                # Backwards compatibility: also accept category_id directly
                 task.category_id = data['category_id']
             if 'due_date' in data:
                 task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d') if data['due_date'] else None
@@ -195,7 +258,7 @@ async def update_task(task_id):
             # Re-query with selectinload so related objects (status) are loaded safely
             result = await db_session.execute(
                 select(Task)
-                .options(selectinload(Task.status), selectinload(Task.tags))
+                .options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(Task.id == task_id)
             )
             task = result.scalars().first()
@@ -229,7 +292,7 @@ async def get_calendar_tasks():
         print(f"Calendar request for user: {session.get('user_id')}")
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
-                select(Task).options(selectinload(Task.status), selectinload(Task.tags))
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None)))
                 .order_by(Task.due_date, Task.updated_on.desc())
             )
@@ -294,7 +357,7 @@ async def get_archived_tasks():
     try:
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
-                select(Task).options(selectinload(Task.status), selectinload(Task.tags))
+                select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(and_(
                     Task.created_by == session['user_id'],
                     Task.archived == True
