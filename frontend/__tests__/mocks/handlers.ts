@@ -35,12 +35,26 @@ export const handlers = [
     })
   }),
 
-  // Example handler for tasks API
-  http.get('/api/tasks', () => {
-    return HttpResponse.json([
-      { id: 1, title: 'Sample Task', completed: false },
-    ])
+  // Settings API handlers
+  http.get('/api/settings', () => {
+    return HttpResponse.json({
+      notes_enabled: true,
+      timer_enabled: true,
+      ai_url: null,
+      auto_lock_minutes: 10,
+      theme: 'light',
+      updated_on: new Date().toISOString()
+    })
   }),
 
-  // Add more handlers as needed
+  http.put('/api/settings', () => {
+    return HttpResponse.json({
+      notes_enabled: true,
+      timer_enabled: true,
+      ai_url: null,
+      auto_lock_minutes: 10,
+      theme: 'light',
+      updated_on: new Date().toISOString()
+    })
+  }),
 ]

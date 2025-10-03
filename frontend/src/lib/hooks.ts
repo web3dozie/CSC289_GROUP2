@@ -143,7 +143,7 @@ export const useUpdateTask = () => {
       const previousCalendar = queryClient.getQueryData(queryKeys.calendar)
 
       // Optimistically update the cache
-      if (data.done !== undefined) {
+      if (data.done !== undefined || data.status_id !== undefined) {
         // Update tasks list
         queryClient.setQueryData(queryKeys.tasks, (old: Task[] | undefined) => {
           if (!old) return old
@@ -171,8 +171,19 @@ export const useUpdateTask = () => {
             newData[key] = newData[key].filter((task: Task) => task.id !== id)
           })
 
-          // Add to appropriate column
-          const status = updatedTask.done ? 'done' : updatedTask.status?.name === 'in-progress' ? 'in-progress' : 'todo'
+          // Add to appropriate column based on status_id or done flag
+          let status: string
+          if (data.status_id) {
+            switch (data.status_id) {
+              case 1: status = 'todo'; break
+              case 2: status = 'in_progress'; break
+              case 3: status = 'done'; break
+              default: status = 'todo'; break
+            }
+          } else {
+            status = updatedTask.done ? 'done' : updatedTask.status?.name === 'in-progress' ? 'in_progress' : 'todo'
+          }
+
           if (newData[status]) {
             newData[status] = [...newData[status], updatedTask]
           }

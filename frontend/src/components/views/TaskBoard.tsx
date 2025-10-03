@@ -307,7 +307,7 @@ export const TaskBoard: React.FC = () => {
     try {
       await updateTask.mutateAsync({
         id: completingTask.id,
-        data: { done: true }
+        data: { done: true, status_id: 3 }
       })
       announceTaskCompletion(completingTask.title)
       setCompletingTask(null)
