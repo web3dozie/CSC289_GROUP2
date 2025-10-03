@@ -5,7 +5,7 @@ from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from backend.db_async import AsyncSessionLocal
 from backend.models import Task, Status, auth_required
-
+from backend.cache_utils import cache
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 
 @tasks_bp.route('/', methods=['GET'])
@@ -122,7 +122,16 @@ async def get_kanban_board():
 @tasks_bp.route('/categories', methods=['GET'])
 @auth_required
 async def get_categories():
-    """Get available categories from user's tasks"""
+    """Get available categories from user's tasks with caching"""
+    # Create a cache key specific to this user
+    cache_key = f"categories_user_{session['user_id']}"
+    
+    # Check cache first
+    cached_categories = cache.get(cache_key)
+    if cached_categories is not None:
+        return jsonify(cached_categories)
+    
+    # If not in cache, query database
     try:
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
@@ -131,6 +140,10 @@ async def get_categories():
                 .distinct()
             )
             categories = [row[0] for row in result.all()]
+            
+            # Store in cache for 5 minutes (300 seconds)
+            cache.set(cache_key, categories, ttl_seconds=300)
+            
             return jsonify(categories)
     except Exception as e:
         logging.exception("Failed to fetch categories")
