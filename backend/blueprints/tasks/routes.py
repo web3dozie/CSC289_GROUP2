@@ -90,12 +90,26 @@ async def create_task():
 
 @tasks_bp.route('/kanban', methods=['GET'])
 @auth_required
-async def get_kanban_board():
-    """Display kanban board grouped by status"""
+
+async def get_cached_statuses(db_session):
+    """Get all statuses with caching - speeds up loading"""
+    # Look in cache first (statuses don't belong to specific users)
+    cached_statuses = cache.get('all_statuses')
+    if cached_statuses is not None:
+        return cached_statuses
+    
+    # Not in cache yet, so grab from database
+    status_result = await db_session.execute(select(Status))
+    statuses = status_result.scalars().all()
+    
+    # Store for 30 minutes (statuses almost never change)
+    cache.set('all_statuses', statuses, ttl_seconds=1800)
+    
+    return statuses
+
     try:
         async with AsyncSessionLocal() as db_session:
-            status_result = await db_session.execute(select(Status))
-            statuses = status_result.scalars().all()
+            statuses = await get_cached_statuses(db_session)
             
             kanban_data = {}
             
