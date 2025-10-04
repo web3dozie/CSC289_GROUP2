@@ -1,10 +1,3 @@
-# try:
-#     from . import bootstrap_shim
-# except Exception:
-#     try:
-#         import bootstrap_shim
-#     except Exception:
-#         pass
 
 import os
 from quart import Quart, jsonify, request, session
