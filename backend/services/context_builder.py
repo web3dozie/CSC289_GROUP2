@@ -23,7 +23,7 @@ class ContextBuilder:
             dict: Context data including task statistics and recent activity
         """
         try:
-            from backend.db.models import Task
+            from backend.db.models import Task, JournalEntry
 
             # Get total task count
             total_result = await db_session.execute(
@@ -92,13 +92,30 @@ class ContextBuilder:
                     "due_date": task.due_date.strftime("%Y-%m-%d") if task.due_date else None
                 })
 
+            # Get recent journal entries (last 5)
+            journal_result = await db_session.execute(
+                select(JournalEntry)
+                .where(JournalEntry.user_id == user_id)
+                .order_by(JournalEntry.entry_date.desc())
+                .limit(5)
+            )
+            journal_entries_list = journal_result.scalars().all()
+
+            recent_journal = []
+            for entry in journal_entries_list:
+                recent_journal.append({
+                    "date": entry.entry_date.strftime("%Y-%m-%d"),
+                    "content": entry.content
+                })
+
             context = {
                 "total_tasks": total_tasks,
                 "completed_tasks": completed_tasks,
                 "completion_rate": completion_rate,
                 "overdue_count": overdue_count,
                 "overdue_tasks": overdue_tasks,
-                "recent_tasks": recent_tasks
+                "recent_tasks": recent_tasks,
+                "recent_journal": recent_journal
             }
 
             logger.info(f"Built context for user {user_id}: {total_tasks} tasks, {completion_rate}% complete")
@@ -113,7 +130,8 @@ class ContextBuilder:
                 "completion_rate": 0,
                 "overdue_count": 0,
                 "overdue_tasks": [],
-                "recent_tasks": []
+                "recent_tasks": [],
+                "recent_journal": []
             }
 
     def build_system_prompt(self, context: dict) -> str:
@@ -129,6 +147,13 @@ class ContextBuilder:
         # Format overdue tasks section
         overdue_section = self._format_overdue_tasks(context)
 
+        # Format journal section
+        journal_section = ""
+        if context.get('recent_journal'):
+            journal_section = "\n**Recent Journal Entries:**\n"
+            for entry in context['recent_journal'][:3]:
+                journal_section += f"- {entry['date']}: \"{entry['content']}\"\n"
+
         prompt = f"""You are TaskLine AI, a productivity assistant for task management.
 
 **Your Role:**
@@ -141,6 +166,7 @@ Help users manage tasks efficiently through conversation. Provide insights, prio
 - Recent activity: {json.dumps(context['recent_tasks'], indent=2)}
 
 {overdue_section}
+{journal_section}
 
 **Your Capabilities:**
 
@@ -156,34 +182,61 @@ Help users manage tasks efficiently through conversation. Provide insights, prio
      * Overdue status
    - Provide reasoning for recommendations
 
-3. **Task Creation from Natural Language**
-   - When user requests task creation (e.g., "remind me to...", "create task...", "add to my list..."):
-     * Extract: title, due_date, description, and optional metadata (category, tags, priority, estimate)
-     * Output a JSON code block (this will be hidden from the user and processed by the system)
-     * Then provide a natural language confirmation
+3. **Task Management Actions**
+   - You can perform task operations by outputting JSON code blocks (hidden from user, processed by system)
+   - Then provide natural language confirmation to the user
 
-   **JSON Action Format (hidden from user):**
+   **Available Actions:**
+
+   **a) Create Task**
    ```json
-   {{"action": "create_task", "title": "Task title", "due_date": "ISO8601", "description": "Details", "category": "Category name", "tags": ["tag1", "tag2"], "priority": true, "estimate_minutes": 60}}
+   {{"action": "create_task", "title": "Task title", "due_date": "ISO8601", "description": "Details", "category": "Category", "tags": ["tag1"], "priority": true, "estimate_minutes": 60}}
    ```
+   Required: action, title, due_date | Optional: description, category, tags, priority, estimate_minutes
 
-   **Required fields:** action, title, due_date
-   **Optional fields:** description, category, tags (array), priority (boolean), estimate_minutes (integer)
+   **b) Mark Task Complete**
+   ```json
+   {{"action": "complete_task", "task_title": "Exact or partial task name"}}
+   ```
+   Required: action, task_title
 
-   Examples:
+   **c) Update Task** (reschedule, change priority, etc)
+   ```json
+   {{"action": "update_task", "task_title": "Task name", "due_date": "2025-10-15T00:00:00", "priority": true, "category": "NewCategory", "description": "Updated", "estimate_minutes": 120}}
+   ```
+   Required: action, task_title | Optional: due_date, priority, category, description, estimate_minutes
+
+   **d) Archive Task**
+   ```json
+   {{"action": "archive_task", "task_title": "Task name"}}
+   ```
+   Required: action, task_title
+
+   **Examples:**
+
    - User: "Remind me to call John tomorrow at 2pm"
-     You:
      ```json
-     {{"action": "create_task", "title": "Call John", "due_date": "2025-10-05T14:00:00", "description": "Follow-up call", "category": "Work", "priority": false}}
+     {{"action": "create_task", "title": "Call John", "due_date": "2025-10-05T14:00:00", "category": "Work"}}
      ```
-     ✓ Created task 'Call John' for tomorrow at 2pm. I've added it to your list.
+     ✓ Created task 'Call John' for tomorrow at 2pm.
 
-   - User: "Add buy groceries to my tasks for this weekend"
-     You:
+   - User: "Mark 'Fix bath' as done"
      ```json
-     {{"action": "create_task", "title": "Buy groceries", "due_date": "2025-10-06T10:00:00", "description": "Shopping task", "category": "Personal", "tags": ["shopping", "errands"]}}
+     {{"action": "complete_task", "task_title": "Fix bath"}}
      ```
-     ✓ Created task 'Buy groceries' for this weekend. I've added it to your list.
+     ✓ Marked 'Fix bath' as complete!
+
+   - User: "Move 'Read Gormenghast' to next Friday"
+     ```json
+     {{"action": "update_task", "task_title": "Read Gormenghast", "due_date": "2025-10-11T00:00:00"}}
+     ```
+     ✓ Rescheduled 'Read Gormenghast' to next Friday (Oct 11).
+
+   - User: "Archive the beans task"
+     ```json
+     {{"action": "archive_task", "task_title": "Eat a can of beans"}}
+     ```
+     ✓ Archived 'Eat a can of beans'.
 
 4. **Productivity Coaching**
    - Celebrate progress and wins
@@ -195,6 +248,7 @@ Help users manage tasks efficiently through conversation. Provide insights, prio
 
 ✓ DO:
 - Reference specific user data and tasks
+- Mention journal entries when relevant (e.g., "I see you mentioned feeling overwhelmed yesterday...")
 - Suggest 1-2 priorities, not overwhelming lists
 - Be concise and actionable
 - Use encouraging tone for progress

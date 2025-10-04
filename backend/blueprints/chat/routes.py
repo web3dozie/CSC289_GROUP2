@@ -166,6 +166,158 @@ async def create_task_from_ai(db_session, user_id: int, action_data: dict) -> in
         return None
 
 
+async def find_task_by_title(db_session, user_id: int, task_title: str) -> Task | None:
+    """
+    Find a task by title (case-insensitive, partial match).
+
+    Args:
+        db_session: Active database session
+        user_id: Current user's ID
+        task_title: Task title to search for
+
+    Returns:
+        Task if found, None otherwise
+    """
+    try:
+        # Try exact match first
+        result = await db_session.execute(
+            select(Task).where(
+                and_(
+                    Task.created_by == user_id,
+                    Task.title == task_title,
+                    Task.archived == False
+                )
+            )
+        )
+        task = result.scalars().first()
+
+        if task:
+            return task
+
+        # Fallback: case-insensitive partial match
+        result = await db_session.execute(
+            select(Task).where(
+                and_(
+                    Task.created_by == user_id,
+                    Task.title.ilike(f"%{task_title}%"),
+                    Task.archived == False
+                )
+            ).limit(1)
+        )
+        return result.scalars().first()
+
+    except Exception as e:
+        logger.error(f"Error finding task '{task_title}': {e}")
+        return None
+
+
+async def complete_task_action(db_session, user_id: int, action_data: dict) -> bool:
+    """Mark a task as completed."""
+    try:
+        task_title = action_data.get("task_title", "").strip()
+        if not task_title:
+            return False
+
+        task = await find_task_by_title(db_session, user_id, task_title)
+        if not task:
+            logger.error(f"Task '{task_title}' not found for completion")
+            return False
+
+        task.done = True
+        task.updated_on = datetime.now()
+        logger.info(f"Marked task '{task.title}' (ID: {task.id}) as complete")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error completing task: {e}")
+        return False
+
+
+async def update_task_action(db_session, user_id: int, action_data: dict) -> bool:
+    """Update task properties (due_date, priority, category, etc)."""
+    try:
+        task_title = action_data.get("task_title", "").strip()
+        if not task_title:
+            return False
+
+        task = await find_task_by_title(db_session, user_id, task_title)
+        if not task:
+            logger.error(f"Task '{task_title}' not found for update")
+            return False
+
+        # Update due date
+        if "due_date" in action_data:
+            try:
+                task.due_date = datetime.fromisoformat(action_data["due_date"])
+            except (ValueError, TypeError):
+                logger.error(f"Invalid due_date: {action_data.get('due_date')}")
+
+        # Update priority
+        if "priority" in action_data:
+            task.priority = bool(action_data["priority"])
+
+        # Update category
+        if "category" in action_data:
+            category_name = action_data["category"].strip()
+            if category_name:
+                category_result = await db_session.execute(
+                    select(Category).where(
+                        and_(Category.name == category_name, Category.created_by == user_id)
+                    )
+                )
+                category = category_result.scalars().first()
+
+                if not category:
+                    category = Category(
+                        name=category_name,
+                        description=f"Auto-created from AI: {category_name}",
+                        color_hex="808080",
+                        created_by=user_id
+                    )
+                    db_session.add(category)
+                    await db_session.flush()
+
+                task.category_id = category.id
+
+        # Update description
+        if "description" in action_data:
+            task.description = action_data["description"]
+
+        # Update estimate
+        if "estimate_minutes" in action_data:
+            task.estimate_minutes = action_data["estimate_minutes"]
+
+        task.updated_on = datetime.now()
+        logger.info(f"Updated task '{task.title}' (ID: {task.id})")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error updating task: {e}")
+        return False
+
+
+async def archive_task_action(db_session, user_id: int, action_data: dict) -> bool:
+    """Archive a task."""
+    try:
+        task_title = action_data.get("task_title", "").strip()
+        if not task_title:
+            return False
+
+        task = await find_task_by_title(db_session, user_id, task_title)
+        if not task:
+            logger.error(f"Task '{task_title}' not found for archiving")
+            return False
+
+        task.archived = True
+        task.updated_on = datetime.now()
+        logger.info(f"Archived task '{task.title}' (ID: {task.id})")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error archiving task: {e}")
+        return False
+
+
 @chat_bp.route("/api/chat/message", methods=["POST"])
 @auth_required
 async def send_message():
@@ -259,13 +411,34 @@ async def send_message():
             actions = parse_action_json(ai_response)
             for action in actions:
                 action_type = action.get("action")
+
                 if action_type == "create_task":
                     task_id = await create_task_from_ai(db_session, user_id, action)
                     if task_id:
                         logger.info(f"Executed create_task action, created task ID {task_id}")
                     else:
                         logger.error(f"Failed to execute create_task action: {action}")
-                # Future: handle other action types (update_task, delete_task, etc.)
+
+                elif action_type == "complete_task":
+                    success = await complete_task_action(db_session, user_id, action)
+                    if success:
+                        logger.info(f"Executed complete_task action for '{action.get('task_title')}'")
+                    else:
+                        logger.error(f"Failed to execute complete_task action: {action}")
+
+                elif action_type == "update_task":
+                    success = await update_task_action(db_session, user_id, action)
+                    if success:
+                        logger.info(f"Executed update_task action for '{action.get('task_title')}'")
+                    else:
+                        logger.error(f"Failed to execute update_task action: {action}")
+
+                elif action_type == "archive_task":
+                    success = await archive_task_action(db_session, user_id, action)
+                    if success:
+                        logger.info(f"Executed archive_task action for '{action.get('task_title')}'")
+                    else:
+                        logger.error(f"Failed to execute archive_task action: {action}")
 
             # Strip JSON blocks from response before saving/returning
             clean_response = strip_json_blocks(ai_response)
