@@ -5,6 +5,7 @@ from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from backend.db.engine_async import AsyncSessionLocal
 from backend.db.models import Task, Status, Category, auth_required
+from backend.cache_utils import cache
 from backend.errors import ValidationError, NotFoundError, DatabaseError, success_response
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/api/tasks")
@@ -59,19 +60,47 @@ async def resolve_category_name_to_id(category_name: str, db_session, user_id: i
 @tasks_bp.route("", methods=["GET"])
 @auth_required
 async def get_tasks():
-    """Get all tasks for the user"""
+    """Get all tasks for the user with pagination"""
     try:
+        # Get page number and items per page from URL (default to page 1, 20 items)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        
+        # Figure out how many items to skip based on which page we're on
+        offset = (page - 1) * per_page
+        
         async with AsyncSessionLocal() as db_session:
+            # Count how many total tasks this user has
+            count_result = await db_session.execute(
+                select(func.count(Task.id))
+                .where(Task.created_by == session['user_id'])
+            )
+            total = count_result.scalar()
+            
+            # Get just the tasks for this page (not all tasks)
             result = await db_session.execute(
                 select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
                 .where(Task.created_by == session['user_id'])
                 .order_by(Task.updated_on.desc())
+                .limit(per_page)
+                .offset(offset)
             )
             tasks = result.scalars().all()
-            return success_response([task.to_dict() for task in tasks])
+            
+            # Send back the tasks plus info about pagination
+            return success_response({
+                'tasks': [task.to_dict() for task in tasks],
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total,
+                    'pages': (total + per_page - 1) // per_page
+                }
+            })
     except Exception as e:
         logging.exception("Failed to fetch tasks")
         raise DatabaseError("Failed to fetch tasks")
+
 
 
 @tasks_bp.route("/", methods=["POST"])
@@ -140,12 +169,28 @@ async def create_task():
 
 @tasks_bp.route("/kanban", methods=["GET"])
 @auth_required
+
+async def get_cached_statuses(db_session):
+    """Get all statuses with caching - speeds up loading"""
+    # Look in cache first (statuses don't belong to specific users)
+    cached_statuses = cache.get('all_statuses')
+    if cached_statuses is not None:
+        return cached_statuses
+    
+    # Not in cache yet, so grab from database
+    status_result = await db_session.execute(select(Status))
+    statuses = status_result.scalars().all()
+    
+    # Store for 30 minutes (statuses almost never change)
+    cache.set('all_statuses', statuses, ttl_seconds=1800)
+    
+    return statuses
+
 async def get_kanban_board():
     """Display kanban board grouped by status"""
     try:
         async with AsyncSessionLocal() as db_session:
-            status_result = await db_session.execute(select(Status))
-            statuses = status_result.scalars().all()
+            statuses = await get_cached_statuses(db_session)
 
             kanban_data = {}
 
@@ -173,7 +218,16 @@ async def get_kanban_board():
 @tasks_bp.route("/categories", methods=["GET"])
 @auth_required
 async def get_categories():
-    """Get available categories for the user as a list of category names"""
+    """Get available categories for the user as a list of category names with caching"""
+    # Create a cache key specific to this user
+    cache_key = f"categories_user_{session['user_id']}"
+    
+    # Look in cache first
+    cached_categories = cache.get(cache_key)
+    if cached_categories is not None:
+        return jsonify(cached_categories)
+    
+    # Not in cache yet, so grab from database
     try:
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
@@ -183,10 +237,13 @@ async def get_categories():
             )
             # Return just the category names as strings, not full objects
             category_names = [category.name for category in result.scalars().all()]
+            
+            # Store in cache for 5 minutes
+            cache.set(cache_key, category_names, ttl_seconds=300)
+            
             return jsonify(category_names)
     except Exception as e:
         logging.exception("Failed to fetch categories")
-        raise DatabaseError('Failed to fetch categories')
 
 
 @tasks_bp.route("/<int:task_id>", methods=["GET"])
