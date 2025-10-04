@@ -33,8 +33,8 @@ def create_app():
     """Create and configure the Quart app"""
     app = Quart(__name__)
 
-    # Enable CORS for frontend communication
-    cors(app)
+    # Enable CORS for frontend communication with credentials support
+    cors(app, allow_origin="http://localhost:5173", allow_credentials=True)
 
     # Configuration
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
@@ -62,6 +62,14 @@ def create_app():
             print("Database engine disposed")
         except Exception as e:
             print(f"Engine disposal failed: {e}")
+
+        # Close LLM service HTTP client
+        try:
+            from backend.blueprints.chat.routes import llm_service
+            await llm_service.close()
+            print("LLM service closed")
+        except Exception as e:
+            print(f"LLM service cleanup failed: {e}")
 
     return app
 
@@ -296,6 +304,16 @@ def register_routes(app):
     except ImportError:
         print("Settings blueprint not found - will add later")
 
+    try:
+        try:
+            from backend.blueprints.chat.routes import chat_bp
+        except ImportError:
+            from blueprints.chat.routes import chat_bp
+        app.register_blueprint(chat_bp)
+        print("✓ Chat blueprint registered")
+    except ImportError as e:
+        print(f"⚠ Chat blueprint not available: {e}")
+
     # Error handlers - Standardized error responses
     try:
         from backend.errors import (
@@ -315,7 +333,7 @@ def register_routes(app):
         if error.status_code >= 500:
             logging.error(f"API Error: {error.message}", exc_info=True)
         return jsonify(error.to_dict()), error.status_code
-    
+
     @app.errorhandler(404)
     async def not_found(error):
         return error_response("Resource not found", 404)
