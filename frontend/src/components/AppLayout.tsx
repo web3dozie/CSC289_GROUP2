@@ -11,6 +11,7 @@ import {
   Timer
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { ChatWidget } from './ChatWidget'
 
 const navigation = [
   { name: 'List', href: '/app/list', icon: CheckSquare },
@@ -136,6 +137,9 @@ export const AppLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* AI Chat Widget */}
+      <ChatWidget />
     </div>
   )
 }
