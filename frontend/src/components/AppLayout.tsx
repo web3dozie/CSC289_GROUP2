@@ -7,7 +7,8 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  User
+  User,
+  Timer
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Board', href: '/app/board', icon: Kanban },
   { name: 'Calendar', href: '/app/calendar', icon: Calendar },
   { name: 'Review', href: '/app/review', icon: BarChart3 },
+  { name: 'Timer', href: '/app/timer', icon: Timer },
 ]
 
 export const AppLayout: React.FC = () => {
@@ -31,7 +33,7 @@ export const AppLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Skip Navigation Links */}
       <a
         href="#main-content"
@@ -48,14 +50,14 @@ export const AppLayout: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg"
+        className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg"
         role="complementary"
         aria-label="Main navigation"
       >
         <div className="flex flex-col h-full">
           {/* Logo/Brand */}
-          <header className="flex items-center justify-center h-16 px-4 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">Task Line</h1>
+          <header className="flex items-center justify-center h-16 px-4 border-b border-gray-200 dark:border-gray-700">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Task Line</h1>
           </header>
 
           {/* Navigation */}
@@ -75,8 +77,8 @@ export const AppLayout: React.FC = () => {
                   to={item.href}
                   className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
                     isActive
-                      ? 'bg-purple-100 text-purple-700 border-r-2 border-purple-700'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-r-2 border-purple-700 dark:border-purple-300'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
                   }`}
                   aria-current={isActive ? 'page' : undefined}
                 >
@@ -88,21 +90,21 @@ export const AppLayout: React.FC = () => {
           </nav>
 
           {/* User section */}
-          <section className="border-t border-gray-200 p-4" aria-label="User account">
+          <section className="border-t border-gray-200 dark:border-gray-700 p-4" aria-label="User account">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-purple-600" aria-hidden="true" />
+                <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-purple-600 dark:text-purple-400" aria-hidden="true" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {user?.username || 'User'}
                   </p>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                 title="Logout"
                 aria-label="Logout from your account"
               >
@@ -113,7 +115,7 @@ export const AppLayout: React.FC = () => {
             {/* Settings link */}
             <Link
               to="/app/settings"
-              className="flex items-center mt-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+              className="flex items-center mt-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
               aria-label="Go to settings page"
             >
               <Settings className="w-4 h-4 mr-2" aria-hidden="true" />

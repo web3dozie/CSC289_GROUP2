@@ -19,6 +19,23 @@ Docker Compose (one‑command) and full dev scripts are being added as we scaffo
 - SDLC workspace: `SDLC/`
 - Historical docs: `old_docs/`
 
+## Developer setup (quick)
+
+- Activate the project venv (PowerShell):
+```powershell
+& .venv\Scripts\Activate.ps1
+```
+
+- Install dependencies:
+```powershell
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+- Run the test suite (example):
+```powershell
+.venv\Scripts\python.exe -m pytest -q -s
+```
+
 ## Features (V1)
 - Tasks: add, edit, delete with validation and inline errors
 - Organize: categories, drag‑to‑reorder, star/highlight, start/end dates

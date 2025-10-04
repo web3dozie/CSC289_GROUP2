@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
-import { Plus, GripVertical } from 'lucide-react'
-import { useKanbanTasks, useUpdateTask, useDeleteTask } from '../../lib/hooks'
+import { Plus, GripVertical, Archive } from 'lucide-react'
+import { useKanbanTasks, useUpdateTask, useDeleteTask, useArchiveCompletedTasks } from '../../lib/hooks'
 import { TaskItem, TaskModal, DeleteConfirmation, CompletionNotesModal } from '../tasks'
 import type { Task } from '../../lib/api'
 
@@ -58,24 +58,24 @@ const Column: React.FC<ColumnProps> = ({
     if (!nextStatus) return
 
     const statusMap = {
-      'todo': false,
-      'in-progress': false,
-      'done': true
+      'todo': { status_id: 1, done: false },
+      'in-progress': { status_id: 2, done: false },
+      'done': { status_id: 3, done: true }
     }
 
-    onTaskUpdate(task.id, { done: statusMap[nextStatus] })
+    onTaskUpdate(task.id, statusMap[nextStatus] as any)
   }
 
   const columnColors = {
-    todo: 'border-blue-200 bg-blue-50',
-    'in-progress': 'border-yellow-200 bg-yellow-50',
-    done: 'border-green-200 bg-green-50'
+    todo: 'border-blue-200 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20',
+    'in-progress': 'border-yellow-200 bg-yellow-50 dark:border-yellow-600 dark:bg-yellow-900/20',
+    done: 'border-green-200 bg-green-50 dark:border-green-600 dark:bg-green-900/20'
   }
 
   const headerColors = {
-    todo: 'text-blue-800 bg-blue-100',
-    'in-progress': 'text-yellow-800 bg-yellow-100',
-    done: 'text-green-800 bg-green-100'
+    todo: 'text-blue-800 bg-blue-100 dark:text-blue-200 dark:bg-blue-800/50',
+    'in-progress': 'text-yellow-800 bg-yellow-100 dark:text-yellow-200 dark:bg-yellow-800/50',
+    done: 'text-green-800 bg-green-100 dark:text-green-200 dark:bg-green-800/50'
   }
 
   return (
@@ -91,7 +91,7 @@ const Column: React.FC<ColumnProps> = ({
       <div className={`p-4 border-b ${headerColors[type]} rounded-t-lg`}>
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">{title}</h3>
-          <span className="bg-white bg-opacity-50 px-2 py-1 rounded-full text-sm font-medium">
+          <span className="bg-white dark:bg-gray-700 bg-opacity-50 dark:bg-opacity-50 px-2 py-1 rounded-full text-sm font-medium">
             {tasks.length}
           </span>
         </div>
@@ -100,34 +100,34 @@ const Column: React.FC<ColumnProps> = ({
       {/* Tasks */}
       <div className="p-4 space-y-3 min-h-96 relative">
         {isDragOver && (
-          <div className="absolute inset-0 border-2 border-dashed border-purple-400 bg-purple-50 bg-opacity-50 rounded-lg flex items-center justify-center z-10">
+          <div className="absolute inset-0 border-2 border-dashed border-purple-400 dark:border-purple-500 bg-purple-50 dark:bg-purple-900/30 bg-opacity-50 rounded-lg flex items-center justify-center z-10">
             <div className="text-center">
-              <div className="text-purple-600 font-medium">Drop here</div>
-              <div className="text-sm text-purple-500">Move to {title}</div>
+              <div className="text-purple-600 dark:text-purple-300 font-medium">Drop here</div>
+              <div className="text-sm text-purple-500 dark:text-purple-400">Move to {title}</div>
             </div>
           </div>
         )}
 
         {tasks.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
+          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
             <p>No tasks in {title.toLowerCase()}</p>
             {isDragOver && (
-              <p className="text-sm text-purple-500 mt-2">Drop tasks here</p>
+              <p className="text-sm text-purple-500 dark:text-purple-400 mt-2">Drop tasks here</p>
             )}
           </div>
         ) : (
           tasks.map(task => (
             <div
               key={task.id}
-              className="bg-white rounded-lg shadow-sm border group cursor-move"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-600 group cursor-move"
               draggable
               onDragStart={(e) => onDragStart(e, task)}
               onDragEnd={onDragEnd}
             >
               {/* Drag handle */}
-              <div className="flex items-center justify-between p-3 border-b border-gray-100">
-                <GripVertical className="w-4 h-4 text-gray-400 cursor-grab active:cursor-grabbing" />
-                <span className="text-xs text-gray-500 font-medium">
+              <div className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-600">
+                <GripVertical className="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing" />
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                   Drag to move
                 </span>
               </div>
@@ -145,14 +145,14 @@ const Column: React.FC<ColumnProps> = ({
                 <button
                   onClick={() => handleMoveTask(task, 'backward')}
                   disabled={!getPrevStatus(type)}
-                  className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 rounded"
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 rounded"
                 >
                   ← Move Back
                 </button>
                 <button
                   onClick={() => handleMoveTask(task, 'forward')}
                   disabled={!getNextStatus(type)}
-                  className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 rounded"
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 rounded"
                 >
                   Move Forward →
                 </button>
@@ -191,6 +191,7 @@ export const TaskBoard: React.FC = () => {
   const { data: kanbanData, isLoading, error } = useKanbanTasks()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const archiveCompletedTasks = useArchiveCompletedTasks()
 
   const handleTaskUpdate = async (taskId: number, updates: Partial<Task>) => {
     try {
@@ -216,6 +217,16 @@ export const TaskBoard: React.FC = () => {
       setDeletingTask(null)
     } catch (error) {
       console.error('Failed to delete task:', error)
+    }
+  }
+
+  const handleArchiveCompleted = async () => {
+    try {
+      const result = await archiveCompletedTasks.mutateAsync()
+      alert(`Successfully archived ${result.archived_count} completed tasks!`)
+    } catch (error) {
+      console.error('Failed to archive completed tasks:', error)
+      alert('Failed to archive completed tasks. Please try again.')
     }
   }
 
@@ -249,14 +260,17 @@ export const TaskBoard: React.FC = () => {
 
     if (!draggedTask) return
 
-    // Determine current column based on task status
+    // Determine current column based on task status_id
     let currentColumn: ColumnType
-    if (draggedTask.done) {
-      currentColumn = 'done'
+    if (!draggedTask.status) {
+      currentColumn = 'todo' // Default fallback
     } else {
-      // For simplicity, assume tasks without explicit status are in 'todo'
-      // In a real app, you'd want a more sophisticated status system
-      currentColumn = 'todo'
+      switch (draggedTask.status.id) {
+        case 1: currentColumn = 'todo'; break
+        case 2: currentColumn = 'in-progress'; break  
+        case 3: currentColumn = 'done'; break
+        default: currentColumn = 'todo'; break
+      }
     }
 
     // Don't do anything if dropping in the same column
@@ -270,9 +284,9 @@ export const TaskBoard: React.FC = () => {
 
     // Map column types to task status updates
     const statusUpdates: Record<ColumnType, Partial<Task>> = {
-      'todo': { done: false },
-      'in-progress': { done: false }, // You might want to add a separate status field
-      'done': { done: true }
+      'todo': { status_id: 1, done: false },
+      'in-progress': { status_id: 2, done: false },
+      'done': { status_id: 3, done: true }
     }
 
     try {
@@ -293,7 +307,7 @@ export const TaskBoard: React.FC = () => {
     try {
       await updateTask.mutateAsync({
         id: completingTask.id,
-        data: { done: true }
+        data: { done: true, status_id: 3 }
       })
       announceTaskCompletion(completingTask.title)
       setCompletingTask(null)
@@ -305,16 +319,16 @@ export const TaskBoard: React.FC = () => {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-1/4 mb-6"></div>
             <div className="flex space-x-4">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex-1">
-                  <div className="h-12 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-12 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
                   <div className="space-y-3">
                     {[...Array(2)].map((_, j) => (
-                      <div key={j} className="h-24 bg-gray-200 rounded"></div>
+                      <div key={j} className="h-24 bg-gray-200 dark:bg-gray-600 rounded"></div>
                     ))}
                   </div>
                 </div>
@@ -329,8 +343,8 @@ export const TaskBoard: React.FC = () => {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="text-center text-red-600">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="text-center text-red-600 dark:text-red-400">
             <p>Failed to load task board. Please try again.</p>
           </div>
         </div>
@@ -338,7 +352,14 @@ export const TaskBoard: React.FC = () => {
     )
   }
 
-  const { todo = [], 'in-progress': inProgress = [], done = [] } = kanbanData || {}
+  // Extract tasks from the kanban data structure
+  const todoData = kanbanData?.todo
+  const inProgressData = kanbanData?.in_progress
+  const doneData = kanbanData?.done
+
+  const todo = todoData?.tasks || []
+  const inProgress = inProgressData?.tasks || []
+  const done = doneData?.tasks || []
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -353,24 +374,34 @@ export const TaskBoard: React.FC = () => {
       </div>
 
       {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Task Board</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Task Board</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">
               {todo.length + inProgress.length + done.length} total tasks
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Drag tasks between columns or use the move buttons
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Task
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleArchiveCompleted}
+              disabled={archiveCompletedTasks.isPending}
+              className="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              {archiveCompletedTasks.isPending ? 'Archiving...' : 'Archive Completed'}
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Task
+            </button>
+          </div>
         </div>
       </div>
 

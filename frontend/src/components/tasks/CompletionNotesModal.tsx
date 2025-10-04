@@ -136,23 +136,23 @@ export const CompletionNotesModal: React.FC<CompletionNotesModalProps> = ({
     >
       <div
         ref={modalRef}
-        className="bg-white rounded-lg shadow-xl max-w-md w-full"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full"
         role="document"
       >
         {/* Header */}
-        <header className="flex items-center justify-between p-6 border-b border-gray-200">
+        <header className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
             <CheckCircle className="w-6 h-6 text-green-600 mr-3" aria-hidden="true" />
             <div>
               <h2
                 id="completion-modal-title"
-                className="text-lg font-semibold text-gray-900"
+                className="text-lg font-semibold text-gray-900 dark:text-gray-100"
               >
                 Task Completed!
               </h2>
               <p
                 id="completion-modal-description"
-                className="text-sm text-gray-600"
+                className="text-sm text-gray-600 dark:text-gray-400"
               >
                 Great job on completing "{task.title}"
               </p>
@@ -161,7 +161,7 @@ export const CompletionNotesModal: React.FC<CompletionNotesModalProps> = ({
           <button
             ref={firstFocusableRef}
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 p-1 rounded"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 p-1 rounded"
             aria-label="Close completion modal"
           >
             <X className="w-5 h-5" aria-hidden="true" />
@@ -174,7 +174,7 @@ export const CompletionNotesModal: React.FC<CompletionNotesModalProps> = ({
           <div>
             <label
               htmlFor="completion-notes"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               <MessageSquare className="w-4 h-4 inline mr-1" aria-hidden="true" />
               Completion Notes (Optional)
@@ -185,12 +185,12 @@ export const CompletionNotesModal: React.FC<CompletionNotesModalProps> = ({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="What did you learn? Any challenges? How did it go?"
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
               aria-describedby="notes-help"
             />
             <p
               id="notes-help"
-              className="text-xs text-gray-500 mt-1"
+              className="text-xs text-gray-500 dark:text-gray-400 mt-1"
             >
               These notes help you reflect on your progress and build better habits.
             </p>
@@ -204,20 +204,20 @@ export const CompletionNotesModal: React.FC<CompletionNotesModalProps> = ({
               type="checkbox"
               checked={createJournalEntry}
               onChange={(e) => setCreateJournalEntry(e.target.checked)}
-              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 bg-white dark:bg-gray-700"
               aria-describedby="journal-help"
             />
             <div className="flex-1">
               <label
                 htmlFor="create-journal-entry"
-                className="flex items-center text-sm font-medium text-gray-700 cursor-pointer"
+                className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
               >
                 <BookOpen className="w-4 h-4 mr-1" aria-hidden="true" />
                 Add to Journal
               </label>
               <p
                 id="journal-help"
-                className="text-xs text-gray-500 mt-1"
+                className="text-xs text-gray-500 dark:text-gray-400 mt-1"
               >
                 Create a journal entry with your completion notes for today's reflection.
               </p>
@@ -225,11 +225,11 @@ export const CompletionNotesModal: React.FC<CompletionNotesModalProps> = ({
           </fieldset>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={handleSkip}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 rounded-md transition-colors"
               disabled={isSubmitting || isCompleting}
               aria-describedby="skip-help"
             >

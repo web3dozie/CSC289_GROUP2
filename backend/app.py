@@ -10,91 +10,107 @@ import os
 from quart import Quart, jsonify, request, session
 from quart_cors import cors
 from datetime import datetime
-
-from backend.db_async import engine, AsyncSessionLocal, Base
 from sqlalchemy import select, func, text
-from backend.models import auth_required
+
+# Add the backend directory to Python path for imports
+import sys
+import os
+
+# Add both current directory and parent directory to path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, current_dir)
+sys.path.insert(0, parent_dir)
+
+# Import environment variables
+try:
+    from backend.config import DATABASE_URL, SECRET_KEY
+except ImportError:
+    from config import DATABASE_URL, SECRET_KEY
+
+# Imports for running the full app
+try:
+    from backend.db.engine_async import async_engine, AsyncSessionLocal
+    from backend.db.models import Base, Status, Task, auth_required
+except ImportError:
+    from db.engine_async import async_engine, AsyncSessionLocal
+    from db.models import Base, Status, Task, auth_required
 
 def create_app():
     """Create and configure the Quart app"""
     app = Quart(__name__)
-    
+
     # Enable CORS for frontend communication
     cors(app)
-    
-    # Configuration
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite+aiosqlite:///taskline.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Session management configuration
-    app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 hour default
-    app.config["SESSION_COOKIE_SECURE"] = True  # HTTPS only in production
-    app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent XSS attacks
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
-    # Session management configuration
-    app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 hour default
-    app.config["SESSION_COOKIE_SECURE"] = True  # HTTPS only in production
-    app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent XSS attacks
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection    
-    # Import models to ensure they're registered
-    import backend.models
-    
+    # Configuration
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+    if not app.config["SECRET_KEY"]:
+        raise RuntimeError("SECRET_KEY is not set. Define it in .env or environment.")
+
+    app.config["DATABASE_URL"] = os.getenv("DATABASE_URL")
+    if not app.config["DATABASE_URL"]:
+        raise RuntimeError("DATABASE_URL is not set. Define it in .env or environment.")
     # Register routes
     register_routes(app)
-    
+
     # Database initialization
     @app.before_serving
     async def startup():
         try:
             await initialize_database()
-        except Exception:
-            import logging
-            logging.exception("Database initialization failed")
-    
+        except Exception as e:
+            print(f"Database initialization failed: {e}")
+
     @app.after_serving
     async def shutdown():
         try:
-            await engine.dispose()
-            import logging
-            logging.info("Database engine disposed")
-        except Exception:
-            import logging
-            logging.exception("Engine disposal failed")
-    
+            await async_engine.dispose()
+            print("Database engine disposed")
+        except Exception as e:
+            print(f"Engine disposal failed: {e}")
+
     return app
+
 
 def register_routes(app):
     """Register all route blueprints"""
-    
-    @app.route('/')
+
+    @app.route("/")
     async def home():
-        return jsonify({
-            'message': 'Welcome to Task Line API!',
-            'version': '1.0',
-            'endpoints': {
-                'auth': '/api/auth',
-                'tasks': '/api/tasks',
-                'review': '/api/review',
-                'settings': '/api/settings',
-                'health': '/api/health'
+        return jsonify(
+            {
+                "message": "Welcome to Task Line API!",
+                "version": "1.0",
+                "endpoints": {
+                    "auth": "/api/auth",
+                    "tasks": "/api/tasks",
+                    "review": "/api/review",
+                    "settings": "/api/settings",
+                    "health": "/api/health",
+                },
             }
-        })
-    
-    @app.route('/api/health')
+        )
+
+    @app.route("/api/health")
     async def health_check():
-        return jsonify({
-            'status': 'healthy',
-            'timestamp': datetime.now().isoformat(),
-            'database': 'connected'
-        })
-    
+        return jsonify(
+            {
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat(),
+                "database": "connected",
+            }
+        )
+
     @app.route('/api/export', methods=['GET'])
     @auth_required
     async def export_data():
         """Export all user data as JSON"""
         try:
-            from backend.models import Task, JournalEntry, UserSettings, Status
+            try:
+                from backend.db.models import Task, JournalEntry, Configuration, Status
+            except ImportError:
+                from db.models import Task, JournalEntry, Configuration, Status
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
             
@@ -114,7 +130,7 @@ def register_routes(app):
                 
                 # Export settings
                 settings_result = await db_session.execute(
-                    select(UserSettings).where(UserSettings.user_id == session['user_id'])
+                    select(Configuration).where(Configuration.user_id == session['user_id'])
                 )
                 settings = [setting.to_dict() for setting in settings_result.scalars().all()]
                 
@@ -130,7 +146,7 @@ def register_routes(app):
                 
         except Exception as e:
             return jsonify({'error': 'Failed to export data'}), 500
-    
+
     @app.route('/api/import', methods=['POST'])
     @auth_required
     async def import_data():
@@ -141,7 +157,10 @@ def register_routes(app):
             if not data or 'version' not in data:
                 return jsonify({'error': 'Invalid import data format'}), 400
             
-            from backend.models import Task, JournalEntry, UserSettings, Status
+            try:
+                from backend.db.models import Task, JournalEntry, Configuration, Status
+            except ImportError:
+                from db.models import Task, JournalEntry, Configuration, Status
             from sqlalchemy import select
             from datetime import datetime
             
@@ -166,13 +185,11 @@ def register_routes(app):
                             description=task_data.get('description', ''),
                             notes=task_data.get('notes', ''),
                             done=task_data.get('done', False),
-                            category=task_data.get('category'),
-                            priority=task_data.get('priority', False),
-                            due_date=datetime.fromisoformat(task_data['due_date']).date() if task_data.get('due_date') else None,
-                            estimate_minutes=task_data.get('estimate_minutes'),
-                            order=task_data.get('order', 0),
+                            # Note: new schema uses category_id instead of category string
+                            # For now, skip category mapping - would need proper category creation
                             status_id=task_data.get('status', {}).get('id', 1) if task_data.get('status') else 1,
-                            created_at=datetime.fromisoformat(task_data['created_at']) if task_data.get('created_at') else datetime.now(),
+                            due_date=datetime.fromisoformat(task_data['due_date']) if task_data.get('due_date') else datetime.now(),
+                            created_on=datetime.fromisoformat(task_data['created_at']) if task_data.get('created_at') else datetime.now(),
                             updated_on=datetime.fromisoformat(task_data['updated_on']) if task_data.get('updated_on') else datetime.now(),
                             closed_on=datetime.fromisoformat(task_data['closed_on']) if task_data.get('closed_on') else None,
                             created_by=session['user_id']
@@ -186,7 +203,7 @@ def register_routes(app):
                         # Skip if entry with same date and content already exists
                         existing_result = await db_session.execute(
                             select(JournalEntry).where(
-                                JournalEntry.entry_date == datetime.fromisoformat(entry_data['entry_date']).date(),
+                                JournalEntry.entry_date == datetime.fromisoformat(entry_data['entry_date']),
                                 JournalEntry.content == entry_data['content'],
                                 JournalEntry.user_id == session['user_id']
                             )
@@ -196,7 +213,7 @@ def register_routes(app):
                             
                         entry = JournalEntry(
                             user_id=session['user_id'],
-                            entry_date=datetime.fromisoformat(entry_data['entry_date']).date(),
+                            entry_date=datetime.fromisoformat(entry_data['entry_date']),
                             content=entry_data['content'],
                             created_at=datetime.fromisoformat(entry_data['created_at']) if entry_data.get('created_at') else datetime.now(),
                             updated_on=datetime.fromisoformat(entry_data['updated_on']) if entry_data.get('updated_on') else datetime.now()
@@ -208,7 +225,7 @@ def register_routes(app):
                 if 'settings' in data and data['settings']:
                     settings_data = data['settings'][0]  # Assume single settings object
                     existing_result = await db_session.execute(
-                        select(UserSettings).where(UserSettings.user_id == session['user_id'])
+                        select(Configuration).where(Configuration.user_id == session['user_id'])
                     )
                     existing_settings = existing_result.scalars().first()
                     
@@ -221,7 +238,7 @@ def register_routes(app):
                         existing_settings.theme = settings_data.get('theme', 'light')
                     else:
                         # Create new
-                        new_settings = UserSettings(
+                        new_settings = Configuration(
                             user_id=session['user_id'],
                             notes_enabled=settings_data.get('notes_enabled', True),
                             timer_enabled=settings_data.get('timer_enabled', True),
@@ -245,57 +262,115 @@ def register_routes(app):
             import logging
             logging.exception("Failed to import data")
             return jsonify({'error': 'Failed to import data'}), 500
-    
-    @app.route('/favicon.ico')
+
+    @app.route("/favicon.ico")
     async def favicon():
-        return ('', 204)
-    
+        return ("", 204)
+
     # Register blueprints (we'll add these as we create them)
     try:
-        from backend.blueprints.auth.routes import auth_bp
+        try:
+            from backend.blueprints.auth.routes import auth_bp
+        except ImportError:
+            from blueprints.auth.routes import auth_bp
         app.register_blueprint(auth_bp)
     except ImportError:
         print("Auth blueprint not found - will add later")
 
     try:
-        from backend.blueprints.tasks.routes import tasks_bp
+        try:
+            from backend.blueprints.tasks.routes import tasks_bp
+        except ImportError:
+            from blueprints.tasks.routes import tasks_bp
         app.register_blueprint(tasks_bp)
     except ImportError:
-        print("Tasks blueprint not found - will add later")    
+        print("Tasks blueprint not found - will add later")
     try:
-        from backend.blueprints.review.routes import review_bp
+        try:
+            from backend.blueprints.review.routes import review_bp
+        except ImportError:
+            from blueprints.review.routes import review_bp
         app.register_blueprint(review_bp)
     except ImportError:
         print("Review blueprint not found - will add later")
 
     try:
-        from backend.blueprints.settings.routes import settings_bp
-
-        # Session management blueprint
-        from backend.blueprints.sessions.routes import sessions_bp
-        app.register_blueprint(sessions_bp)
-        print("Sessions blueprint registered")
+        try:
+            from backend.blueprints.settings.routes import settings_bp
+        except ImportError:
+            from blueprints.settings.routes import settings_bp
         app.register_blueprint(settings_bp)
     except ImportError:
         print("Settings blueprint not found - will add later")
-    # Error handlers
+
+    # Error handlers - Standardized error responses
+    try:
+        from backend.errors import (
+            APIError, ValidationError, AuthenticationError, AuthorizationError,
+            NotFoundError, DatabaseError, ServerError, error_response
+        )
+    except ImportError:
+        from errors import (
+            APIError, ValidationError, AuthenticationError, AuthorizationError,
+            NotFoundError, DatabaseError, ServerError, error_response
+        )
+    
+    @app.errorhandler(APIError)
+    async def handle_api_error(error: APIError):
+        """Handle custom API exceptions"""
+        import logging
+        if error.status_code >= 500:
+            logging.error(f"API Error: {error.message}", exc_info=True)
+        return jsonify(error.to_dict()), error.status_code
+    
     @app.errorhandler(404)
     async def not_found(error):
-        return jsonify({'error': 'Resource not found'}), 404
-    
+        return error_response("Resource not found", 404)
+
     @app.errorhandler(400)
     async def bad_request(error):
-        return jsonify({'error': 'Bad request'}), 400
+        return error_response("Bad request", 400)
     
+    @app.errorhandler(401)
+    async def unauthorized(error):
+        return error_response("Authentication required", 401)
+    
+    @app.errorhandler(403)
+    async def forbidden(error):
+        return error_response("Access denied", 403)
+
     @app.errorhandler(500)
     async def internal_error(error):
-        return jsonify({'error': 'Internal server error'}), 500
+        import logging
+        logging.error(f"Internal server error: {error}", exc_info=True)
+        return error_response("Internal server error", 500)
+    
+    @app.errorhandler(Exception)
+    async def handle_unexpected_error(error):
+        """Catch-all handler for unexpected exceptions"""
+        import logging
+        logging.exception(f"Unexpected error: {error}")
+        
+        # In development, include error details
+        details = None
+        if app.debug:
+            details = {
+                "type": type(error).__name__,
+                "message": str(error)
+            }
+        
+        return error_response(
+            "An unexpected error occurred",
+            500,
+            details
+        )
+
 
 async def initialize_database():
     """Initialize database with tables and default data"""
     try:
         # Create tables
-        async with engine.begin() as conn:
+        async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
             # Enable WAL mode for better concurrency
@@ -308,26 +383,64 @@ async def initialize_database():
         
         # Seed default data
         async with AsyncSessionLocal() as session:
-            from backend.models import Status, Task
-            
             # Add default statuses for kanban board
             result = await session.execute(select(func.count(Status.id)))
             status_count = result.scalar_one()
-            
+
             if status_count == 0:
+                now = datetime.now()
+                
+                # First create a system user for seeding default data
+                try:
+                    from backend.db.models import User
+                except ImportError:
+                    from db.models import User
+                system_user = User(
+                    id=0,
+                    username="system",
+                    email="system@taskline.local",
+                    pin_hash="system",  # Won't be used for login
+                    created_on=now,
+                    config_data="{}"
+                )
+                session.add(system_user)
+                await session.flush()  # Ensure system user exists before statuses
+                
                 default_statuses = [
-                    Status(id=1, description="Todo"),
-                    Status(id=2, description="In Progress"),
-                    Status(id=3, description="Done")
+                    Status(
+                        id=1,
+                        title="Todo",
+                        description="Todo",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
+                    Status(
+                        id=2,
+                        title="In Progress",
+                        description="In Progress",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
+                    Status(
+                        id=3,
+                        title="Done",
+                        description="Done",
+                        created_on=now,
+                        updated_on=now,
+                        created_by=0,
+                    ),
                 ]
                 for status in default_statuses:
                     session.add(status)
                 print("Default statuses created!")
-            
+
             await session.commit()
-            
+
     except Exception as e:
         print(f"Database initialization failed: {e}")
+
 
 def main():
     print("Starting Task Line API...")
@@ -345,5 +458,5 @@ def main():
 # Create app instance
 app = create_app()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

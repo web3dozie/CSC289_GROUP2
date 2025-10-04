@@ -6,46 +6,8 @@ connections share the same file during tests. It verifies creating a user,
 listing/creating/updating/deleting tasks and basic health/home endpoints.
 """
 
-import os
 import pytest
-import pytest_asyncio
-from datetime import datetime
-import tempfile
-
-# Use a temporary file SQLite DB for tests so the async engine and connections share the same file.
-tmp_db = tempfile.NamedTemporaryFile(prefix='test_taskline_', suffix='.db', delete=False)
-os.environ['DATABASE_URL'] = f"sqlite+aiosqlite:///{tmp_db.name}"
-
-from backend.app import create_app, initialize_database
-
-
-@pytest.fixture
-def app():
-    app = create_app()
-    app.config['TESTING'] = True
-    return app
-
-
-@pytest_asyncio.fixture
-async def client(app):
-    # Ensure DB tables are created for the test run
-    await initialize_database()
-    async with app.test_client() as c:
-        yield c
-
-
-async def create_user_and_login(client, pin='1234', username='testuser'):
-    resp = await client.post('/api/auth/setup', json={'pin': pin, 'username': username})
-    if resp.status_code in (200, 201):
-        return await resp.get_json()
-    # If user already exists, attempt login to establish session
-    if resp.status_code == 400:
-        # try login
-        login_resp = await client.post('/api/auth/login', json={'pin': pin})
-        assert login_resp.status_code in (200, 201)
-        return await login_resp.get_json()
-    # otherwise fail
-    assert False, f"Unexpected response from setup: {resp.status_code}"
+from conftest import create_user_and_login
 
 
 @pytest.mark.asyncio
@@ -69,7 +31,10 @@ async def test_task_crud_workflow(client):
     # initially no tasks
     resp = await client.get('/api/tasks/')
     assert resp.status_code == 200
-    tasks = await resp.get_json()
+    response_data = await resp.get_json()
+    # Handle new standardized format: {"success": true, "data": [...]}
+    assert response_data['success'] is True
+    tasks = response_data['data']
     assert isinstance(tasks, list)
     assert len(tasks) == 0
 
@@ -77,21 +42,24 @@ async def test_task_crud_workflow(client):
     resp = await client.post('/api/tasks/', json={'title': 'Async Test Task'})
     assert resp.status_code in (200, 201)
     created = await resp.get_json()
-    if isinstance(created, dict) and 'task_id' in created:
-        task_id = created['task_id']
-    else:
-        task_id = created.get('id')
+    # Handle new standardized format: {"success": true, "data": {"task_id": ..., "message": ...}}
+    assert created['success'] is True
+    task_id = created['data']['task_id']
 
     # fetch task
     resp = await client.get(f'/api/tasks/{task_id}')
     assert resp.status_code == 200
-    task = await resp.get_json()
+    response_data = await resp.get_json()
+    assert response_data['success'] is True
+    task = response_data['data']
     assert task['title'] == 'Async Test Task'
 
     # update task
     resp = await client.put(f'/api/tasks/{task_id}', json={'title': 'Updated Async Task', 'done': True})
     assert resp.status_code == 200
-    updated = await resp.get_json()
+    response_data = await resp.get_json()
+    assert response_data['success'] is True
+    updated = response_data['data']
     assert updated['title'] == 'Updated Async Task'
     assert updated['done'] is True
 
@@ -99,6 +67,9 @@ async def test_task_crud_workflow(client):
     resp = await client.delete(f'/api/tasks/{task_id}')
     assert resp.status_code == 204
 
-    # confirm deleted
+    # confirm deleted - should return error format
     resp = await client.get(f'/api/tasks/{task_id}')
     assert resp.status_code == 404
+    error_data = await resp.get_json()
+    assert error_data['success'] is False
+    assert error_data['error']['code'] == 404
