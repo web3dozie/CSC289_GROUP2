@@ -209,7 +209,8 @@ export const tasksApi = {
     if (params?.page) searchParams.set('page', params.page.toString())
 
     const query = searchParams.toString()
-    return apiRequest<Task[]>(`/api/tasks/${query ? `?${query}` : ''}`)
+    return apiRequest<{tasks: Task[], pagination: any}>(`/api/tasks/${query ? `?${query}` : ''}`)
+      .then(response => response.tasks)
   },
 
   getKanban: () =>

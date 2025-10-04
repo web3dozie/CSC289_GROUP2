@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null)
       const result = await loginMutation.mutateAsync({ username, pin })
-      setUser({ id: result.user_id, username: result.username })
+      setUser({ id: result.user.id, username: result.user.username })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed'
       setError(message)
@@ -120,7 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null)
       const result = await setupMutation.mutateAsync(data)
-      setUser({ id: result.user_id, username: result.username })
+      setUser({ id: result.user.id, username: result.user.username })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Setup failed'
       setError(message)
