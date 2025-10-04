@@ -378,10 +378,10 @@ async def get_calendar_tasks():
 
             print(f"Found {len(tasks)} tasks with due dates")
 
-            # Group tasks by due_date
+            # Group tasks by due_date (date only, not datetime)
             grouped_tasks = {}
             for task in tasks:
-                date_key = task.due_date.isoformat()  # 'YYYY-MM-DD'
+                date_key = task.due_date.date().isoformat()  # 'YYYY-MM-DD'
                 if date_key not in grouped_tasks:
                     grouped_tasks[date_key] = []
                 grouped_tasks[date_key].append(task.to_dict())
