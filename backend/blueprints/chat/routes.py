@@ -409,6 +409,8 @@ async def send_message():
 
             # Parse and execute any actions from AI response
             actions = parse_action_json(ai_response)
+            executed_actions = []  # Track successful executions for cache invalidation
+
             for action in actions:
                 action_type = action.get("action")
 
@@ -416,6 +418,7 @@ async def send_message():
                     task_id = await create_task_from_ai(db_session, user_id, action)
                     if task_id:
                         logger.info(f"Executed create_task action, created task ID {task_id}")
+                        executed_actions.append({"action": "create_task", "task_id": task_id})
                     else:
                         logger.error(f"Failed to execute create_task action: {action}")
 
@@ -423,6 +426,7 @@ async def send_message():
                     success = await complete_task_action(db_session, user_id, action)
                     if success:
                         logger.info(f"Executed complete_task action for '{action.get('task_title')}'")
+                        executed_actions.append({"action": "complete_task"})
                     else:
                         logger.error(f"Failed to execute complete_task action: {action}")
 
@@ -430,6 +434,7 @@ async def send_message():
                     success = await update_task_action(db_session, user_id, action)
                     if success:
                         logger.info(f"Executed update_task action for '{action.get('task_title')}'")
+                        executed_actions.append({"action": "update_task"})
                     else:
                         logger.error(f"Failed to execute update_task action: {action}")
 
@@ -437,6 +442,7 @@ async def send_message():
                     success = await archive_task_action(db_session, user_id, action)
                     if success:
                         logger.info(f"Executed archive_task action for '{action.get('task_title')}'")
+                        executed_actions.append({"action": "archive_task"})
                     else:
                         logger.error(f"Failed to execute archive_task action: {action}")
 
@@ -458,7 +464,8 @@ async def send_message():
 
             return jsonify({
                 "response": clean_response,
-                "conversation_id": conversation.id
+                "conversation_id": conversation.id,
+                "actions_executed": executed_actions  # For frontend cache invalidation
             }), 200
 
     except Exception as e:

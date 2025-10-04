@@ -8,6 +8,10 @@ export interface Message {
 export interface ChatResponse {
   response: string
   conversation_id: number
+  actions_executed?: Array<{
+    action: string
+    task_id?: number
+  }>
 }
 
 export interface ChatHistory {

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { MessageCircle, X, Send, Trash2, Loader2 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { chatService } from '../services/chatService'
 import type { Message } from '../types/chat'
 
 export const ChatWidget = () => {
+  const queryClient = useQueryClient()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -60,6 +62,13 @@ export const ChatWidget = () => {
         created_at: new Date().toISOString()
       }
       setMessages(prev => [...prev, aiMsg])
+
+      // Invalidate cache if AI performed any task operations
+      if (response.actions_executed && response.actions_executed.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+        queryClient.invalidateQueries({ queryKey: ['tasks', 'kanban'] })
+        queryClient.invalidateQueries({ queryKey: ['tasks', 'calendar'] })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message')
       // Remove optimistic user message on error
