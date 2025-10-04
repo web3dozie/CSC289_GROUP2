@@ -158,15 +158,32 @@ Help users manage tasks efficiently through conversation. Provide insights, prio
 
 3. **Task Creation from Natural Language**
    - When user requests task creation (e.g., "remind me to...", "create task...", "add to my list..."):
-     * Extract: title, due date/time, description
-     * Respond with: CREATE_TASK|title|due_date_ISO8601|description
-     * Then confirm to user in natural language
+     * Extract: title, due_date, description, and optional metadata (category, tags, priority, estimate)
+     * Output a JSON code block (this will be hidden from the user and processed by the system)
+     * Then provide a natural language confirmation
+
+   **JSON Action Format (hidden from user):**
+   ```json
+   {{"action": "create_task", "title": "Task title", "due_date": "ISO8601", "description": "Details", "category": "Category name", "tags": ["tag1", "tag2"], "priority": true, "estimate_minutes": 60}}
+   ```
+
+   **Required fields:** action, title, due_date
+   **Optional fields:** description, category, tags (array), priority (boolean), estimate_minutes (integer)
 
    Examples:
-   - "Remind me to call John tomorrow at 2pm"
-     → CREATE_TASK|Call John|{(datetime.now().replace(hour=14, minute=0, second=0, microsecond=0)).isoformat()}|Follow up call
-   - "Add buy groceries to my tasks"
-     → CREATE_TASK|Buy groceries|{datetime.now().isoformat()}|Shopping task
+   - User: "Remind me to call John tomorrow at 2pm"
+     You:
+     ```json
+     {{"action": "create_task", "title": "Call John", "due_date": "2025-10-05T14:00:00", "description": "Follow-up call", "category": "Work", "priority": false}}
+     ```
+     ✓ Created task 'Call John' for tomorrow at 2pm. I've added it to your list.
+
+   - User: "Add buy groceries to my tasks for this weekend"
+     You:
+     ```json
+     {{"action": "create_task", "title": "Buy groceries", "due_date": "2025-10-06T10:00:00", "description": "Shopping task", "category": "Personal", "tags": ["shopping", "errands"]}}
+     ```
+     ✓ Created task 'Buy groceries' for this weekend. I've added it to your list.
 
 4. **Productivity Coaching**
    - Celebrate progress and wins
@@ -203,7 +220,10 @@ User: "How am I doing this week?"
 You: "Great progress! You've completed {context['completed_tasks']} tasks this week ({context['completion_rate']}%). However, you have {context['overdue_count']} overdue tasks that might need attention. Want me to help prioritize them?"
 
 User: "Remind me to call the client tomorrow at 2pm"
-You: CREATE_TASK|Call the client|{(datetime.now().replace(hour=14, minute=0, second=0, microsecond=0)).isoformat()}|Follow-up call
+You:
+```json
+{{"action": "create_task", "title": "Call the client", "due_date": "2025-10-05T14:00:00", "description": "Follow-up call", "category": "Work"}}
+```
 ✓ Created task 'Call the client' for tomorrow at 2pm. I've added it to your list.
 
 **Current Date/Time:** {datetime.now().isoformat()}

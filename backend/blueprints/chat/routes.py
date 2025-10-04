@@ -2,11 +2,13 @@
 
 from quart import Blueprint, request, jsonify, session
 import logging
+import json
+import re
 from datetime import datetime
 from sqlalchemy import select, and_, desc
 from sqlalchemy.orm import selectinload
 
-from backend.db.models import Conversation, Message, Configuration, auth_required
+from backend.db.models import Conversation, Message, Configuration, auth_required, Task, Status, Category, Tag
 from backend.db.engine_async import AsyncSessionLocal
 from backend.services.llm_service import GeminiLLMService, LLMConfig
 from backend.services.context_builder import ContextBuilder
@@ -16,6 +18,152 @@ logger = logging.getLogger(__name__)
 chat_bp = Blueprint("chat", __name__)
 llm_service = GeminiLLMService()
 context_builder = ContextBuilder()
+
+
+def parse_action_json(ai_response: str) -> list[dict]:
+    """
+    Extract and parse JSON action blocks from AI response.
+
+    Returns list of parsed action dictionaries.
+    """
+    actions = []
+    # Match ```json ... ``` code blocks
+    pattern = r'```json\s*(\{.*?\})\s*```'
+    matches = re.findall(pattern, ai_response, re.DOTALL)
+
+    for match in matches:
+        try:
+            action_data = json.loads(match)
+            if isinstance(action_data, dict) and 'action' in action_data:
+                actions.append(action_data)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse action JSON: {e}")
+            continue
+
+    return actions
+
+
+def strip_json_blocks(ai_response: str) -> str:
+    """Remove JSON code blocks from AI response before showing to user."""
+    return re.sub(r'```json\s*\{.*?\}\s*```\s*', '', ai_response, flags=re.DOTALL).strip()
+
+
+async def create_task_from_ai(db_session, user_id: int, action_data: dict) -> int | None:
+    """
+    Create task from AI action with comprehensive metadata.
+
+    Args:
+        db_session: Active database session
+        user_id: Current user's ID
+        action_data: Parsed JSON action dict
+
+    Returns:
+        Task ID if created successfully, None otherwise
+    """
+    try:
+        # Required fields
+        title = action_data.get("title", "").strip()
+        due_date_str = action_data.get("due_date")
+
+        if not title or not due_date_str:
+            logger.error("Missing required fields: title or due_date")
+            return None
+
+        # Parse due date
+        try:
+            due_date = datetime.fromisoformat(due_date_str)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid due_date format: {due_date_str}")
+            due_date = datetime.now()
+
+        # Get default "Todo" status (or first available status)
+        status_result = await db_session.execute(
+            select(Status).where(Status.title == "Todo").limit(1)
+        )
+        default_status = status_result.scalars().first()
+
+        # Fallback: use any status if "Todo" not found
+        if not default_status:
+            status_result = await db_session.execute(
+                select(Status).limit(1)
+            )
+            default_status = status_result.scalars().first()
+
+        if not default_status:
+            logger.error("No status found in database")
+            return None
+
+        # Optional: Get or create category
+        category_id = None
+        category_name = action_data.get("category", "").strip()
+        if category_name:
+            category_result = await db_session.execute(
+                select(Category).where(
+                    and_(Category.name == category_name, Category.created_by == user_id)
+                )
+            )
+            category = category_result.scalars().first()
+
+            if not category:
+                # Auto-create category
+                category = Category(
+                    name=category_name,
+                    description=f"Auto-created from AI: {category_name}",
+                    color_hex="808080",  # Default gray
+                    created_by=user_id
+                )
+                db_session.add(category)
+                await db_session.flush()
+
+            category_id = category.id
+
+        # Create task
+        task = Task(
+            title=title,
+            description=action_data.get("description", ""),
+            due_date=due_date,
+            status_id=default_status.id,
+            category_id=category_id,
+            created_by=user_id,
+            done=False,
+            priority=action_data.get("priority", False),
+            estimate_minutes=action_data.get("estimate_minutes"),
+            archived=False,
+            order=0
+        )
+        db_session.add(task)
+        await db_session.flush()
+
+        # Optional: Add tags
+        tag_names = action_data.get("tags", [])
+        if isinstance(tag_names, list) and tag_names:
+            for tag_name in tag_names:
+                tag_name = tag_name.strip()
+                if not tag_name:
+                    continue
+
+                # Get or create tag
+                tag_result = await db_session.execute(
+                    select(Tag).where(
+                        and_(Tag.name == tag_name, Tag.created_by == user_id)
+                    )
+                )
+                tag = tag_result.scalars().first()
+
+                if not tag:
+                    tag = Tag(name=tag_name, created_by=user_id)
+                    db_session.add(tag)
+                    await db_session.flush()
+
+                # Associate tag with task
+                task.tags.append(tag)
+
+        logger.info(f"Created task '{title}' (ID: {task.id}) for user {user_id} via AI")
+        return task.id
+
+    except Exception as e:
+        logger.error(f"Error creating task from AI: {e}")
+        return None
 
 
 @chat_bp.route("/api/chat/message", methods=["POST"])
@@ -107,11 +255,26 @@ async def send_message():
                     "error": "Failed to get AI response. Check your API key and try again."
                 }), 500
 
-            # Save AI response
+            # Parse and execute any actions from AI response
+            actions = parse_action_json(ai_response)
+            for action in actions:
+                action_type = action.get("action")
+                if action_type == "create_task":
+                    task_id = await create_task_from_ai(db_session, user_id, action)
+                    if task_id:
+                        logger.info(f"Executed create_task action, created task ID {task_id}")
+                    else:
+                        logger.error(f"Failed to execute create_task action: {action}")
+                # Future: handle other action types (update_task, delete_task, etc.)
+
+            # Strip JSON blocks from response before saving/returning
+            clean_response = strip_json_blocks(ai_response)
+
+            # Save AI response (with JSON blocks stripped)
             ai_msg = Message(
                 conversation_id=conversation.id,
                 role="assistant",
-                content=ai_response
+                content=clean_response
             )
             db_session.add(ai_msg)
 
@@ -121,7 +284,7 @@ async def send_message():
             await db_session.commit()
 
             return jsonify({
-                "response": ai_response,
+                "response": clean_response,
                 "conversation_id": conversation.id
             }), 200
 
