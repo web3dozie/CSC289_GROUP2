@@ -7,6 +7,7 @@ docs
 node_modules/
 frontend/node_modules/
 taskline.db
+taskline.db*
 
 # Dependencies
 npm-debug.log*
