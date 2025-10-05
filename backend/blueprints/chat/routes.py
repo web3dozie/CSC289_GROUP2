@@ -151,7 +151,12 @@ async def create_task_from_ai(db_session, user_id: int, action_data: dict) -> in
                 tag = tag_result.scalars().first()
 
                 if not tag:
-                    tag = Tag(name=tag_name, created_by=user_id)
+                    tag = Tag(
+                        name=tag_name,
+                        description=f"Auto-created from AI: {tag_name}",
+                        color_hex="808080",  # Default gray
+                        created_by=user_id
+                    )
                     db_session.add(tag)
                     await db_session.flush()
 
