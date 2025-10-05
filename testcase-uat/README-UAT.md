@@ -25,13 +25,13 @@ For testing Requirement:
 - To verify all installations:  
     - pip list
 
-After installations, the app and the testscipt should be on same directory to run and app should be running on background.  
+After installations, to run test script app should be running on background.  
 To run the app:  
 ./run-backend.ps1 and ./run-frontend.ps1  
 To run individual test:  
-example1: for login  
+example 1: for login  
 robot --include login UAT_TMS.robot  
-example2: for addition of task  
+example 2: for addition of task  
 robot --include add UAT_TMS.robot  
 To run full test:  
 robot UAT_TMS.robot  
