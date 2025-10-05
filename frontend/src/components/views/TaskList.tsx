@@ -136,7 +136,9 @@ export const TaskList: React.FC = () => {
   const handleArchiveCompleted = async () => {
     try {
       const result = await archiveCompletedTasks.mutateAsync()
-      alert(`Successfully archived ${result.archived_count} completed tasks!`)
+      // Handle both the expected response format and potential undefined/null responses
+      const archivedCount = result?.archived_count ?? 0
+      alert(`Successfully archived ${archivedCount} completed tasks!`)
     } catch (error) {
       console.error('Failed to archive completed tasks:', error)
       alert('Failed to archive completed tasks. Please try again.')

@@ -70,17 +70,23 @@ async def get_tasks():
         offset = (page - 1) * per_page
         
         async with AsyncSessionLocal() as db_session:
-            # Count how many total tasks this user has
+            # Count how many total non-archived tasks this user has
             count_result = await db_session.execute(
                 select(func.count(Task.id))
-                .where(Task.created_by == session['user_id'])
+                .where(and_(
+                    Task.created_by == session['user_id'],
+                    Task.archived == False
+                ))
             )
             total = count_result.scalar()
             
-            # Get just the tasks for this page (not all tasks)
+            # Get just the tasks for this page (not all tasks) - exclude archived tasks
             result = await db_session.execute(
                 select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
-                .where(Task.created_by == session['user_id'])
+                .where(and_(
+                    Task.created_by == session['user_id'],
+                    Task.archived == False
+                ))
                 .order_by(Task.updated_on.desc())
                 .limit(per_page)
                 .offset(offset)
@@ -180,7 +186,11 @@ async def get_kanban_board():
             for status in statuses:
                 task_result = await db_session.execute(
                     select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
-                    .where(and_(Task.created_by == session['user_id'], Task.status_id == status.id))
+                    .where(and_(
+                        Task.created_by == session['user_id'], 
+                        Task.status_id == status.id,
+                        Task.archived == False
+                    ))
                     .order_by(Task.updated_on.desc())
                 )
                 tasks = task_result.scalars().all()
@@ -357,7 +367,11 @@ async def get_calendar_tasks():
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task).options(selectinload(Task.status), selectinload(Task.tags), selectinload(Task.category))
-                .where(and_(Task.created_by == session['user_id'], Task.due_date.isnot(None)))
+                .where(and_(
+                    Task.created_by == session['user_id'], 
+                    Task.due_date.isnot(None),
+                    Task.archived == False
+                ))
                 .order_by(Task.due_date, Task.updated_on.desc())
             )
             tasks = result.scalars().all()
@@ -404,14 +418,13 @@ async def archive_completed_tasks():
 
             await db_session.commit()
 
-            return jsonify({
-                'success': True,
+            return success_response({
                 'message': f'Archived {archived_count} completed tasks',
                 'archived_count': archived_count
             })
-    except Exception:
+    except Exception as e:
         logging.exception("Failed to archive completed tasks")
-        return jsonify({'error': 'Failed to archive completed tasks'}), 500
+        raise DatabaseError("Failed to archive completed tasks")
 
 
 @tasks_bp.route('/archived', methods=['GET'])
@@ -429,7 +442,7 @@ async def get_archived_tasks():
                 .order_by(Task.updated_on.desc())
             )
             tasks = result.scalars().all()
-            return jsonify([task.to_dict() for task in tasks])
-    except Exception:
+            return success_response([task.to_dict() for task in tasks])
+    except Exception as e:
         logging.exception("Failed to fetch archived tasks")
-        return jsonify({'error': 'Failed to fetch archived tasks'}), 500
+        raise DatabaseError("Failed to fetch archived tasks")
