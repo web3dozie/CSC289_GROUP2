@@ -164,8 +164,13 @@ async def get_cached_statuses(db_session):
 
 
 async def _resolve_status_id(db_session, fallback_id: int, *preferred_titles: str) -> int | None:
+<<<<<<< HEAD
     """Resolve a status id by title with an optional fallback."""
     statuses = await get_cached_statuses(db_session)
+=======
+    """Resolve a status ID by title, falling back to a known default."""
+    statuses = await _get_cached_statuses(db_session)
+>>>>>>> 1e7fc5f (Ensure status transitions follow kanban when toggling task completion)
     normalized_titles = {title.strip().lower() for title in preferred_titles if title}
 
     for status in statuses:

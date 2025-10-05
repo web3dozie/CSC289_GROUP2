@@ -32,7 +32,7 @@ async def test_task_crud_workflow(client):
     resp = await client.get('/api/tasks/')
     assert resp.status_code == 200
     response_data = await resp.get_json()
-    # Handle new standardized format: {"success": true, "data": {"tasks": [...], "pagination": {...}}}
+    # Handle standardized format: {"success": true, "data": {"tasks": [...], "pagination": {...}}}
     assert response_data['success'] is True
     tasks_data = response_data['data']
     assert isinstance(tasks_data, dict)
@@ -66,6 +66,16 @@ async def test_task_crud_workflow(client):
     updated = response_data['data']
     assert updated['title'] == 'Updated Async Task'
     assert updated['done'] is True
+    assert updated.get('status', {}).get('name', '').lower() == 'done'
+
+    # undo completion should fall back to todo without providing status_id
+    resp = await client.put(f'/api/tasks/{task_id}', json={'done': False})
+    assert resp.status_code == 200
+    response_data = await resp.get_json()
+    assert response_data['success'] is True
+    reverted = response_data['data']
+    assert reverted['done'] is False
+    assert reverted.get('status', {}).get('name', '').lower() in ('todo', 'to do')
 
     # delete task
     resp = await client.delete(f'/api/tasks/{task_id}')

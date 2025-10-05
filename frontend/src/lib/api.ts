@@ -209,8 +209,15 @@ export const tasksApi = {
     if (params?.page) searchParams.set('page', params.page.toString())
 
     const query = searchParams.toString()
-    return apiRequest<{tasks: Task[], pagination: any}>(`/api/tasks/${query ? `?${query}` : ''}`)
-      .then(response => response.tasks)
+    return apiRequest<Task[] | { tasks: Task[]; pagination?: Record<string, unknown> }>(
+      `/api/tasks/${query ? `?${query}` : ''}`
+    ).then((data) => {
+      if (Array.isArray(data)) {
+        return data
+      }
+
+      return data.tasks
+    })
   },
 
   getKanban: () =>
