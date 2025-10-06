@@ -382,6 +382,7 @@ async def initialize_database():
             ),
         )
 
+        print("Database connection and schema verified")
     except Exception as e:
         print(f"Database initialization failed: {e}")
 
