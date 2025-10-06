@@ -1,5 +1,7 @@
+"""Database health check utility module."""
+
 from __future__ import annotations
-from typing import Iterable, Set
+from collections.abc import Iterable, Set
 from sqlalchemy import text, inspect
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.engine import Connection
