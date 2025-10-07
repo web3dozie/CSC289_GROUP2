@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
-import { BookOpen, TrendingUp, Calendar, Plus, Edit, X, BarChart3, Target, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { BookOpen, TrendingUp, Calendar, Plus, Edit, X, BarChart3, Target, CheckCircle, Clock, AlertCircle, Archive } from 'lucide-react'
 import {
   useJournal,
   useCreateJournalEntry,
   useUpdateJournalEntry,
   useDailySummary,
   useWeeklySummary,
-  useInsights
+  useInsights,
+  useArchivedTasks
 } from '../../lib/hooks'
 import type { JournalEntry } from '../../lib/api'
 
@@ -20,19 +21,19 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
   const maxValue = Math.max(...data.map(d => d.value))
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
-      {title && <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>}
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      {title && <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{title}</h3>}
       <div className="space-y-3">
         {data.map((item, index) => (
           <div key={index} className="flex items-center space-x-3">
-            <div className="w-24 text-sm text-gray-600 truncate">{item.label}</div>
-            <div className="flex-1 bg-gray-200 rounded-full h-4">
+            <div className="w-24 text-sm text-gray-600 dark:text-gray-400 truncate">{item.label}</div>
+            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-4">
               <div
                 className={`h-4 rounded-full ${item.color || 'bg-purple-500'}`}
                 style={{ width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%` }}
               ></div>
             </div>
-            <div className="w-8 text-sm text-gray-600 text-right">{item.value}</div>
+            <div className="w-8 text-sm text-gray-600 dark:text-gray-400 text-right">{item.value}</div>
           </div>
         ))}
       </div>
@@ -50,13 +51,13 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, change }) => {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
           {change && (
-            <p className={`text-sm ${change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`text-sm ${change.startsWith('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {change}
             </p>
           )}
@@ -76,9 +77,9 @@ interface JournalEntryCardProps {
 
 const JournalEntryCard: React.FC<JournalEntryCardProps> = ({ entry, onEdit }) => {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center text-sm text-gray-500">
+        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
           <Calendar className="w-4 h-4 mr-1" />
           {new Date(entry.entry_date).toLocaleDateString('en-US', {
             weekday: 'long',
@@ -89,14 +90,14 @@ const JournalEntryCard: React.FC<JournalEntryCardProps> = ({ entry, onEdit }) =>
         </div>
         <button
           onClick={() => onEdit(entry)}
-          className="text-gray-400 hover:text-gray-600 p-1"
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
         >
           <Edit className="w-4 h-4" />
         </button>
       </div>
-      <p className="text-gray-900 whitespace-pre-wrap">{entry.content}</p>
+      <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{entry.content}</p>
       {entry.updated_on && (
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
           Updated {new Date(entry.updated_on).toLocaleDateString()}
         </p>
       )}
@@ -129,14 +130,14 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ entry, onSave, onCancel }
   }
 
   return (
-    <div className="bg-white border-2 border-purple-200 rounded-lg p-4">
+    <div className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-700 rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           {entry ? 'Edit Journal Entry' : 'New Journal Entry'}
         </h3>
         <button
           onClick={onCancel}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
         >
           <X className="w-5 h-5" />
         </button>
@@ -144,7 +145,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ entry, onSave, onCancel }
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="entry-date" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="entry-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Date
           </label>
           <input
@@ -157,7 +158,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ entry, onSave, onCancel }
         </div>
 
         <div>
-          <label htmlFor="entry-content" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="entry-content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Journal Entry
           </label>
           <textarea
@@ -173,7 +174,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ entry, onSave, onCancel }
         <div className="flex justify-end space-x-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
             disabled={isLoading}
           >
             Cancel
@@ -192,7 +193,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ entry, onSave, onCancel }
 }
 
 export const TaskReview: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'journal' | 'daily' | 'weekly' | 'insights'>('journal')
+  const [activeTab, setActiveTab] = useState<'journal' | 'daily' | 'weekly' | 'insights' | 'archived'>('journal')
   const [showJournalEditor, setShowJournalEditor] = useState(false)
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
 
@@ -200,6 +201,7 @@ export const TaskReview: React.FC = () => {
   const { data: dailySummary, isLoading: dailyLoading } = useDailySummary()
   const { data: weeklySummary, isLoading: weeklyLoading } = useWeeklySummary()
   const { data: insights, isLoading: insightsLoading } = useInsights()
+  const { data: archivedTasks = [], isLoading: archivedLoading } = useArchivedTasks()
 
   const createJournalEntry = useCreateJournalEntry()
   const updateJournalEntry = useUpdateJournalEntry()
@@ -223,17 +225,18 @@ export const TaskReview: React.FC = () => {
     { id: 'journal', label: 'Journal', icon: BookOpen },
     { id: 'daily', label: 'Daily Summary', icon: Calendar },
     { id: 'weekly', label: 'Weekly Summary', icon: BarChart3 },
-    { id: 'insights', label: 'Insights', icon: TrendingUp }
+    { id: 'insights', label: 'Insights', icon: TrendingUp },
+    { id: 'archived', label: 'Archived Tasks', icon: Archive }
   ]
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Review & Reflect</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Review & Reflect</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
               Track your progress, maintain your journal, and gain insights into your productivity
             </p>
           </div>
@@ -250,8 +253,8 @@ export const TaskReview: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white shadow rounded-lg mb-6">
-        <div className="border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
+        <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="flex">
             {tabs.map(tab => {
               const Icon = tab.icon
@@ -261,8 +264,8 @@ export const TaskReview: React.FC = () => {
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
-                      ? 'border-purple-500 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   <Icon className="w-4 h-4 mr-2" />
@@ -297,16 +300,16 @@ export const TaskReview: React.FC = () => {
                 <div className="space-y-4">
                   {[...Array(3)].map((_, i) => (
                     <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                      <div className="h-20 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-2"></div>
+                      <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     </div>
                   ))}
                 </div>
               ) : journal.length === 0 ? (
                 <div className="text-center py-12">
-                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No journal entries yet</h3>
-                  <p className="text-gray-500 mb-4">Start reflecting on your day by creating your first journal entry.</p>
+                  <BookOpen className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No journal entries yet</h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">Start reflecting on your day by creating your first journal entry.</p>
                   <button
                     onClick={() => setShowJournalEditor(true)}
                     className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
@@ -336,10 +339,10 @@ export const TaskReview: React.FC = () => {
                 <div className="animate-pulse space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {[...Array(4)].map((_, i) => (
-                      <div key={i} className="h-24 bg-gray-200 rounded"></div>
+                      <div key={i} className="h-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     ))}
                   </div>
-                  <div className="h-64 bg-gray-200 rounded"></div>
+                  <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
                 </div>
               ) : dailySummary ? (
                 <div className="space-y-6">
@@ -395,10 +398,10 @@ export const TaskReview: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No daily summary available</h3>
-                  <p className="text-gray-500">Complete some tasks to see your daily productivity insights.</p>
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <Calendar className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No daily summary available</h3>
+                  <p className="text-gray-500 dark:text-gray-400">Complete some tasks to see your daily productivity insights.</p>
                 </div>
               )}
             </div>
@@ -411,10 +414,10 @@ export const TaskReview: React.FC = () => {
                 <div className="animate-pulse space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {[...Array(4)].map((_, i) => (
-                      <div key={i} className="h-24 bg-gray-200 rounded"></div>
+                      <div key={i} className="h-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     ))}
                   </div>
-                  <div className="h-64 bg-gray-200 rounded"></div>
+                  <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
                 </div>
               ) : weeklySummary ? (
                 <div className="space-y-6">
@@ -482,10 +485,10 @@ export const TaskReview: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No weekly summary available</h3>
-                  <p className="text-gray-500">Complete tasks throughout the week to see your weekly analytics.</p>
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <BarChart3 className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No weekly summary available</h3>
+                  <p className="text-gray-500 dark:text-gray-400">Complete tasks throughout the week to see your weekly analytics.</p>
                 </div>
               )}
             </div>
@@ -498,47 +501,47 @@ export const TaskReview: React.FC = () => {
                 <div className="animate-pulse space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                      <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     ))}
                   </div>
-                  <div className="h-64 bg-gray-200 rounded"></div>
+                  <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
                 </div>
               ) : insights ? (
                 <div className="space-y-6">
                   {/* Key Insights Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex items-center">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <TrendingUp className="w-5 h-5 text-green-600" />
+                        <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                          <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
                         </div>
                         <div className="ml-3">
-                          <p className="text-sm text-gray-600">Productivity Score</p>
-                          <p className="text-xl font-bold text-gray-900">{insights.productivity_score || 0}%</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Productivity Score</p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{insights.productivity_score || 0}%</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex items-center">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Target className="w-5 h-5 text-blue-600" />
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                          <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div className="ml-3">
-                          <p className="text-sm text-gray-600">Completion Rate</p>
-                          <p className="text-xl font-bold text-gray-900">{insights.completion_rate || 0}%</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{insights.completion_rate || 0}%</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex items-center">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                          <Clock className="w-5 h-5 text-purple-600" />
+                        <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                          <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         </div>
                         <div className="ml-3">
-                          <p className="text-sm text-gray-600">Avg. Task Time</p>
-                          <p className="text-xl font-bold text-gray-900">{insights.avg_task_time || 0}m</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Avg. Task Time</p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{insights.avg_task_time || 0}m</p>
                         </div>
                       </div>
                     </div>
@@ -559,16 +562,16 @@ export const TaskReview: React.FC = () => {
                   {/* Strengths & Areas for Improvement */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {insights.strengths && (
-                      <div className="bg-white border border-gray-200 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                          <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                          <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400 mr-2" />
                           Strengths
                         </h3>
                         <ul className="space-y-2">
                           {insights.strengths.map((strength: string, index: number) => (
                             <li key={index} className="flex items-start">
-                              <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{strength}</span>
+                              <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{strength}</span>
                             </li>
                           ))}
                         </ul>
@@ -576,16 +579,16 @@ export const TaskReview: React.FC = () => {
                     )}
 
                     {insights.improvements && (
-                      <div className="bg-white border border-gray-200 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                          <AlertCircle className="w-5 h-5 text-orange-500 mr-2" />
+                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                          <AlertCircle className="w-5 h-5 text-orange-500 dark:text-orange-400 mr-2" />
                           Areas for Improvement
                         </h3>
                         <ul className="space-y-2">
                           {insights.improvements.map((improvement: string, index: number) => (
                             <li key={index} className="flex items-start">
-                              <AlertCircle className="w-4 h-4 text-orange-500 mr-2 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{improvement}</span>
+                              <AlertCircle className="w-4 h-4 text-orange-500 dark:text-orange-400 mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{improvement}</span>
                             </li>
                           ))}
                         </ul>
@@ -595,16 +598,16 @@ export const TaskReview: React.FC = () => {
 
                   {/* Recommendations */}
                   {insights.recommendations && (
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                        <Target className="w-5 h-5 text-purple-500 mr-2" />
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                        <Target className="w-5 h-5 text-purple-500 dark:text-purple-400 mr-2" />
                         Recommendations
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {insights.recommendations.map((rec: any, index: number) => (
-                          <div key={index} className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                            <h4 className="font-medium text-purple-900 mb-1">{rec.title}</h4>
-                            <p className="text-sm text-purple-700">{rec.description}</p>
+                          <div key={index} className="p-3 bg-purple-50 dark:bg-purple-900 rounded-lg border border-purple-200 dark:border-purple-700">
+                            <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-1">{rec.title}</h4>
+                            <p className="text-sm text-purple-700 dark:text-purple-300">{rec.description}</p>
                           </div>
                         ))}
                       </div>
@@ -612,10 +615,63 @@ export const TaskReview: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No insights available</h3>
-                  <p className="text-gray-500">Complete more tasks and use the journal to unlock productivity insights.</p>
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <TrendingUp className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No insights available</h3>
+                  <p className="text-gray-500 dark:text-gray-400">Complete more tasks and use the journal to unlock productivity insights.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Archived Tasks Tab */}
+          {activeTab === 'archived' && (
+            <div className="space-y-6">
+              {archivedLoading ? (
+                <div className="animate-pulse space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  ))}
+                </div>
+              ) : archivedTasks.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <Archive className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No archived tasks</h3>
+                  <p className="text-gray-500 dark:text-gray-400">Completed tasks will appear here after you archive them.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                      Archived Tasks ({archivedTasks.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {archivedTasks.map(task => (
+                        <div key={task.id} className="border border-gray-100 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 dark:text-gray-100">{task.title}</h4>
+                              {task.description && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{task.description}</p>
+                              )}
+                              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                {task.category && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
+                                    {task.category}
+                                  </span>
+                                )}
+                                {task.priority && <span>High Priority</span>}
+                                {task.due_date && (
+                                  <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>
+                                )}
+                                <span>Completed: {new Date(task.updated_on || task.created_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

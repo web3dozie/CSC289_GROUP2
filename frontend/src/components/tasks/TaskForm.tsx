@@ -123,20 +123,20 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
     >
       <div
         ref={modalRef}
-        className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
         role="document"
       >
         {/* Header */}
-        <header className="flex items-center justify-between p-6 border-b border-gray-200">
+        <header className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2
             id="task-form-title"
-            className="text-lg font-semibold text-gray-900"
+            className="text-lg font-semibold text-gray-900 dark:text-gray-100"
           >
             {isEditing ? 'Edit Task' : 'Create New Task'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 p-1 rounded"
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 p-1 rounded"
             aria-label="Close task form"
           >
             <X className="w-5 h-5" aria-hidden="true" />
@@ -149,7 +149,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
           <div>
             <label
               htmlFor="task-title"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >
               Title <span aria-label="required">*</span>
             </label>
@@ -160,7 +160,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What needs to be done?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               required
               aria-required="true"
               aria-describedby="title-error"
@@ -177,7 +177,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
           <div>
             <label
               htmlFor="task-description"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >
               Description
             </label>
@@ -187,7 +187,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add more details..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               aria-describedby="description-help"
             />
             <span id="description-help" className="sr-only">
@@ -202,7 +202,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
             <div>
               <label
                 htmlFor="task-category"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Category
               </label>
@@ -210,7 +210,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
                 id="task-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 aria-describedby="category-help"
               >
                 <option value="">No category</option>
@@ -231,12 +231,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
                 type="checkbox"
                 checked={priority}
                 onChange={(e) => setPriority(e.target.checked)}
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
                 aria-describedby="priority-help"
               />
               <label
                 htmlFor="task-priority"
-                className="flex items-center text-sm font-medium text-gray-700 cursor-pointer"
+                className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
               >
                 <Star
                   className={`w-4 h-4 mr-1 ${priority ? 'text-yellow-500 fill-current' : 'text-gray-400'}`}
@@ -257,7 +257,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
             <div>
               <label
                 htmlFor="task-due-date"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Due Date
               </label>
@@ -267,12 +267,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   aria-describedby="due-date-help"
                   min={new Date().toISOString().split('T')[0]}
                 />
                 <Calendar
-                  className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
+                  className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2"
                   aria-hidden="true"
                 />
               </div>
@@ -284,7 +284,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
             <div>
               <label
                 htmlFor="task-estimate"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Time Estimate (minutes)
               </label>
@@ -295,13 +295,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
                   value={estimateMinutes}
                   onChange={(e) => handleEstimateChange(e.target.value)}
                   placeholder="60"
-                  className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   aria-describedby="estimate-help"
                   inputMode="numeric"
                   pattern="[0-9]*"
                 />
                 <Clock
-                  className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
+                  className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2"
                   aria-hidden="true"
                 />
               </div>
@@ -314,11 +314,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
           {/* Error Display */}
           {(createTask.error || updateTask.error) && (
             <div
-              className="bg-red-50 border border-red-200 rounded-md p-3"
+              className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-md p-3"
               role="alert"
               aria-live="polite"
             >
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-600 dark:text-red-400">
                 {createTask.error?.message || updateTask.error?.message || 'An error occurred'}
               </p>
             </div>
@@ -329,7 +329,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 rounded-md transition-colors"
               disabled={isLoading}
               aria-describedby="cancel-help"
             >

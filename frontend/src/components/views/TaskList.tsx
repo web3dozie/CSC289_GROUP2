@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react'
-import { Plus, Search, SortAsc, SortDesc, GripVertical } from 'lucide-react'
-import { useTasks, useUpdateTask, useDeleteTask } from '../../lib/hooks'
+import React, { useState, useRef } from 'react'
+import { Plus, Search, SortAsc, SortDesc, GripVertical, Archive } from 'lucide-react'
+import { useTasks, useUpdateTask, useDeleteTask, useArchiveCompletedTasks } from '../../lib/hooks'
 import { TaskItem, TaskModal, DeleteConfirmation, CompletionNotesModal } from '../tasks'
 import type { Task } from '../../lib/api'
 
@@ -18,9 +18,7 @@ export const TaskList: React.FC = () => {
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
   const [completingTask, setCompletingTask] = useState<Task | null>(null)
 
-  // Keyboard navigation state
-  const [selectedTaskIndex, setSelectedTaskIndex] = useState<number>(-1)
-  const [focusedElement, setFocusedElement] = useState<'search' | 'filters' | 'tasks'>('search')
+  // Selection/focus state removed (global shortcuts disabled)
 
   // Drag and drop state
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
@@ -31,6 +29,7 @@ export const TaskList: React.FC = () => {
   const { data: tasks = [], isLoading, error } = useTasks()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const archiveCompletedTasks = useArchiveCompletedTasks()
 
   // Filter and sort tasks
   const filteredAndSortedTasks = React.useMemo(() => {
@@ -134,63 +133,19 @@ export const TaskList: React.FC = () => {
     }
   }
 
-  // Keyboard navigation handlers
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const maxIndex = filteredAndSortedTasks.length - 1
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedTaskIndex(prev => Math.min(prev + 1, maxIndex))
-        setFocusedElement('tasks')
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedTaskIndex(prev => Math.max(prev - 1, 0))
-        setFocusedElement('tasks')
-        break
-      case 'Enter':
-        if (selectedTaskIndex >= 0 && selectedTaskIndex <= maxIndex) {
-          e.preventDefault()
-          handleEdit(filteredAndSortedTasks[selectedTaskIndex])
-        }
-        break
-      case 'Delete':
-      case 'Backspace':
-        if (selectedTaskIndex >= 0 && selectedTaskIndex <= maxIndex) {
-          e.preventDefault()
-          handleDelete(filteredAndSortedTasks[selectedTaskIndex])
-        }
-        break
-      case ' ':
-        if (selectedTaskIndex >= 0 && selectedTaskIndex <= maxIndex) {
-          e.preventDefault()
-          handleToggleComplete(filteredAndSortedTasks[selectedTaskIndex])
-        }
-        break
-      case 'Tab':
-        // Handle tab navigation between sections
-        if (e.shiftKey) {
-          if (focusedElement === 'tasks') {
-            setFocusedElement('filters')
-            e.preventDefault()
-          } else if (focusedElement === 'filters') {
-            setFocusedElement('search')
-            e.preventDefault()
-          }
-        } else {
-          if (focusedElement === 'search') {
-            setFocusedElement('filters')
-            e.preventDefault()
-          } else if (focusedElement === 'filters') {
-            setFocusedElement('tasks')
-            setSelectedTaskIndex(0)
-            e.preventDefault()
-          }
-        }
-        break
+  const handleArchiveCompleted = async () => {
+    try {
+      const result = await archiveCompletedTasks.mutateAsync()
+      // Handle both the expected response format and potential undefined/null responses
+      const archivedCount = result?.archived_count ?? 0
+      alert(`Successfully archived ${archivedCount} completed tasks!`)
+    } catch (error) {
+      console.error('Failed to archive completed tasks:', error)
+      alert('Failed to archive completed tasks. Please try again.')
     }
-  }, [filteredAndSortedTasks, selectedTaskIndex, focusedElement])
+  }
+
+  // Global keyboard shortcuts removed; modals retain their local handlers for accessibility.
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, task: Task, _index: number) => {
@@ -267,12 +222,12 @@ export const TaskList: React.FC = () => {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-20 bg-gray-200 rounded"></div>
+                <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
               ))}
             </div>
           </div>
@@ -284,8 +239,8 @@ export const TaskList: React.FC = () => {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="text-center text-red-600">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="text-center text-red-600 dark:text-red-400">
             <p>Failed to load tasks. Please try again.</p>
           </div>
         </div>
@@ -296,26 +251,34 @@ export const TaskList: React.FC = () => {
   return (
     <div
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-      onKeyDown={handleKeyDown}
-      tabIndex={-1}
       ref={taskListRef}
     >
       {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Tasks</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
               {filteredAndSortedTasks.length} of {tasks.length} tasks
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Task
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleArchiveCompleted}
+              disabled={archiveCompletedTasks.isPending}
+              className="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              {archiveCompletedTasks.isPending ? 'Archiving...' : 'Archive Completed'}
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Task
+            </button>
+          </div>
         </div>
 
         {/* Filters and Search */}
@@ -329,8 +292,7 @@ export const TaskList: React.FC = () => {
               placeholder="Search tasks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setFocusedElement('search')}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               aria-label="Search tasks"
             />
           </div>
@@ -340,8 +302,7 @@ export const TaskList: React.FC = () => {
             id="status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            onFocus={() => setFocusedElement('filters')}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             aria-label="Filter by status"
           >
             <option value="all">All Status</option>
@@ -354,8 +315,7 @@ export const TaskList: React.FC = () => {
             id="category-filter"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            onFocus={() => setFocusedElement('filters')}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             aria-label="Filter by category"
           >
             <option value="all">All Categories</option>
@@ -367,12 +327,12 @@ export const TaskList: React.FC = () => {
 
         {/* Sort Controls */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4 text-sm text-gray-600">
+          <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
             <span className="font-medium">Sort by:</span>
             <button
               onClick={() => handleSort('created_at')}
-              className={`flex items-center space-x-1 hover:text-gray-900 transition-colors ${
-                sortField === 'created_at' ? 'text-purple-600 font-medium' : ''
+              className={`flex items-center space-x-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors ${
+                sortField === 'created_at' ? 'text-purple-600 dark:text-purple-400 font-medium' : ''
               }`}
             >
               <span>Created</span>
@@ -380,8 +340,8 @@ export const TaskList: React.FC = () => {
             </button>
             <button
               onClick={() => handleSort('due_date')}
-              className={`flex items-center space-x-1 hover:text-gray-900 transition-colors ${
-                sortField === 'due_date' ? 'text-purple-600 font-medium' : ''
+              className={`flex items-center space-x-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors ${
+                sortField === 'due_date' ? 'text-purple-600 dark:text-purple-400 font-medium' : ''
               }`}
             >
               <span>Due Date</span>
@@ -389,8 +349,8 @@ export const TaskList: React.FC = () => {
             </button>
             <button
               onClick={() => handleSort('priority')}
-              className={`flex items-center space-x-1 hover:text-gray-900 transition-colors ${
-                sortField === 'priority' ? 'text-purple-600 font-medium' : ''
+              className={`flex items-center space-x-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors ${
+                sortField === 'priority' ? 'text-purple-600 dark:text-purple-400 font-medium' : ''
               }`}
             >
               <span>Priority</span>
@@ -398,8 +358,8 @@ export const TaskList: React.FC = () => {
             </button>
             <button
               onClick={() => handleSort('title')}
-              className={`flex items-center space-x-1 hover:text-gray-900 transition-colors ${
-                sortField === 'title' ? 'text-purple-600 font-medium' : ''
+              className={`flex items-center space-x-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors ${
+                sortField === 'title' ? 'text-purple-600 dark:text-purple-400 font-medium' : ''
               }`}
             >
               <span>Title</span>
@@ -407,18 +367,15 @@ export const TaskList: React.FC = () => {
             </button>
           </div>
 
-          {/* Keyboard shortcuts help */}
-          <div className="text-xs text-gray-500 hidden sm:block">
-            <span className="font-medium">Keyboard:</span> ↑↓ navigate • Enter edit • Space toggle • Del delete • Tab switch sections
-          </div>
+          {/* Keyboard shortcuts removed: keyboard help intentionally omitted */}
         </div>
       </div>
 
       {/* Task List */}
       <div className="space-y-4" role="list" aria-label="Task list">
         {filteredAndSortedTasks.length === 0 ? (
-          <div className="bg-white shadow rounded-lg p-12 text-center">
-            <div className="text-gray-500 mb-4">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-12 text-center">
+            <div className="text-gray-500 dark:text-gray-400 mb-4">
               {tasks.length === 0 ? (
                 <>
                   <p className="text-lg font-medium mb-2">No tasks yet</p>
@@ -436,22 +393,14 @@ export const TaskList: React.FC = () => {
           filteredAndSortedTasks.map((task, index) => (
             <div
               key={task.id}
-              className={`relative group ${
-                selectedTaskIndex === index ? 'ring-2 ring-purple-500 ring-offset-2' : ''
-              } ${dragOverIndex === index ? 'border-t-2 border-purple-500' : ''}`}
+              className={`relative group ${dragOverIndex === index ? 'border-t-2 border-purple-500' : ''}`}
               draggable
               onDragStart={(e) => handleDragStart(e, task, index)}
               onDragEnd={handleDragEnd}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, index)}
-              onClick={() => {
-                setSelectedTaskIndex(index)
-                setFocusedElement('tasks')
-              }}
               role="listitem"
-              tabIndex={selectedTaskIndex === index ? 0 : -1}
-              aria-selected={selectedTaskIndex === index}
             >
               {/* Drag handle */}
               <div className="absolute left-2 top-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">

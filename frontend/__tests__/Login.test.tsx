@@ -67,14 +67,14 @@ describe('Login', () => {
     const user = userEvent.setup()
     render(<Login />)
 
+    const usernameInput = screen.getByLabelText(/username/i)
     const pinInput = screen.getByLabelText(/pin code/i)
     const submitButton = screen.getByRole('button', { name: /unlock app/i })
 
     await act(async () => {
-      // Login only requires a PIN in the current component
+      await user.type(usernameInput, 'testuser')
       await user.type(pinInput, '1234')
     })
-
 
     expect(submitButton).not.toBeDisabled()
   })

@@ -1,21 +1,27 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
-import Header from '../components/landing/Header'
-import Hero from '../components/landing/Hero'
-import Tutorial from '../components/landing/Tutorial'
-import Privacy from '../components/landing/Privacy'
-import FAQ from '../components/landing/FAQ'
-import CTA from '../components/landing/CTA'
-import Footer from '../components/landing/Footer'
-import Login from '../components/landing/Login'
-import SignUp from '../components/landing/SignUp'
-import Overview from '../components/landing/Overview'
+import { Suspense, lazy } from 'react'
 import { AuthGuard } from '../components/AuthGuard'
 import { AppLayout } from '../components/AppLayout'
-import { TaskList } from '../components/views/TaskList'
-import { TaskBoard } from '../components/views/TaskBoard'
-import { TaskCalendar } from '../components/views/TaskCalendar'
-import { TaskReview } from '../components/views/TaskReview'
-import { Settings } from '../components/views/Settings'
+
+// Lazy load landing page components
+const Header = lazy(() => import('../components/landing/Header'))
+const Hero = lazy(() => import('../components/landing/Hero'))
+const Tutorial = lazy(() => import('../components/landing/Tutorial'))
+const Privacy = lazy(() => import('../components/landing/Privacy'))
+const FAQ = lazy(() => import('../components/landing/FAQ'))
+const CTA = lazy(() => import('../components/landing/CTA'))
+const Footer = lazy(() => import('../components/landing/Footer'))
+const Login = lazy(() => import('../components/landing/Login'))
+const SignUp = lazy(() => import('../components/landing/SignUp'))
+const Overview = lazy(() => import('../components/landing/Overview'))
+
+// Lazy load view components
+const TaskList = lazy(() => import('../components/views/TaskList').then(module => ({ default: module.TaskList })))
+const TaskBoard = lazy(() => import('../components/views/TaskBoard').then(module => ({ default: module.TaskBoard })))
+const TaskCalendar = lazy(() => import('../components/views/TaskCalendar').then(module => ({ default: module.TaskCalendar })))
+const TaskReview = lazy(() => import('../components/views/TaskReview').then(module => ({ default: module.TaskReview })))
+const Settings = lazy(() => import('../components/views/Settings').then(module => ({ default: module.Settings })))
+const PomodoroTimer = lazy(() => import('../components/views/PomodoroTimer').then(module => ({ default: module.PomodoroTimer })))
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -30,17 +36,19 @@ const indexRoute = createRoute({
   path: '/',
   component: function LandingPage() {
     return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        <main id="main">
-          <Hero />
-          <Tutorial />
-          <Privacy />
-          <FAQ />
-          <CTA />
-        </main>
-        <Footer />
-      </div>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <div className="min-h-screen bg-white dark:bg-gray-900">
+          <Header />
+          <main id="main">
+            <Hero />
+            <Tutorial />
+            <Privacy />
+            <FAQ />
+            <CTA />
+          </main>
+          <Footer />
+        </div>
+      </Suspense>
     )
   },
 })
@@ -50,9 +58,11 @@ const loginRoute = createRoute({
   path: '/login',
   component: function LoginPage() {
     return (
-      <AuthGuard requireAuth={false}>
-        <Login />
-      </AuthGuard>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <AuthGuard requireAuth={false}>
+          <Login />
+        </AuthGuard>
+      </Suspense>
     )
   },
 })
@@ -62,9 +72,11 @@ const signupRoute = createRoute({
   path: '/signup',
   component: function SignupPage() {
     return (
-      <AuthGuard requireAuth={false}>
-        <SignUp />
-      </AuthGuard>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <AuthGuard requireAuth={false}>
+          <SignUp />
+        </AuthGuard>
+      </Suspense>
     )
   },
 })
@@ -72,7 +84,13 @@ const signupRoute = createRoute({
 const overviewRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/overview',
-  component: Overview,
+  component: function OverviewPage() {
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <Overview />
+      </Suspense>
+    )
+  },
 })
 
 // App routes (protected)
@@ -92,31 +110,73 @@ const appRoute = createRoute({
 const listRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/list',
-  component: TaskList,
+  component: function TaskListPage() {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+        <TaskList />
+      </Suspense>
+    )
+  },
 })
 
 const boardRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/board',
-  component: TaskBoard,
+  component: function TaskBoardPage() {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+        <TaskBoard />
+      </Suspense>
+    )
+  },
 })
 
 const calendarRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/calendar',
-  component: TaskCalendar,
+  component: function TaskCalendarPage() {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+        <TaskCalendar />
+      </Suspense>
+    )
+  },
 })
 
 const reviewRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/review',
-  component: TaskReview,
+  component: function TaskReviewPage() {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+        <TaskReview />
+      </Suspense>
+    )
+  },
+})
+
+const timerRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/timer',
+  component: function PomodoroTimerPage() {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+        <PomodoroTimer />
+      </Suspense>
+    )
+  },
 })
 
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/settings',
-  component: Settings,
+  component: function SettingsPage() {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+        <Settings />
+      </Suspense>
+    )
+  },
 })
 
 const routeTree = rootRoute.addChildren([
@@ -124,7 +184,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   signupRoute,
   overviewRoute,
-  appRoute.addChildren([listRoute, boardRoute, calendarRoute, reviewRoute, settingsRoute])
+  appRoute.addChildren([listRoute, boardRoute, calendarRoute, reviewRoute, timerRoute, settingsRoute])
 ])
 
 export const router = createRouter({ routeTree })

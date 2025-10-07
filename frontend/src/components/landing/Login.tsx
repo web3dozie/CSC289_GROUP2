@@ -4,6 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Login: React.FC = () => {
+  const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const { login, isLoading, error, clearError } = useAuth();
@@ -14,7 +15,7 @@ const Login: React.FC = () => {
     clearError();
 
     try {
-      await login(pin);
+      await login(username, pin);
       navigate({ to: '/app' });
     } catch (error) {
       // Error is handled by the auth context
@@ -36,6 +37,21 @@ const Login: React.FC = () => {
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                required
+              />
+            </div>
+
             <div>
               <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-2">
                 PIN Code
@@ -72,7 +88,7 @@ const Login: React.FC = () => {
 
             <button
               type="submit"
-              disabled={pin.length < 4 || isLoading}
+              disabled={!username.trim() || pin.length < 4 || isLoading}
               className="w-full inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
             >
               {isLoading ? (

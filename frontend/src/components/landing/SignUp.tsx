@@ -22,7 +22,7 @@ const SignUp: React.FC = () => {
     }
 
     try {
-      await setup({ pin, username: username || 'admin', email });
+      await setup({ pin, username, email });
       navigate({ to: '/app' });
     } catch (error) {
       // Error is handled by the auth context
@@ -48,7 +48,7 @@ const SignUp: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username (Optional)
+                Username
               </label>
               <input
                 id="username"
@@ -57,6 +57,7 @@ const SignUp: React.FC = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter a username"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                required
               />
             </div>
 

@@ -1,116 +1,174 @@
 from quart import Blueprint, jsonify, request, session
 import logging
-from backend.models import UserSettings, auth_required
-from backend.db_async import AsyncSessionLocal
 from sqlalchemy import select
 
-settings_bp = Blueprint('settings', __name__)
+try:
+    from backend.db.models import Configuration, auth_required
+    from backend.db.engine_async import AsyncSessionLocal
+    from backend.errors import ValidationError, AuthenticationError, DatabaseError, success_response
+except ImportError:
+    from db.models import Configuration, auth_required
+    from db.engine_async import AsyncSessionLocal
+    from errors import ValidationError, AuthenticationError, DatabaseError, success_response
+
+settings_bp = Blueprint("settings", __name__)
+
 
 async def get_settings():
-    # Require authenticated session; do not default to user_id=1
+    # Require authenticated session
     if 'user_id' not in session:
-        return None
+        raise AuthenticationError('Authentication required')
+    
     user_id = session['user_id']
-    async with AsyncSessionLocal() as s:
-        result = await s.execute(select(UserSettings).filter_by(user_id=user_id))
-        settings = result.scalars().first()
-        if not settings:
-            settings = UserSettings(user_id=user_id)
-            s.add(settings)
-            await s.commit()
-            await s.refresh(settings)
-        return settings
+    try:
+        async with AsyncSessionLocal() as s:
+            result = await s.execute(select(Configuration).filter_by(user_id=user_id))
+            settings = result.scalars().first()
+            if not settings:
+                settings = Configuration(user_id=user_id)
+                s.add(settings)
+                await s.commit()
+                await s.refresh(settings)
+            return settings
+    except Exception as e:
+        logging.exception("Failed to fetch settings")
+        raise DatabaseError('Failed to fetch settings')
 
-@settings_bp.route('/api/settings', methods=['GET'])
+
+@settings_bp.route("/api/settings", methods=["GET"])
 @auth_required
 async def get_all_settings():
     settings = await get_settings()
-    if settings is None:
-        return jsonify({'error': 'Authentication required'}), 401
-    return jsonify(settings.to_dict())
+    return success_response(settings.to_dict())
 
-@settings_bp.route('/api/settings', methods=['PUT'])
+
+@settings_bp.route("/api/settings", methods=["PUT"])
 @auth_required
 async def update_settings():
-    settings = await get_settings()
     data = await request.get_json()
     if not data:
-        return jsonify({'error': 'No data provided'}), 400
+        raise ValidationError("No data provided")
+    
+    try:
+        settings = await get_settings()
 
-    if 'notes_enabled' in data:
-        settings.notes_enabled = bool(data['notes_enabled'])
-    if 'timer_enabled' in data:
-        settings.timer_enabled = bool(data['timer_enabled'])
-    if 'ai_url' in data:
-        settings.ai_url = data['ai_url']
-    if 'auto_lock_minutes' in data:
-        settings.auto_lock_minutes = int(data['auto_lock_minutes'])
-    if 'theme' in data:
-        settings.theme = data['theme']
+        if "notes_enabled" in data:
+            settings.notes_enabled = bool(data["notes_enabled"])
+        if "timer_enabled" in data:
+            settings.timer_enabled = bool(data["timer_enabled"])
+        if "ai_url" in data:
+            settings.ai_url = data["ai_url"]
+        if "auto_lock_minutes" in data:
+            settings.auto_lock_minutes = int(data["auto_lock_minutes"])
+        if "theme" in data:
+            settings.theme = data["theme"]
 
-    async with AsyncSessionLocal() as s:
-        await s.merge(settings)
-        await s.commit()
-        return jsonify(settings.to_dict())
+        async with AsyncSessionLocal() as s:
+            await s.merge(settings)
+            await s.commit()
+            return success_response(settings.to_dict())
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
+        logging.exception("Failed to update settings")
+        raise DatabaseError('Failed to update settings')
 
-@settings_bp.route('/api/settings/notes', methods=['PUT'])
+
+@settings_bp.route("/api/settings/notes", methods=["PUT"])
 @auth_required
 async def update_notes():
-    settings = await get_settings()
     data = await request.get_json()
-    if 'enabled' in data:
-        settings.notes_enabled = bool(data['enabled'])
-    async with AsyncSessionLocal() as s:
-        await s.merge(settings)
-        await s.commit()
-        return jsonify({'notes_enabled': settings.notes_enabled})
+    
+    try:
+        settings = await get_settings()
+        if "enabled" in data:
+            settings.notes_enabled = bool(data["enabled"])
+        async with AsyncSessionLocal() as s:
+            await s.merge(settings)
+            await s.commit()
+            return success_response({"notes_enabled": settings.notes_enabled})
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
+        logging.exception("Failed to update notes settings")
+        raise DatabaseError('Failed to update notes settings')
 
-@settings_bp.route('/api/settings/timer', methods=['PUT'])
+
+@settings_bp.route("/api/settings/timer", methods=["PUT"])
 @auth_required
 async def update_timer():
-    settings = await get_settings()
     data = await request.get_json()
-    if 'enabled' in data:
-        settings.timer_enabled = bool(data['enabled'])
-    async with AsyncSessionLocal() as s:
-        await s.merge(settings)
-        await s.commit()
-        return jsonify({'timer_enabled': settings.timer_enabled})
+    
+    try:
+        settings = await get_settings()
+        if "enabled" in data:
+            settings.timer_enabled = bool(data["enabled"])
+        async with AsyncSessionLocal() as s:
+            await s.merge(settings)
+            await s.commit()
+            return success_response({"timer_enabled": settings.timer_enabled})
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
+        logging.exception("Failed to update timer settings")
+        raise DatabaseError('Failed to update timer settings')
 
-@settings_bp.route('/api/settings/ai-url', methods=['PUT'])
+
+@settings_bp.route("/api/settings/ai-url", methods=["PUT"])
 @auth_required
 async def update_ai_url():
-    settings = await get_settings()
     data = await request.get_json()
-    if 'url' in data:
-        settings.ai_url = data['url']
-    async with AsyncSessionLocal() as s:
-        await s.merge(settings)
-        await s.commit()
-        return jsonify({'ai_url': settings.ai_url})
+    
+    try:
+        settings = await get_settings()
+        if "url" in data:
+            settings.ai_url = data["url"]
+        async with AsyncSessionLocal() as s:
+            await s.merge(settings)
+            await s.commit()
+            return success_response({"ai_url": settings.ai_url})
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
+        logging.exception("Failed to update AI URL")
+        raise DatabaseError('Failed to update AI URL')
 
-@settings_bp.route('/api/settings/auto-lock', methods=['PUT'])
+
+@settings_bp.route("/api/settings/auto-lock", methods=["PUT"])
 @auth_required
 async def update_auto_lock():
-    settings = await get_settings()
     data = await request.get_json()
-    if 'minutes' in data:
-        settings.auto_lock_minutes = int(data['minutes'])
-    async with AsyncSessionLocal() as s:
-        await s.merge(settings)
-        await s.commit()
-        return jsonify({'auto_lock_minutes': settings.auto_lock_minutes})
+    
+    try:
+        settings = await get_settings()
+        if "minutes" in data:
+            settings.auto_lock_minutes = int(data["minutes"])
+        async with AsyncSessionLocal() as s:
+            await s.merge(settings)
+            await s.commit()
+            return success_response({"auto_lock_minutes": settings.auto_lock_minutes})
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
+        logging.exception("Failed to update auto-lock")
+        raise DatabaseError('Failed to update auto-lock')
 
-@settings_bp.route('/api/settings/theme', methods=['PUT'])
+
+@settings_bp.route("/api/settings/theme", methods=["PUT"])
 @auth_required
 async def update_theme():
-    settings = await get_settings()
     data = await request.get_json()
-    if 'theme' in data:
-        settings.theme = data['theme']
-    async with AsyncSessionLocal() as s:
-        await s.merge(settings)
-        await s.commit()
-        return jsonify({'theme': settings.theme})
     
-    
+    try:
+        settings = await get_settings()
+        if "theme" in data:
+            settings.theme = data["theme"]
+        async with AsyncSessionLocal() as s:
+            await s.merge(settings)
+            await s.commit()
+            return success_response({"theme": settings.theme})
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
+        logging.exception("Failed to update theme")
+        raise DatabaseError('Failed to update theme')

@@ -35,7 +35,7 @@ async def test_review_journal_and_summaries(tmp_path, monkeypatch):
         resp = await client.post("/api/auth/setup", json={"pin": "1234", "username": "testuser"})
         if resp.status_code == 400:
             # user exists - login
-            login = await client.post('/api/auth/login', json={'pin': '1234'})
+            login = await client.post('/api/auth/login', json={'pin': '1234', 'username': 'testuser'})
             assert login.status_code in (200, 201)
         else:
             assert resp.status_code in (200, 201)
@@ -46,27 +46,35 @@ async def test_review_journal_and_summaries(tmp_path, monkeypatch):
         journal_payload = {"content": "Today I wrote tests for review.", "mood": "productive"}
         r = await client.post("/api/review/journal", json=journal_payload)
         assert r.status_code == 201
-        created = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        created = response_data['data']
         assert created.get("content") == journal_payload["content"]
         entry_id = created.get("id")
 
         # List journal entries
         r = await client.get("/api/review/journal")
         assert r.status_code == 200
-        entries = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        entries = response_data['data']
         assert any(e.get("id") == entry_id for e in entries)
 
         # Update the journal entry
         update_payload = {"content": "Updated content", "mood": "happy"}
         r = await client.put(f"/api/review/journal/{entry_id}", json=update_payload)
         assert r.status_code == 200
-        updated = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        updated = response_data['data']
         assert updated.get("content") == update_payload["content"]
 
         # Get daily summary
         r = await client.get("/api/review/summary/daily")
         assert r.status_code == 200
-        daily = await r.get_json()
+        response_data = await r.get_json()
+        assert response_data['success'] is True
+        daily = response_data['data']
         # expect at least one entry in daily summary payload
         assert isinstance(daily, dict)
 

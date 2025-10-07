@@ -1,6 +1,43 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* CSS Variables for theming */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  --accent-primary: #7c3aed;
+  --accent-secondary: #a855f7;
+  --accent-hover: #6d28d9;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
+  --bg-tertiary: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --border-primary: #374151;
+  --border-secondary: #4b5563;
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #a855f7;
+  --accent-hover: #7c3aed;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --shadow: rgba(0, 0, 0, 0.3);
+}
 
 /* Accessibility: Screen reader only content */
 .sr-only {
