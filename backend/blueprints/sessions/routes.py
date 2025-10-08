@@ -2,8 +2,13 @@ from quart import Blueprint, jsonify, request, session
 from datetime import datetime, timedelta
 import secrets
 from sqlalchemy import select, and_
-from backend.db_async import AsyncSessionLocal
-from backend.models import UserSession, auth_required
+
+try:
+    from backend.db.engine_async import AsyncSessionLocal
+    from backend.db.models import UserSession, auth_required
+except ImportError:
+    from db.engine_async import AsyncSessionLocal
+    from db.models import UserSession, auth_required
 
 sessions_bp = Blueprint('sessions', __name__, url_prefix='/api/sessions')
 

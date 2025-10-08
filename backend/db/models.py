@@ -14,6 +14,7 @@ from sqlalchemy import (
     Table,
     Column,
     Integer,
+    Text,
     # UniqueConstraint,
     # CheckConstraint,
     # Index,
@@ -68,6 +69,11 @@ class User(Base):
 
     # Relating user to all their conversations (AI chat)
     conversations: Mapped[list["Conversation"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+    # Relating user to all their sessions
+    sessions: Mapped[list["UserSession"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -419,6 +425,50 @@ class Configuration(Base):
         }
 
 
+class UserSession(Base):
+    __tablename__ = 'user_sessions'
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Unique ID for each login session - helps us track different devices/browsers
+    session_id: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    # Which user this session belongs to
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False)
+    # When the user first logged in
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    # When they last did something (click, navigate, etc.)
+    last_activity: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    # Their IP address - helps identify suspicious logins from new locations
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    # Browser/device info - so users can see "Chrome on iPhone" vs "Firefox on Windows"
+    user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Did they check "Remember me" when logging in?
+    is_remember_me: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Is this session still valid, or did the user log out?
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # When this session should automatically expire
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    
+    # Connect back to the User model so we can find all sessions for a user
+    user = relationship("User", back_populates="sessions")
+    
+    def to_dict(self):
+        """
+        Convert session info to a format the frontend can easily use.
+        Shows users their active logins in a readable way.
+        """
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'created_at': self.created_at.isoformat(),
+            'last_activity': self.last_activity.isoformat(),
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
+            'is_remember_me': self.is_remember_me,
+            'is_active': self.is_active,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None
+        }
+
+
 def auth_required(f):
     @wraps(f)
     async def decorated_function(*args, **kwargs):
@@ -426,6 +476,35 @@ def auth_required(f):
             # Use standardized error format
             from backend.errors import AuthenticationError
             raise AuthenticationError("Authentication required")
+
+        # Validate session is still active in database
+        session_id = session.get('session_id')
+        if session_id:
+            try:
+                # Import here to avoid circular imports
+                from backend.db.engine_async import AsyncSessionLocal
+                from sqlalchemy import select, and_
+
+                async with AsyncSessionLocal() as db_session:
+                    result = await db_session.execute(
+                        select(UserSession).where(
+                            and_(
+                                UserSession.session_id == session_id,
+                                UserSession.is_active == True
+                            )
+                        )
+                    )
+                    user_session = result.scalar_one_or_none()
+                    if not user_session:
+                        # Session is invalid or inactive, clear it
+                        session.clear()
+                        from backend.errors import AuthenticationError
+                        raise AuthenticationError("Session expired or invalid")
+            except Exception:
+                # If database check fails, allow request to proceed
+                # This prevents database issues from blocking legitimate requests
+                pass
+
         if inspect.iscoroutinefunction(f):
             return await f(*args, **kwargs)
         else:

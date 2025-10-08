@@ -36,14 +36,9 @@ def create_app():
     # Enable CORS for frontend communication with credentials support
     cors(app, allow_origin="http://localhost:5173", allow_credentials=True)
 
-    # Configuration
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-    if not app.config["SECRET_KEY"]:
-        raise RuntimeError("SECRET_KEY is not set. Define it in .env or environment.")
-
-    app.config["DATABASE_URL"] = os.getenv("DATABASE_URL")
-    if not app.config["DATABASE_URL"]:
-        raise RuntimeError("DATABASE_URL is not set. Define it in .env or environment.")
+    # Configuration - use values from config.py (which loads .env and has defaults)
+    app.config["SECRET_KEY"] = SECRET_KEY
+    app.config["DATABASE_URL"] = DATABASE_URL
     # Register routes
     register_routes(app)
 
@@ -313,6 +308,16 @@ def register_routes(app):
         print("✓ Chat blueprint registered")
     except ImportError as e:
         print(f"⚠ Chat blueprint not available: {e}")
+
+    try:
+        try:
+            from backend.blueprints.sessions.routes import sessions_bp
+        except ImportError:
+            from blueprints.sessions.routes import sessions_bp
+        app.register_blueprint(sessions_bp)
+        print("✓ Sessions blueprint registered")
+    except ImportError as e:
+        print(f"⚠ Sessions blueprint not available: {e}")
 
     # Error handlers - Standardized error responses
     try:
