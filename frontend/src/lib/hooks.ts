@@ -59,6 +59,8 @@ export const useAuthLogout = () => {
   return useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
+      // Cancel any ongoing queries to prevent 401 errors
+      queryClient.cancelQueries()
       // Clear all cached data on logout
       queryClient.clear()
     },
@@ -347,6 +349,13 @@ export const useSettings = (enabled = true) => {
     queryKey: queryKeys.settings,
     queryFn: settingsApi.getSettings,
     enabled: enabled, // Allow disabling the query when user is not authenticated
+    retry: (failureCount, error: any) => {
+      // do not retry on 401 authentication errors
+      if (error?.code === 401 || error?.isStatus?.(401)) {
+        return false
+      }
+      return failureCount < 3
+    },
   })
 }
 

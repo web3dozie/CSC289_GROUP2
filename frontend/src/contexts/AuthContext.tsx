@@ -105,13 +105,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setError(null)
-      await logoutMutation.mutateAsync()
+      // Clear user state first to immediately disable authenticated queries
+      const previousUser = user
       setUser(null)
+      
+      try {
+        await logoutMutation.mutateAsync()
+      } catch (error) {
+        // If logout fails, restore user state
+        setUser(previousUser)
+        throw error
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Logout failed'
       setError(message)
-      // Still clear user state even if logout request fails
-      setUser(null)
       throw error
     }
   }
