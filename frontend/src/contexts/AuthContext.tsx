@@ -38,8 +38,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLocked, setIsLocked] = useState(false)
   const [lastActivity, setLastActivity] = useState<number>(Date.now())
 
-  // Settings for auto-lock
-  const { data: settings } = useSettings()
+  // Settings for auto-lock - only fetch when user is authenticated
+  const { data: settings } = useSettings(!!user && !isLoading)
 
   // Refs for timers
   const autoLockTimerRef = useRef<number | null>(null)

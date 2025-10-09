@@ -342,10 +342,11 @@ export const useInsights = () => {
 }
 
 // Settings hooks
-export const useSettings = () => {
+export const useSettings = (enabled = true) => {
   return useQuery({
     queryKey: queryKeys.settings,
     queryFn: settingsApi.getSettings,
+    enabled: enabled, // Allow disabling the query when user is not authenticated
   })
 }
 
