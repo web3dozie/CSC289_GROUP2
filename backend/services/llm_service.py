@@ -1,108 +1,95 @@
-"""Gemini LLM service for Task Line AI chat."""
+"""OpenAI-compatible LLM service for Task Line AI chat."""
 
 import httpx
 import logging
-from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class LLMConfig:
-    """Configuration for LLM API calls."""
+class LLMService:
+    """Simple OpenAI-compatible API client.
 
-    api_key: str
-    model: str = "gemini-2.0-flash-exp"
-    temperature: float = 0.7
-    max_tokens: int = 1000
-
-
-class GeminiLLMService:
-    """Simple, non-streaming Gemini API client."""
-
-    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+    Works with any LLM provider that implements OpenAI's chat completions API,
+    including OpenAI, Gemini (via openai endpoint), Anthropic, local models, etc.
+    """
 
     def __init__(self):
-        """Initialize the Gemini LLM service with an async HTTP client."""
+        """Initialize the LLM service with an async HTTP client."""
         self.client = httpx.AsyncClient(timeout=30.0)
 
-    async def get_completion(self, messages: list[dict], config: LLMConfig) -> str:
+    async def get_completion(
+        self,
+        messages: list[dict],
+        api_url: str,
+        api_key: str,
+        model: str,
+        temperature: float = 0.7,
+        max_tokens: int = 1000
+    ) -> str:
         """
-        Get AI response from Gemini API (simple, non-streaming).
+        Get AI response from OpenAI-compatible API.
 
         Args:
             messages: List of message dicts with 'role' and 'content' keys
-            config: LLM configuration including API key and model settings
+                     Roles should be 'system', 'user', or 'assistant'
+            api_url: Base URL for the API (e.g., https://api.openai.com/v1/chat/completions)
+            api_key: API key for authentication
+            model: Model name (e.g., gpt-4o-mini, gemini-2.0-flash)
+            temperature: Sampling temperature (0-2)
+            max_tokens: Maximum tokens to generate
 
         Returns:
             str: AI response text
 
         Raises:
             httpx.HTTPError: If API request fails
-            KeyError: If response format is unexpected
+            ValueError: If response format is unexpected
         """
         try:
-            # Build Gemini API request payload
-            contents = []
-            for msg in messages:
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-
-                # Gemini uses "user" and "model" roles (not "assistant")
-                gemini_role = "model" if role == "assistant" else "user"
-
-                contents.append({
-                    "role": gemini_role,
-                    "parts": [{"text": content}]
-                })
-
+            # Standard OpenAI chat completions format
             payload = {
-                "contents": contents,
-                "generationConfig": {
-                    "temperature": config.temperature,
-                    "maxOutputTokens": config.max_tokens
-                }
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
             }
 
-            # Make API call
-            url = f"{self.BASE_URL}/{config.model}:generateContent?key={config.api_key}"
+            # Authorization header
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
 
-            logger.info(f"Calling Gemini API with {len(messages)} messages")
-            response = await self.client.post(url, json=payload)
+            logger.info(f"Calling LLM API ({model}) with {len(messages)} messages")
+            response = await self.client.post(api_url, json=payload, headers=headers)
             response.raise_for_status()
 
             # Parse response
             data = response.json()
 
-            # Extract text from response
-            # Format: data.candidates[0].content.parts[0].text
-            if "candidates" not in data or not data["candidates"]:
-                logger.error(f"No candidates in Gemini response: {data}")
-                raise ValueError("No response from Gemini API")
+            # Extract text from OpenAI-compatible response format
+            if "choices" not in data or not data["choices"]:
+                logger.error(f"No choices in API response: {data}")
+                raise ValueError("No response from LLM API")
 
-            candidate = data["candidates"][0]
-            if "content" not in candidate:
-                logger.error(f"No content in candidate: {candidate}")
-                raise ValueError("Invalid response format from Gemini API")
+            choice = data["choices"][0]
+            if "message" not in choice or "content" not in choice["message"]:
+                logger.error(f"Invalid choice format: {choice}")
+                raise ValueError("Invalid response format from LLM API")
 
-            parts = candidate["content"].get("parts", [])
-            if not parts or "text" not in parts[0]:
-                logger.error(f"No text in response parts: {parts}")
-                raise ValueError("No text in Gemini API response")
-
-            response_text = parts[0]["text"]
-            logger.info(f"Received Gemini response ({len(response_text)} chars)")
+            response_text = choice["message"]["content"]
+            logger.info(f"Received LLM response ({len(response_text)} chars)")
 
             return response_text
 
         except httpx.HTTPError as e:
-            logger.error(f"Gemini API HTTP error: {e}")
+            logger.error(f"LLM API HTTP error: {e}")
             raise
         except (KeyError, IndexError, ValueError) as e:
-            logger.error(f"Error parsing Gemini response: {e}")
+            logger.error(f"Error parsing LLM response: {e}")
             raise
 
     async def close(self):
         """Close the HTTP client."""
         await self.client.aclose()
-        logger.info("Gemini LLM service closed")
+        logger.info("LLM service closed")

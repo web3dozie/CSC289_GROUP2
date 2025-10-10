@@ -56,8 +56,12 @@ async def update_settings():
             settings.notes_enabled = bool(data["notes_enabled"])
         if "timer_enabled" in data:
             settings.timer_enabled = bool(data["timer_enabled"])
-        if "ai_url" in data:
-            settings.ai_url = data["ai_url"]
+        if "ai_api_url" in data:
+            settings.ai_api_url = data["ai_api_url"]
+        if "ai_model" in data:
+            settings.ai_model = data["ai_model"]
+        if "ai_api_key" in data:
+            settings.ai_api_key = data["ai_api_key"]
         if "auto_lock_minutes" in data:
             settings.auto_lock_minutes = int(data["auto_lock_minutes"])
         if "theme" in data:

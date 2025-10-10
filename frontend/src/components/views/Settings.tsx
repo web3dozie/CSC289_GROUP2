@@ -41,7 +41,9 @@ export const Settings: React.FC = () => {
   const [autoLockMinutes, setAutoLockMinutes] = useState(settings?.auto_lock_minutes?.toString() || '30')
   const [notesEnabled, setNotesEnabled] = useState(settings?.notes_enabled || false)
   const [timerEnabled, setTimerEnabled] = useState(settings?.timer_enabled || false)
-  const [aiUrl, setAiUrl] = useState(settings?.ai_url || '')
+  const [aiApiUrl, setAiApiUrl] = useState(settings?.ai_api_url || '')
+  const [aiModel, setAiModel] = useState(settings?.ai_model || '')
+  const [aiApiKey, setAiApiKey] = useState(settings?.ai_api_key || '')
 
   // PIN change state
   const [showPinChange, setShowPinChange] = useState(false)
@@ -59,7 +61,9 @@ export const Settings: React.FC = () => {
       setAutoLockMinutes(settings.auto_lock_minutes.toString())
       setNotesEnabled(settings.notes_enabled)
       setTimerEnabled(settings.timer_enabled)
-      setAiUrl(settings.ai_url || '')
+      setAiApiUrl(settings.ai_api_url || '')
+      setAiModel(settings.ai_model || '')
+      setAiApiKey(settings.ai_api_key || '')
     }
   }, [settings])
 
@@ -74,7 +78,9 @@ export const Settings: React.FC = () => {
       auto_lock_minutes: parseInt(autoLockMinutes),
       notes_enabled: notesEnabled,
       timer_enabled: timerEnabled,
-      ai_url: aiUrl || undefined,
+      ai_api_url: aiApiUrl || undefined,
+      ai_model: aiModel || undefined,
+      ai_api_key: aiApiKey || undefined,
     }
 
     await updateSettings.mutateAsync(updates)
@@ -367,23 +373,57 @@ export const Settings: React.FC = () => {
         {/* AI Integration Settings */}
         <SettingSection
           title="AI Integration"
-          description="Configure AI assistant settings"
+          description="Configure AI assistant (OpenAI-compatible API)"
           icon={Cpu}
         >
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              AI API URL (Optional)
-            </label>
-            <input
-              type="url"
-              value={aiUrl}
-              onChange={(e) => setAiUrl(e.target.value)}
-              placeholder="https://your-ai-api.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Leave empty to use default AI integration
-            </p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                API URL
+              </label>
+              <input
+                type="url"
+                value={aiApiUrl}
+                onChange={(e) => setAiApiUrl(e.target.value)}
+                placeholder="https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                OpenAI-compatible chat completions endpoint (e.g., Gemini, OpenAI, Anthropic, etc.)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Model Name
+              </label>
+              <input
+                type="text"
+                value={aiModel}
+                onChange={(e) => setAiModel(e.target.value)}
+                placeholder="gemini-2.0-flash"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Model identifier (e.g., gemini-2.0-flash, gpt-4o-mini, claude-3-5-sonnet-20241022)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                API Key
+              </label>
+              <input
+                type="password"
+                value={aiApiKey}
+                onChange={(e) => setAiApiKey(e.target.value)}
+                placeholder="Your API key"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Your API key for authentication
+              </p>
+            </div>
           </div>
         </SettingSection>
 
