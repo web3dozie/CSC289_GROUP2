@@ -122,6 +122,17 @@ export const TaskList: React.FC = () => {
     setDeletingTask(task)
   }
 
+  const handleArchive = async (task: Task) => {
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: { archived: true }
+      })
+    } catch (error) {
+      console.error('Failed to archive task:', error)
+    }
+  }
+
   const confirmDelete = async () => {
     if (!deletingTask) return
 
@@ -413,6 +424,7 @@ export const TaskList: React.FC = () => {
                   task={task}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onArchive={handleArchive}
                   onToggleComplete={handleToggleComplete}
                   showActions={true}
                 />

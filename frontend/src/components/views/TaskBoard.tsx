@@ -13,6 +13,7 @@ interface ColumnProps {
   onTaskUpdate: (taskId: number, updates: Partial<Task>) => void
   onTaskEdit: (task: Task) => void
   onTaskDelete: (task: Task) => void
+  onTaskArchive: (task: Task) => void
   onDragStart: (e: React.DragEvent, task: Task) => void
   onDragEnd: (e: React.DragEvent) => void
   onDragOver: (e: React.DragEvent, columnType: ColumnType) => void
@@ -28,6 +29,7 @@ const Column: React.FC<ColumnProps> = ({
   onTaskUpdate,
   onTaskEdit,
   onTaskDelete,
+  onTaskArchive,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -136,6 +138,7 @@ const Column: React.FC<ColumnProps> = ({
                 task={task}
                 onEdit={onTaskEdit}
                 onDelete={onTaskDelete}
+                onArchive={onTaskArchive}
                 onToggleComplete={(task) => onTaskUpdate(task.id, { done: !task.done })}
                 showActions={true}
               />
@@ -207,6 +210,17 @@ export const TaskBoard: React.FC = () => {
 
   const handleTaskDelete = (task: Task) => {
     setDeletingTask(task)
+  }
+
+  const handleTaskArchive = async (task: Task) => {
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: { archived: true }
+      })
+    } catch (error) {
+      console.error('Failed to archive task:', error)
+    }
   }
 
   const handleDeleteConfirm = async () => {
@@ -414,6 +428,7 @@ export const TaskBoard: React.FC = () => {
           onTaskUpdate={handleTaskUpdate}
           onTaskEdit={handleTaskEdit}
           onTaskDelete={handleTaskDelete}
+          onTaskArchive={handleTaskArchive}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragOver={handleDragOver}
@@ -428,6 +443,7 @@ export const TaskBoard: React.FC = () => {
           onTaskUpdate={handleTaskUpdate}
           onTaskEdit={handleTaskEdit}
           onTaskDelete={handleTaskDelete}
+          onTaskArchive={handleTaskArchive}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragOver={handleDragOver}
@@ -442,6 +458,7 @@ export const TaskBoard: React.FC = () => {
           onTaskUpdate={handleTaskUpdate}
           onTaskEdit={handleTaskEdit}
           onTaskDelete={handleTaskDelete}
+          onTaskArchive={handleTaskArchive}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragOver={handleDragOver}

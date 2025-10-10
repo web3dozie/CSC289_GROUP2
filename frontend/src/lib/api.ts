@@ -251,6 +251,7 @@ export const tasksApi = {
     description?: string
     notes?: string
     done: boolean
+    archived: boolean
     category?: string
     priority: boolean
     due_date?: string

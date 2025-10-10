@@ -1,11 +1,12 @@
 import React from 'react'
-import { Calendar, Clock, Star, MoreVertical, Edit, Trash2 } from 'lucide-react'
+import { Calendar, Clock, Star, MoreVertical, Edit, Trash2, Archive } from 'lucide-react'
 import type { Task } from '../../lib/api'
 
 interface TaskItemProps {
   task: Task
   onEdit: (task: Task) => void
   onDelete: (task: Task) => void
+  onArchive?: (task: Task) => void
   onToggleComplete: (task: Task) => void
   showActions?: boolean
 }
@@ -14,6 +15,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   task,
   onEdit,
   onDelete,
+  onArchive,
   onToggleComplete,
   showActions = true
 }) => {
@@ -113,6 +115,20 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   <Edit className="w-4 h-4 mr-2" aria-hidden="true" />
                   Edit
                 </button>
+                {onArchive && (
+                  <button
+                    onClick={() => {
+                      onArchive(task)
+                      setShowMenu(false)
+                    }}
+                    className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700"
+                    role="menuitem"
+                    aria-label={`Archive task: ${task.title}`}
+                  >
+                    <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
+                    Archive
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     onDelete(task)
