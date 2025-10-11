@@ -127,6 +127,12 @@ async def login():
                 user.pin_hash = new_hash
                 await db_session.commit()
 
+            # Session fixation protection - clear any existing session
+            import logging
+            old_session_id = session.get("session_id")
+            session.clear()
+            if old_session_id:
+                logging.info(f"Cleared old session {old_session_id} for security")
             # Generate unique session ID for tracking this login
             session_id = secrets.token_hex(32)
 
@@ -159,6 +165,11 @@ async def login():
             session["user_id"] = user.id
             session["username"] = user.username
             session["session_id"] = session_id
+            
+            
+            # Log successful login
+            import logging
+            logging.info(f"User {user.id} logged in successfully with session {session_id}")
             
             return success_response({
                 'message': 'Login successful',
@@ -194,7 +205,8 @@ async def logout():
                 if user_session:
                     user_session.is_active = False
                     await db_session.commit()
-        
+                    import logging
+                    logging.info(f"User {user_session.user_id} logged out session {current_session_id}")        
         # Clear browser session
         session.clear()
         return success_response({'message': 'Logged out successfully'})
