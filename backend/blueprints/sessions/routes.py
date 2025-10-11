@@ -117,3 +117,49 @@ async def logout_all_other_sessions():
             
     except Exception as e:
         return jsonify({'error': 'Failed to terminate other sessions'}), 500
+
+@sessions_bp.route('/cleanup-expired', methods=['POST'])
+@auth_required
+async def cleanup_expired_sessions():
+    """
+    Delete expired sessions from the database.
+    
+    This helps keep the database clean and prevents it from filling up
+    with old session records. Can be called manually or via a scheduled job.
+    
+    Note: Only admins should call this in production, or it should be
+    triggered by a background task.
+    """
+    try:
+        async with AsyncSessionLocal() as db_session:
+            # Find all expired sessions
+            result = await db_session.execute(
+                select(UserSession).where(
+                    and_(
+                        UserSession.expires_at != None,
+                        UserSession.expires_at < datetime.now()
+                    )
+                )
+            )
+            expired_sessions = result.scalars().all()
+            
+            # Delete them
+            count = 0
+            for expired in expired_sessions:
+                await db_session.delete(expired)
+                count += 1
+            
+            await db_session.commit()
+            
+            import logging
+            logging.info(f"Cleaned up {count} expired sessions")
+            
+            return jsonify({
+                'message': f'Cleaned up {count} expired sessions',
+                'deleted_count': count
+            })
+            
+    except Exception as e:
+        import logging
+        logging.exception("Failed to cleanup expired sessions")
+        return jsonify({'error': 'Failed to cleanup expired sessions'}), 500

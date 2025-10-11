@@ -473,37 +473,47 @@ def auth_required(f):
     @wraps(f)
     async def decorated_function(*args, **kwargs):
         if "user_id" not in session:
-            # Use standardized error format
             from backend.errors import AuthenticationError
             raise AuthenticationError("Authentication required")
 
         # Validate session is still active in database
         session_id = session.get('session_id')
         if session_id:
-            try:
-                # Import here to avoid circular imports
-                from backend.db.engine_async import AsyncSessionLocal
-                from sqlalchemy import select, and_
+            # Import here to avoid circular imports
+            from backend.db.engine_async import AsyncSessionLocal
+            from backend.errors import AuthenticationError
+            from sqlalchemy import select, and_
+            import logging
 
-                async with AsyncSessionLocal() as db_session:
-                    result = await db_session.execute(
-                        select(UserSession).where(
-                            and_(
-                                UserSession.session_id == session_id,
-                                UserSession.is_active == True
-                            )
+            async with AsyncSessionLocal() as db_session:
+                result = await db_session.execute(
+                    select(UserSession).where(
+                        and_(
+                            UserSession.session_id == session_id,
+                            UserSession.is_active == True
                         )
                     )
-                    user_session = result.scalar_one_or_none()
-                    if not user_session:
-                        # Session is invalid or inactive, clear it
-                        session.clear()
-                        from backend.errors import AuthenticationError
-                        raise AuthenticationError("Session expired or invalid")
-            except Exception:
-                # If database check fails, allow request to proceed
-                # This prevents database issues from blocking legitimate requests
-                pass
+                )
+                user_session = result.scalar_one_or_none()
+                
+                # Check if session exists
+                if not user_session:
+                    session.clear()
+                    logging.warning(f"Invalid session attempt: {session_id}")
+                    raise AuthenticationError("Session expired or invalid")
+                
+                # Check if session has expired
+                if user_session.expires_at and datetime.now() > user_session.expires_at:
+                    user_session.is_active = False
+                    await db_session.commit()
+                    session.clear()
+                    logging.info(f"Session expired for user {user_session.user_id}")
+                    raise AuthenticationError("Session has expired")
+                
+                # Update last activity (sliding window)
+                user_session.last_activity = datetime.now()
+                await db_session.commit()
+                logging.debug(f"Session activity updated for user {user_session.user_id}")
 
         if inspect.iscoroutinefunction(f):
             return await f(*args, **kwargs)
@@ -511,8 +521,6 @@ def auth_required(f):
             return f(*args, **kwargs)
 
     return decorated_function
-
-
 def hash_pin(pin: str) -> str:
     """Hash a PIN using bcrypt (includes salt). Returns the bcrypt hash string.
 
