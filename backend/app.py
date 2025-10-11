@@ -1,6 +1,7 @@
 
 import os
 from quart import Quart, jsonify, request, session
+from quart_rate_limiter import RateLimiter, rate_limit
 from quart_cors import cors
 from datetime import datetime
 from sqlalchemy import select, func, text
@@ -32,9 +33,32 @@ except ImportError:
 def create_app():
     """Create and configure the Quart app"""
     app = Quart(__name__)
+    
+    # Initialize rate limiter for brute force protection
+    rate_limiter = RateLimiter(app)
 
     # Enable CORS for frontend communication with credentials support
     cors(app, allow_origin="http://localhost:5173", allow_credentials=True)
+
+    # Add security headers middleware
+    @app.after_request
+    async def add_security_headers(response):
+        """Add security headers to all responses"""
+        # Prevent XSS attacks
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        
+        # Content Security Policy
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' http://localhost:5173"
+        )
+        
+        return response
 
     # Configuration - use values from config.py (which loads .env and has defaults)
     app.config["SECRET_KEY"] = SECRET_KEY
