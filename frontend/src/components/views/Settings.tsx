@@ -7,7 +7,6 @@ import {
 } from '../../lib/hooks'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useTutorial } from '../../contexts/TutorialContext'
-import { useAuth } from '../../contexts/AuthContext'
 import type { UserSettings } from '../../lib/api'
 
 interface SettingSectionProps {
@@ -33,12 +32,13 @@ const SettingSection: React.FC<SettingSectionProps> = ({ title, description, ico
 )
 
 export const Settings: React.FC = () => {
-  const { isAuthenticated } = useAuth()
-  const { data: settings, isLoading } = useSettings(isAuthenticated)
+  const { data: settings, isLoading } = useSettings()
   const updateSettings = useUpdateSettings()
   const changePin = useAuthChangePin()
   const { theme, setTheme: setThemeContext } = useTheme()
   const { startTutorial } = useTutorial()
+
+  console.log('Settings component render - settings:', settings, 'isLoading:', isLoading)
 
   // Local state for form inputs
   const [themeForm, setThemeForm] = useState(theme)
@@ -59,6 +59,7 @@ export const Settings: React.FC = () => {
   // Update local state when settings load
   React.useEffect(() => {
     if (settings) {
+      console.log('Settings loaded from API:', settings)
       setThemeForm(settings.theme as 'light' | 'dark' | 'auto')
       setAutoLockMinutes(settings.auto_lock_minutes.toString())
       setNotesEnabled(settings.notes_enabled)
@@ -66,11 +67,6 @@ export const Settings: React.FC = () => {
       setAiUrl(settings.ai_url || '')
     }
   }, [settings])
-
-  // Update form when theme context changes
-  React.useEffect(() => {
-    setThemeForm(theme)
-  }, [theme])
 
   const handleSaveSettings = async () => {
     const updates: Partial<UserSettings> = {
@@ -81,9 +77,15 @@ export const Settings: React.FC = () => {
       ai_url: aiUrl || undefined,
     }
 
-    await updateSettings.mutateAsync(updates)
-    // Update theme context immediately for UI feedback
-    setThemeContext(themeForm)
+    try {
+      console.log('Saving settings:', updates)
+      const result = await updateSettings.mutateAsync(updates)
+      console.log('Settings saved successfully:', result)
+      alert('Settings saved successfully!')
+    } catch (error) {
+      console.error('Failed to save settings:', error)
+      alert('Failed to save settings. Please try again.')
+    }
   }
 
   const handleChangePin = async () => {
@@ -204,7 +206,7 @@ export const Settings: React.FC = () => {
               <select
                 value={autoLockMinutes}
                 onChange={(e) => setAutoLockMinutes(e.target.value)}
-                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="5">5 minutes</option>
                 <option value="15">15 minutes</option>
@@ -346,7 +348,7 @@ export const Settings: React.FC = () => {
                   onChange={(e) => setNotesEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 dark:peer-checked:bg-purple-500"></div>
               </label>
             </div>
 
@@ -362,7 +364,7 @@ export const Settings: React.FC = () => {
                   onChange={(e) => setTimerEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 dark:peer-checked:bg-purple-500"></div>
               </label>
             </div>
           </div>

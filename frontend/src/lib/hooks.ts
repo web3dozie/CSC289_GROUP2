@@ -364,9 +364,14 @@ export const useUpdateSettings = () => {
 
   return useMutation({
     mutationFn: settingsApi.updateSettings,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Mutation onSuccess - received data:', data)
       queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+      console.log('Invalidated settings query - refetch will happen')
     },
+    onError: (error) => {
+      console.error('Mutation onError:', error)
+    }
   })
 }
 

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useSettings } from '../lib/hooks'
-import { useAuth } from './AuthContext'
 
 type Theme = 'light' | 'dark' | 'auto'
 
@@ -25,8 +24,7 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const { isAuthenticated } = useAuth()
-  const { data: settings } = useSettings(isAuthenticated) // Only fetch settings when authenticated
+  const { data: settings } = useSettings() // Fetch settings without auth check
   const [theme, setThemeState] = useState<Theme>(() => {
     // Load from localStorage first for immediate theme application
     const stored = localStorage.getItem('theme') as Theme
