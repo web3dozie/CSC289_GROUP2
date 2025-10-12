@@ -103,70 +103,12 @@ export const TutorialOverlay: React.FC = () => {
     }
   }, [isActive, currentStep, updateTargetElement, isNavigating])
 
-  // Make target element interactive by boosting its z-index
+  // Visual highlighting only - no z-index boost needed
+  // Target elements stay below backdrop and are not clickable
   useEffect(() => {
-    if (!targetElement) return
-
-    const originalZIndex = targetElement.style.zIndex
-    const originalPosition = targetElement.style.position
-
-    // Boost z-index to appear above backdrop
-    targetElement.style.position = 'relative'
-    targetElement.style.zIndex = '9999'
-
-    return () => {
-      // Restore original values
-      targetElement.style.zIndex = originalZIndex
-      targetElement.style.position = originalPosition
-    }
+    // No z-index manipulation needed for guided tour
+    // Elements are highlighted visually with the purple ring only
   }, [targetElement])
-
-  // Boost modal z-index when form is open during tutorial
-  useEffect(() => {
-    if (!isActive) return
-
-    // Find any open modals or dropdowns that need to be above the backdrop
-    const elementsToBoost = [
-      document.querySelector('[data-tutorial="task-form-modal"]') as HTMLElement,
-      document.querySelector('[data-tutorial="task-item-menu"]') as HTMLElement,
-      document.querySelector('[data-tutorial="board-card"]') as HTMLElement,
-    ].filter(Boolean)
-
-    // For drag-and-drop steps, also boost all board columns
-    if (currentStep?.id === 'board-view-drag') {
-      const todoColumn = document.querySelector('[data-tutorial="board-column-todo"]') as HTMLElement
-      if (todoColumn) {
-        // Get all sibling columns (To Do, In Progress, Done)
-        const parent = todoColumn.parentElement
-        if (parent) {
-          const allColumns = Array.from(parent.children) as HTMLElement[]
-          elementsToBoost.push(...allColumns)
-        }
-      }
-    }
-
-    if (elementsToBoost.length === 0) return
-
-    // Store original z-index values and positions
-    const originalStyles = elementsToBoost.map(el => ({
-      zIndex: el.style.zIndex,
-      position: el.style.position
-    }))
-
-    // Boost all elements above tutorial backdrop
-    elementsToBoost.forEach(el => {
-      el.style.position = 'relative'
-      el.style.zIndex = '10002'
-    })
-
-    return () => {
-      // Restore original z-index values and positions
-      elementsToBoost.forEach((el, index) => {
-        el.style.zIndex = originalStyles[index].zIndex
-        el.style.position = originalStyles[index].position
-      })
-    }
-  }, [isActive, currentStep])
 
   // Update position on window resize
   useEffect(() => {
