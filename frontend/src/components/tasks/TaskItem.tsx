@@ -8,6 +8,7 @@ interface TaskItemProps {
   onDelete: (task: Task) => void
   onToggleComplete: (task: Task) => void
   showActions?: boolean
+  isFirstTask?: boolean
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -15,7 +16,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onEdit,
   onDelete,
   onToggleComplete,
-  showActions = true
+  showActions = true,
+  isFirstTask = false
 }) => {
   const [showMenu, setShowMenu] = React.useState(false)
   const menuRef = React.useRef<HTMLDivElement>(null)
@@ -75,7 +77,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
             aria-label={`${task.done ? 'Mark as incomplete' : 'Mark as complete'}: ${task.title}`}
           />
-          <h3 className={`font-medium text-gray-900 dark:text-gray-100 flex-1 ${
+          <h3
+            data-tutorial={isFirstTask ? "task-item-title" : undefined}
+            className={`font-medium text-gray-900 dark:text-gray-100 flex-1 ${
             task.archived ? 'text-gray-500 dark:text-gray-400' : task.done ? 'line-through text-gray-500 dark:text-gray-400' : ''
           }`}>
             {task.title}
@@ -90,6 +94,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               aria-label={`Task options for ${task.title}`}
               aria-expanded={showMenu}
               aria-haspopup="menu"
+              data-tutorial={isFirstTask ? "task-item-menu-button" : undefined}
             >
               <MoreVertical className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -100,6 +105,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
                 role="menu"
                 aria-label="Task actions"
+                data-tutorial="task-item-menu"
               >
                 <button
                   onClick={() => {
@@ -118,6 +124,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                     onDelete(task)
                     setShowMenu(false)
                   }}
+                  data-tutorial={isFirstTask ? "task-item-delete-button" : undefined}
                   className="flex items-center w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 focus:outline-none focus:bg-red-100 dark:focus:bg-red-900"
                   role="menuitem"
                   aria-label={`Delete task: ${task.title}`}

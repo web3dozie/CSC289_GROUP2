@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle } from 'lucide-react'
 import {
   useSettings,
   useUpdateSettings,
   useAuthChangePin
 } from '../../lib/hooks'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useTutorial } from '../../contexts/TutorialContext'
 import type { UserSettings } from '../../lib/api'
 
 interface SettingSectionProps {
@@ -35,6 +36,7 @@ export const Settings: React.FC = () => {
   const updateSettings = useUpdateSettings()
   const changePin = useAuthChangePin()
   const { theme, setTheme: setThemeContext } = useTheme()
+  const { startTutorial } = useTutorial()
 
   // Local state for form inputs
   const [themeForm, setThemeForm] = useState(theme)
@@ -379,11 +381,46 @@ export const Settings: React.FC = () => {
               value={aiUrl}
               onChange={(e) => setAiUrl(e.target.value)}
               placeholder="https://your-ai-api.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Leave empty to use default AI integration
             </p>
+          </div>
+        </SettingSection>
+
+        {/* Tutorial & Help */}
+        <SettingSection
+          title="Tutorial & Help"
+          description="Learn how to use Task Line effectively"
+          icon={HelpCircle}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+              <div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">Interactive Tutorial</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Learn the basics of creating, managing, and viewing tasks across all views
+                </div>
+              </div>
+              <button
+                onClick={startTutorial}
+                className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+              >
+                Start Tutorial
+              </button>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="mb-2">
+                The tutorial will guide you through:
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Creating and managing tasks in the List view</li>
+                <li>Using the Kanban Board to track workflow</li>
+                <li>Organizing tasks by due date in the Calendar</li>
+                <li>Drag & drop functionality across views</li>
+              </ul>
+            </div>
           </div>
         </SettingSection>
 

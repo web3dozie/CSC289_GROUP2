@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { ChatWidget } from './ChatWidget'
+import { TutorialOverlay } from './TutorialOverlay'
 
 const navigation = [
   { name: 'List', href: '/app/list', icon: CheckSquare },
@@ -72,10 +73,16 @@ export const AppLayout: React.FC = () => {
               const Icon = item.icon
               const isActive = location.pathname === item.href
 
+              // Map navigation names to tutorial data attributes
+              const tutorialAttr = item.name === 'List' ? 'nav-link-list' :
+                                   item.name === 'Board' ? 'nav-link-board' :
+                                   item.name === 'Calendar' ? 'nav-link-calendar' : undefined
+
               return (
                 <Link
                   key={item.name}
                   to={item.href}
+                  data-tutorial={tutorialAttr}
                   className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
                     isActive
                       ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-r-2 border-purple-700 dark:border-purple-300'
@@ -140,6 +147,9 @@ export const AppLayout: React.FC = () => {
 
       {/* AI Chat Widget */}
       <ChatWidget />
+
+      {/* Tutorial Overlay */}
+      <TutorialOverlay />
     </div>
   )
 }
