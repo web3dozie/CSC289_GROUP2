@@ -186,7 +186,6 @@ async def create_task():
     except Exception:
         logging.exception("Failed to create task")
         raise DatabaseError("Failed to create task")
-        raise DatabaseError("Failed to create task")
 
 
 async def get_cached_statuses(db_session):

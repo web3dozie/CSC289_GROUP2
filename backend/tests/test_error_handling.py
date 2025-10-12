@@ -157,7 +157,8 @@ class TestTasksErrorHandling:
         # Create user and login
         await create_user_and_login(client)
         
-        response = await client.post('/api/tasks/', json={})
+        # Test with empty title string
+        response = await client.post('/api/tasks/', json={'title': ''})
         
         assert response.status_code == 400
         data = await response.get_json()
