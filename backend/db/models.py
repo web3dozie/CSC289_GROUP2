@@ -16,7 +16,7 @@ from sqlalchemy import (
     Integer,
     Text,
     # UniqueConstraint,
-    # CheckConstraint,
+    CheckConstraint,
     # Index,
 )
 
@@ -166,6 +166,22 @@ class Task(Base):
     )
 
     # Relating tasks to user that created them
+
+    # Database constraints for data integrity
+    __table_args__ = (
+        # Title cannot be empty
+        CheckConstraint("length(trim(title)) > 0", name="task_title_not_empty"),
+        # Title length limit
+        CheckConstraint("length(title) <= 200", name="task_title_length"),
+        # Description length limit
+        CheckConstraint("description IS NULL OR length(description) <= 2000", name="task_description_length"),
+        # Estimate must be positive
+        CheckConstraint("estimate_minutes IS NULL OR estimate_minutes >= 0", name="task_estimate_positive"),
+        # Estimate reasonable limit (7 days max)
+        CheckConstraint("estimate_minutes IS NULL OR estimate_minutes <= 10080", name="task_estimate_max"),
+        # Order must be non-negative
+        CheckConstraint('"order" >= 0', name="task_order_positive"),
+    )
     user: Mapped["User"] = relationship(back_populates="tasks")
 
     # Relating tasks to categories
