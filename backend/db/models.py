@@ -137,7 +137,7 @@ class Task(Base):
     category_id: Mapped[int | None] = mapped_column(
         ForeignKey("category.id", ondelete="SET NULL"), nullable=True
     )
-    status_id: Mapped[int] = mapped_column(ForeignKey("status.id"), nullable=False)
+    status_id: Mapped[int] = mapped_column(ForeignKey("status.id", ondelete="RESTRICT"), nullable=False)
     parent_id: Mapped[int | None] = mapped_column(
         ForeignKey("task.id", ondelete="CASCADE"), nullable=True, index=True
     )
