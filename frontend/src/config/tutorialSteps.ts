@@ -51,7 +51,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     title: 'Managing Tasks',
     description: 'Use the edit and delete buttons on each task to manage them. You can also check the box to quickly mark tasks as complete.',
     targetSelector: '[data-tutorial="task-item-edit-button"]',
-    position: 'left',
+    position: 'bottom',
     requiredRoute: '/app/list',
   },
 
