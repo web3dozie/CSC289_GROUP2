@@ -14,7 +14,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   // Part 1: Introduction & Overview
   {
     id: 'welcome',
-    title: 'Welcome to Your Workspace! 👋',
+    title: 'Welcome to Your Workspace! ',
     description: 'This quick tour will show you the key features of your task management system. We\'ll explore three different views for organizing your work. Click "Next" to begin!',
     position: 'center',
     requiredRoute: '/app/list',
@@ -49,8 +49,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'list-task-actions',
     title: 'Managing Tasks',
-    description: 'Click the three dots menu on any task to edit, delete, or mark it as complete. You can also check the box to quickly mark tasks as done.',
-    targetSelector: '[data-tutorial="task-item-menu-button"]',
+    description: 'Use the edit and delete buttons on each task to manage them. You can also check the box to quickly mark tasks as complete.',
+    targetSelector: '[data-tutorial="task-item-edit-button"]',
     position: 'left',
     requiredRoute: '/app/list',
   },
@@ -112,7 +112,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   // Part 5: Completion
   {
     id: 'complete',
-    title: 'You\'re All Set! 🎉',
+    title: 'You\'re All Set! ',
     description: 'You now know how to use all three views: List for quick access, Board for workflow tracking, and Calendar for deadline management. Start creating tasks and stay organized!',
     position: 'center',
   },

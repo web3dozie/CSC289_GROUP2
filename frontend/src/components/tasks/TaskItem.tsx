@@ -1,5 +1,5 @@
 import React from 'react'
-import { Calendar, Clock, Star, MoreVertical, Edit, Trash2 } from 'lucide-react'
+import { Calendar, Clock, Star, Edit, Trash2 } from 'lucide-react'
 import type { Task } from '../../lib/api'
 
 interface TaskItemProps {
@@ -19,22 +19,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   showActions = true,
   isFirstTask = false
 }) => {
-  const [showMenu, setShowMenu] = React.useState(false)
-  const menuRef = React.useRef<HTMLDivElement>(null)
-
-  // Close menu when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false)
-      }
-    }
-
-    if (showMenu) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showMenu])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -87,53 +71,23 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </div>
 
         {showActions && (
-          <div className="relative">
+          <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-              aria-label={`Task options for ${task.title}`}
-              aria-expanded={showMenu}
-              aria-haspopup="menu"
-              data-tutorial={isFirstTask ? "task-item-menu-button" : undefined}
+              onClick={() => onEdit(task)}
+              className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+              aria-label={`Edit task: ${task.title}`}
+              data-tutorial={isFirstTask ? "task-item-edit-button" : undefined}
             >
-              <MoreVertical className="w-4 h-4" aria-hidden="true" />
+              <Edit className="w-4 h-4" aria-hidden="true" />
             </button>
-
-            {showMenu && (
-              <div
-                ref={menuRef}
-                className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
-                role="menu"
-                aria-label="Task actions"
-                data-tutorial="task-item-menu"
-              >
-                <button
-                  onClick={() => {
-                    onEdit(task)
-                    setShowMenu(false)
-                  }}
-                  className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700"
-                  role="menuitem"
-                  aria-label={`Edit task: ${task.title}`}
-                >
-                  <Edit className="w-4 h-4 mr-2" aria-hidden="true" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    onDelete(task)
-                    setShowMenu(false)
-                  }}
-                  data-tutorial={isFirstTask ? "task-item-delete-button" : undefined}
-                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 focus:outline-none focus:bg-red-100 dark:focus:bg-red-900"
-                  role="menuitem"
-                  aria-label={`Delete task: ${task.title}`}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
-                  Delete
-                </button>
-              </div>
-            )}
+            <button
+              onClick={() => onDelete(task)}
+              className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+              aria-label={`Delete task: ${task.title}`}
+              data-tutorial={isFirstTask ? "task-item-delete-button" : undefined}
+            >
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
+            </button>
           </div>
         )}
       </header>
