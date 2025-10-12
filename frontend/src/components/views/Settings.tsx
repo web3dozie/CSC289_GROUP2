@@ -7,6 +7,7 @@ import {
 } from '../../lib/hooks'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useTutorial } from '../../contexts/TutorialContext'
+import { useAuth } from '../../contexts/AuthContext'
 import type { UserSettings } from '../../lib/api'
 
 interface SettingSectionProps {
@@ -32,7 +33,8 @@ const SettingSection: React.FC<SettingSectionProps> = ({ title, description, ico
 )
 
 export const Settings: React.FC = () => {
-  const { data: settings, isLoading } = useSettings()
+  const { isAuthenticated } = useAuth()
+  const { data: settings, isLoading } = useSettings(isAuthenticated)
   const updateSettings = useUpdateSettings()
   const changePin = useAuthChangePin()
   const { theme, setTheme: setThemeContext } = useTheme()
