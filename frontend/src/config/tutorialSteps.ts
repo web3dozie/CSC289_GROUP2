@@ -14,8 +14,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   // Part 1: Introduction & Overview
   {
     id: 'welcome',
-    title: 'Welcome to Your Workspace! ',
-    description: 'This quick tour will show you the key features of your task management system. We\'ll explore three different views for organizing your work. Click "Next" to begin!',
+    title: 'Welcome to Your Workspace! 👋',
+    description: 'This quick tour will show you all the features of your task management system. We\'ll explore five different views and key tools to help you stay organized. Click "Next" to begin!',
     position: 'center',
     requiredRoute: '/app/list',
     autoNavigate: true,
@@ -41,7 +41,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'list-task-details',
     title: 'Task Details',
-    description: 'Each task shows its title, description, due date, category, priority status, and time estimate. Tasks with due dates appear in all three views.',
+    description: 'Each task shows its title, description, due date, category, priority status, and time estimate. Tasks with due dates appear in multiple views.',
     targetSelector: '[data-tutorial="task-item"]',
     position: 'right',
     requiredRoute: '/app/list',
@@ -109,11 +109,65 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     requiredRoute: '/app/calendar',
   },
 
-  // Part 5: Completion
+  // Part 5: Review View
+  {
+    id: 'review-view-nav',
+    title: 'Review & Analytics',
+    description: 'The Review view helps you analyze your productivity and reflect on completed work. Let\'s take a look!',
+    targetSelector: '[data-tutorial="nav-link-review"]',
+    position: 'bottom',
+    requiredRoute: '/app/review',
+    autoNavigate: true,
+  },
+  {
+    id: 'review-view-overview',
+    title: 'Productivity Insights',
+    description: 'Here you can see statistics about your tasks, completion rates, and productivity trends. Use this data to improve your workflow and celebrate your progress!',
+    position: 'center',
+    requiredRoute: '/app/review',
+  },
+
+  // Part 6: Timer View
+  {
+    id: 'timer-view-nav',
+    title: 'Focus Timer',
+    description: 'The Timer view helps you stay focused using the Pomodoro technique or custom time blocks. Perfect for deep work sessions!',
+    targetSelector: '[data-tutorial="nav-link-timer"]',
+    position: 'bottom',
+    requiredRoute: '/app/timer',
+    autoNavigate: true,
+  },
+  {
+    id: 'timer-view-overview',
+    title: 'Time Tracking',
+    description: 'Start a timer to track how long you work on tasks. You can use preset intervals or set custom times. The timer will notify you when your session is complete!',
+    position: 'center',
+    requiredRoute: '/app/timer',
+  },
+
+  // Part 7: Settings View
+  {
+    id: 'settings-view-nav',
+    title: 'Settings & Preferences',
+    description: 'Finally, let\'s check out the Settings page where you can customize your experience. We\'ll navigate there now!',
+    targetSelector: '[data-tutorial="nav-link-settings"]',
+    position: 'center',
+    requiredRoute: '/app/settings',
+    autoNavigate: true,
+  },
+  {
+    id: 'settings-view-overview',
+    title: 'Customize Your Workspace',
+    description: 'In Settings, you can update your profile, manage preferences, customize the interface, and restart this tutorial anytime. Make this workspace truly yours!',
+    position: 'center',
+    requiredRoute: '/app/settings',
+  },
+
+  // Part 8: Completion
   {
     id: 'complete',
-    title: 'You\'re All Set! ',
-    description: 'You now know how to use all three views: List for quick access, Board for workflow tracking, and Calendar for deadline management. Start creating tasks and stay organized!',
+    title: 'You\'re All Set! 🎉',
+    description: 'You now know how to use all the features: List for quick access, Board for workflow tracking, Calendar for deadlines, Review for insights, Timer for focus, and Settings for customization. Start organizing and be productive!',
     position: 'center',
   },
 ]

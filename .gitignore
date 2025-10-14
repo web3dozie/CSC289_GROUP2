@@ -8,6 +8,7 @@ node_modules/
 frontend/node_modules/
 taskline.db
 taskline.db*
+carranza-test-suite
 
 # Dependencies
 npm-debug.log*

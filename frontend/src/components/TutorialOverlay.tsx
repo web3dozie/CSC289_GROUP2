@@ -194,6 +194,7 @@ export const TutorialOverlay: React.FC = () => {
   const isFirstStep = currentStepIndex === 0
   const isLastStep = currentStepIndex === totalSteps - 1
   const isCenterPosition = currentStep.position === 'center' || !currentStep.targetSelector
+  const shouldShowHighlight = targetElement && currentStep.targetSelector
 
   return (
     <>
@@ -203,8 +204,8 @@ export const TutorialOverlay: React.FC = () => {
         aria-hidden="true"
       />
 
-      {/* Highlight for target element */}
-      {targetElement && !isCenterPosition && (
+      {/* Highlight for target element - now shows even when tooltip is centered */}
+      {shouldShowHighlight && (
         <div
           className="fixed z-[10000] pointer-events-none"
           style={{
