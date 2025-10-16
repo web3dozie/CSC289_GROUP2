@@ -11,10 +11,13 @@ ${PINCODE1}     987654
 ${TASK}        Create User Story
 ${Taskadd}     Review PR Today
 ${TASK2}       Set an Alarm
+${MOVE_TASK_TITLE}    Move Board Task
+${DRAG_TASK_TITLE}    Drag Drop Story
 ${Describe}    Please try do it ASAP
 ${Date}     01022026
 ${time}      120
-${timeout}  5m
+${timeout}  6m
+${autolock_minutes}    5
 
 *** Test Cases ***
 Create User Account
@@ -62,82 +65,95 @@ Logout
     [Tags]  logout
     Open Application
     Wait Until Element Is Visible    id:username
-    Log In With pin
+    Login With PIN
     Logout
+    [Teardown]    Close Browser
 
 Data Persistence
     [Tags]  data-persistence
     Open Application
-    Login With pin
+    Login With PIN
     Add Task
     Logout
     Sleep   10
-    Login With Pin
+    Login With PIN
     Verify Data Persisted
+    [Teardown]    Close Browser
 
 Move Task
     [Tags]  move-task
     Open Application
-    Login With pin
+    Login With PIN
+    Add Task    ${MOVE_TASK_TITLE}
     Move Task
+    [Teardown]    Close Browser
 
 Drag Drop Task
     [Tags]  drag-drop
     Open Application
-    Login With pin
-    Drag Drop
+    Login With PIN
+    Add Task    ${DRAG_TASK_TITLE}
+    Drag Drop    ${DRAG_TASK_TITLE}
+    [Teardown]    Close Browser
 
 Data Segregation
     [Tags]  data-seg
     Open Application
-    Sleep   10
-    Login With pin
-    Sleep   10
+    Login With PIN
     Add Task
-    Sleep   10
     Logout
     Open Application
-    Sleep   10
     Segregation Flow
-    Sleep   10
+    [Teardown]    Close Browser
 
 Auto Lock Flow
     [Tags]      autolock-unlock
     Open Application
-    Login With pin
+    Login With PIN
+    Set Auto Lock Timer
     Wait For Auto Lock
+    [Teardown]    Close Browser
 
 *** Keywords ***
 Open Application
     open browser    ${URL}      ${browser}
     maximize browser window
+    Wait Until Element Is Visible   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']    10s
     Click Element   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']
     Wait Until Location Contains    /login      timeout=10s
  
  Sign Up User
     Wait Until Page Contains    Set up your account    10s
+    Wait Until Element Is Visible   xpath://a[normalize-space()='Set up your account']    10s
     Click Element   xpath://a[normalize-space()='Set up your account']
     Wait Until Page Contains    Set Up Task Line    10s
     Input Text      id:username   ${USERNAME}
     Input Text      xpath://input[@id='pin']   ${PINCODE}
     Input Text      xpath://input[@id='confirmPin']    ${PINCODE}
     Click Element   xpath://button[normalize-space()='Set Up Account']
-    Sleep   5s
     Wait Until Location Contains    /app    timeout=10s
 
  Login With PIN
     Wait Until Page Contains    Welcome Back    10s
+    Wait Until Element Is Visible    id:username    10s
     Input Text    id:username   ${USERNAME}
+    Sleep    0.5s
+    Wait Until Element Is Visible    xpath://input[@id='pin']    10s
     Input Text    xpath://input[@id='pin']    ${PINCODE}
+    Sleep    0.5s
+    Wait Until Element Is Enabled    xpath://button[normalize-space()='Unlock App']    10s
+    Sleep    0.3s
     Click Button    xpath://button[normalize-space()='Unlock App']
     Wait Until Location Contains    /app    timeout=10s
 
 Add Task
+    [Arguments]    ${title}=${TASK}    ${description}=${Describe}
     Click Element   xpath://a[normalize-space()='List']
     Wait Until Page Contains    New Task    10s
     Click Element   xpath://button[normalize-space()='New Task']
-    Input Text  xpath://input[@id='task-title']     ${TASK}
-    Input Text      id:task-description     ${Describe}
+    Wait Until Element Is Visible    xpath://input[@id='task-title']    10s
+    Input Text  xpath://input[@id='task-title']     ${title}
+    Input Text      id:task-description     ${description}
     Click Button    id:task-priority
     Input Text    id:task-due-date     ${Date}
     Input Text    id:task-estimate      ${time}
@@ -170,12 +186,22 @@ Toggle DarkLight
     Click Element   xpath://div[normalize-space()='Auto']
 
 Wait For Auto Lock
-    Sleep   ${TIMEOUT}
-    Wait Until Element Is Visible   id:pin  timeout=10s
+    Wait Until Element Is Visible   id:pin    timeout=${timeout}
     Input Text    id:pin         ${PINCODE}
     Click Button    xpath://button[normalize-space()='Unlock']
     Wait Until Location Contains    /app    timeout=10s
-    Log    🔓 Successfully unlocked after auto lock
+    Log    Successfully unlocked after auto lock
+
+Set Auto Lock Timer
+    Click Element   xpath://a[normalize-space()='Settings']
+    Wait Until Page Contains    Security    10s
+    Wait Until Element Is Visible    xpath://select[contains(@class, 'max-w-xs')]    10s
+    Select From List By Value    xpath://select[contains(@class, 'max-w-xs')]    ${autolock_minutes}
+    Sleep    0.5s
+    Wait Until Element Is Visible    xpath://button[normalize-space()='Save Settings']    10s
+    Click Element    xpath://button[normalize-space()='Save Settings']
+    Sleep    1s
+    Log    Auto-lock set to ${autolock_minutes} minute(s)
 
 Logout
     Click Element    xpath=/html/body/div/div/aside/div/section/div/button
@@ -183,31 +209,36 @@ Logout
 Verify Data Persisted
     Click Element       xpath://a[normalize-space()='List']
     Wait Until Page Contains    ${TASK}    10s
-    Log    ✅ Task persisted after logout and relogin
+    Log    Task persisted after logout and relogin
 
 Move Task
     Click Element   xpath://a[normalize-space()='Board']
     Wait Until Page Contains    Task Board    10s
+    Wait Until Element Is Visible    xpath://div[.//button[contains(text(),'Move Forward →')]]//button[contains(text(),'Move Forward →')]    10s
     Click Button   xpath://div[.//button[contains(text(),'Move Forward →')]]//button[contains(text(),'Move Forward →')]
 
 Drag Drop
+    [Arguments]    ${task_title}=${TASK}
     Click Element   xpath://a[normalize-space()='Board']
     Wait Until Page Contains    To Do  timeout=10s
-    Drag and Drop   xpath=//*[contains(normalize-space(.), 'Create User Story')]    xpath://h3[normalize-space()='In Progress']
+    Wait Until Element Is Visible    xpath=//*[contains(normalize-space(.), '${task_title}')]    10s
+    Drag and Drop   xpath=//*[contains(normalize-space(.), '${task_title}')]    xpath://h3[normalize-space()='In Progress']
     
 Segregation Flow
     Wait Until Page Contains    Set up your account    10s
+    Wait Until Element Is Visible   xpath://a[normalize-space()='Set up your account']    10s
     Click Element   xpath://a[normalize-space()='Set up your account']
     Wait Until Page Contains    Set Up Task Line    10s
     Input Text      id:username     ${USERNAME1}
     Input Text      xpath://input[@id='pin']    ${PINCODE1}
     Input Text      xpath://input[@id='confirmPin']     ${PINCODE1}
     Click Element   xpath://button[normalize-space()='Set Up Account']
-    Wait Until Page Contains    Task Line    10s
-    Sleep   10
+    Wait Until Location Contains    /app    timeout=10s
+    Wait Until Element Is Visible   xpath://a[normalize-space()='List']    10s
     Click Element   xpath://a[normalize-space()='List']
     Wait Until Page Contains    Tasks    10s
     Click Element   xpath://button[normalize-space()='New Task']
+    Wait Until Element Is Visible    xpath://input[@id='task-title']    10s
     Input Text  xpath://input[@id='task-title']     ${TASK2}
     Input Text      id:task-description     ${Describe}
     Click Button    id:task-priority
@@ -215,3 +246,4 @@ Segregation Flow
     Input Text    id:task-estimate      ${time}
     Click Button  xpath://button[normalize-space()='Create Task']
     Should Not Contain      ${TASK2}    ${TASK}
+    
