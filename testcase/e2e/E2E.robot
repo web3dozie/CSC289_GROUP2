@@ -4,14 +4,14 @@ Library     SeleniumLibrary
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
-${USERNAME}    testuser52
-${PINCODE}     1234
-${USERNAME1}    userA
+${USERNAME}    testuser115
+${PINCODE}     987654
+${USERNAME1}    user115
 ${PINCODE1}     987654
 ${TASK}        Create User Story
-${Taskadd}     Review PR today
-${TASK2}       Set an alarm
-${Describe}    Please do it today
+${Taskadd}     Review PR Today
+${TASK2}       Set an Alarm
+${Describe}    Please try do it ASAP
 ${Date}     01022026
 ${time}      120
 ${timeout}  5m
@@ -23,19 +23,12 @@ Create User Account
     Sign Up User
     [Teardown]    Close Browser
 
-Login To TMS
+Login
     [Tags]      login
     Open Application
     Wait Until Element Is Visible    id:username
     Login With PIN
     [Teardown]    Close Browser
-
-Logout from TMS
-    [Tags]  logout
-    Open Application
-    Wait Until Element Is Visible    id:username
-    Log In With pin
-    Logout
 
 Create Task
     [Tags]      create-task
@@ -65,16 +58,12 @@ Toggle Theme
     Toggle DarkLight
     [Teardown]    Close Browser
 
-Wait for autolock
-    [Tags]      autolock
+Logout
+    [Tags]  logout
     Open Application
-    Sleep   10
-    Login With pin
-    Sleep   10
-    Auto Lock Flow
-    
-Unlock App
-    Login With PIN
+    Wait Until Element Is Visible    id:username
+    Log In With pin
+    Logout
 
 Data Persistence
     [Tags]  data-persistence
@@ -82,6 +71,7 @@ Data Persistence
     Login With pin
     Add Task
     Logout
+    Sleep   10
     Login With Pin
     Verify Data Persisted
 
@@ -100,12 +90,22 @@ Drag Drop Task
 Data Segregation
     [Tags]  data-seg
     Open Application
+    Sleep   10
     Login With pin
+    Sleep   10
     Add Task
+    Sleep   10
     Logout
     Open Application
-    Data Segregation
-    [Teardown]    Close Browser
+    Sleep   10
+    Segregation Flow
+    Sleep   10
+
+Auto Lock Flow
+    [Tags]      autolock-unlock
+    Open Application
+    Login With pin
+    Wait For Auto Lock
 
 *** Keywords ***
 Open Application
@@ -122,6 +122,7 @@ Open Application
     Input Text      xpath://input[@id='pin']   ${PINCODE}
     Input Text      xpath://input[@id='confirmPin']    ${PINCODE}
     Click Element   xpath://button[normalize-space()='Set Up Account']
+    Sleep   5s
     Wait Until Location Contains    /app    timeout=10s
 
  Login With PIN
@@ -168,9 +169,13 @@ Toggle DarkLight
     Click Element   xpath://div[normalize-space()='Light']
     Click Element   xpath://div[normalize-space()='Auto']
 
-Auto Lock Flow
-    Log    🕒 Waiting for ${TIMEOUT} of inactivity
+Wait For Auto Lock
     Sleep   ${TIMEOUT}
+    Wait Until Element Is Visible   id:pin  timeout=10s
+    Input Text    id:pin         ${PINCODE}
+    Click Button    xpath://button[normalize-space()='Unlock']
+    Wait Until Location Contains    /app    timeout=10s
+    Log    🔓 Successfully unlocked after auto lock
 
 Logout
     Click Element    xpath=/html/body/div/div/aside/div/section/div/button
@@ -187,17 +192,21 @@ Move Task
 
 Drag Drop
     Click Element   xpath://a[normalize-space()='Board']
-    drag and Drop   xpath://article[@aria-label='Task: it is my new, pending, , high priority, due Oct 14']      xpath://h3[normalize-space()='In Progress']
-
-Data Segregation
-    Wait Until Page Contains    Welcome Back    10s
-    Input Text    id:username   ${USERNAME1}
-    Input Text    xpath://input[@id='pin']    ${PINCODE1}
-    Click Button    xpath://button[normalize-space()='Unlock App']
-    Wait Until Location Contains    /app    timeout=10s
-    Wait Until Page Contains    List    10s
+    Wait Until Page Contains    To Do  timeout=10s
+    Drag and Drop   xpath=//*[contains(normalize-space(.), 'Create User Story')]    xpath://h3[normalize-space()='In Progress']
+    
+Segregation Flow
+    Wait Until Page Contains    Set up your account    10s
+    Click Element   xpath://a[normalize-space()='Set up your account']
+    Wait Until Page Contains    Set Up Task Line    10s
+    Input Text      id:username     ${USERNAME1}
+    Input Text      xpath://input[@id='pin']    ${PINCODE1}
+    Input Text      xpath://input[@id='confirmPin']     ${PINCODE1}
+    Click Element   xpath://button[normalize-space()='Set Up Account']
+    Wait Until Page Contains    Task Line    10s
+    Sleep   10
     Click Element   xpath://a[normalize-space()='List']
-    Wait Until Page Contains    New Task    10s
+    Wait Until Page Contains    Tasks    10s
     Click Element   xpath://button[normalize-space()='New Task']
     Input Text  xpath://input[@id='task-title']     ${TASK2}
     Input Text      id:task-description     ${Describe}
@@ -205,4 +214,4 @@ Data Segregation
     Input Text    id:task-due-date     ${Date}
     Input Text    id:task-estimate      ${time}
     Click Button  xpath://button[normalize-space()='Create Task']
-    Should Not Contain    ${TASK2}    ${TASK}
+    Should Not Contain      ${TASK2}    ${TASK}
