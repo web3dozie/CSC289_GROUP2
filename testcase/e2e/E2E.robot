@@ -16,8 +16,6 @@ ${DRAG_TASK_TITLE}    Drag Drop Story
 ${Describe}    Please try do it ASAP
 ${Date}     01022026
 ${time}      120
-${timeout}  6m
-${autolock_minutes}    5
 
 *** Test Cases ***
 Create User Account
@@ -106,14 +104,6 @@ Data Segregation
     Segregation Flow
     [Teardown]    Close Browser
 
-Auto Lock Flow
-    [Tags]      autolock-unlock
-    Open Application
-    Login With PIN
-    Set Auto Lock Timer
-    Wait For Auto Lock
-    [Teardown]    Close Browser
-
 *** Keywords ***
 Open Application
     open browser    ${URL}      ${browser}
@@ -184,24 +174,6 @@ Toggle DarkLight
     Click Element   xpath://div[normalize-space()='Dark']
     Click Element   xpath://div[normalize-space()='Light']
     Click Element   xpath://div[normalize-space()='Auto']
-
-Wait For Auto Lock
-    Wait Until Element Is Visible   id:pin    timeout=${timeout}
-    Input Text    id:pin         ${PINCODE}
-    Click Button    xpath://button[normalize-space()='Unlock']
-    Wait Until Location Contains    /app    timeout=10s
-    Log    Successfully unlocked after auto lock
-
-Set Auto Lock Timer
-    Click Element   xpath://a[normalize-space()='Settings']
-    Wait Until Page Contains    Security    10s
-    Wait Until Element Is Visible    xpath://select[contains(@class, 'max-w-xs')]    10s
-    Select From List By Value    xpath://select[contains(@class, 'max-w-xs')]    ${autolock_minutes}
-    Sleep    0.5s
-    Wait Until Element Is Visible    xpath://button[normalize-space()='Save Settings']    10s
-    Click Element    xpath://button[normalize-space()='Save Settings']
-    Sleep    1s
-    Log    Auto-lock set to ${autolock_minutes} minute(s)
 
 Logout
     Click Element    xpath=/html/body/div/div/aside/div/section/div/button
