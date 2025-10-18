@@ -50,17 +50,17 @@ export const TutorialOverlay: React.FC = () => {
       // Scroll element into view
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       
-      // Calculate tooltip position
+      // Calculate tooltip position with better height estimation
       const rect = element.getBoundingClientRect()
       const tooltipWidth = 320
-      const tooltipHeight = 200
+      const tooltipMinHeight = 350 // Increased to account for all content including buttons
       
       let top = rect.top
       let left = rect.left
 
       switch (currentStep.position) {
         case 'top':
-          top = rect.top - tooltipHeight - 20
+          top = rect.top - tooltipMinHeight - 20
           left = rect.left + (rect.width / 2) - (tooltipWidth / 2)
           break
         case 'bottom':
@@ -68,22 +68,23 @@ export const TutorialOverlay: React.FC = () => {
           left = rect.left + (rect.width / 2) - (tooltipWidth / 2)
           break
         case 'left':
-          top = rect.top + (rect.height / 2) - (tooltipHeight / 2)
+          top = rect.top + (rect.height / 2) - (tooltipMinHeight / 2)
           left = rect.left - tooltipWidth - 20
           break
         case 'right':
-          top = rect.top + (rect.height / 2) - (tooltipHeight / 2)
+          top = rect.top + (rect.height / 2) - (tooltipMinHeight / 2)
           left = rect.right + 20
           break
         default:
           // Center position
-          top = window.innerHeight / 2 - tooltipHeight / 2
+          top = window.innerHeight / 2 - tooltipMinHeight / 2
           left = window.innerWidth / 2 - tooltipWidth / 2
       }
 
-      // Ensure tooltip stays within viewport
-      top = Math.max(20, Math.min(top, window.innerHeight - tooltipHeight - 20))
-      left = Math.max(20, Math.min(left, window.innerWidth - tooltipWidth - 20))
+      // Ensure tooltip stays within viewport with more padding from edges
+      const viewportPadding = 40 // Increased padding to prevent hiding behind taskbar
+      top = Math.max(viewportPadding, Math.min(top, window.innerHeight - tooltipMinHeight - viewportPadding))
+      left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipWidth - viewportPadding))
 
       setTooltipPosition({ top, left })
     }
@@ -223,7 +224,7 @@ export const TutorialOverlay: React.FC = () => {
       {/* Tutorial tooltip */}
       <div
         ref={tooltipRef}
-        className={`fixed z-[10001] bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 max-w-sm ${
+        className={`fixed z-[10001] bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 max-w-sm max-h-[calc(100vh-80px)] overflow-y-auto ${
           isDragging ? 'cursor-grabbing' : ''
         }`}
         style={isCenterPosition ? {

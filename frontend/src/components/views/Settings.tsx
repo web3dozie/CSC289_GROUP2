@@ -56,6 +56,9 @@ export const Settings: React.FC = () => {
   const [showNewPin, setShowNewPin] = useState(false)
   const [showConfirmPin, setShowConfirmPin] = useState(false)
 
+  // Track unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
   // Update local state when settings load
   React.useEffect(() => {
     if (settings) {
@@ -67,6 +70,20 @@ export const Settings: React.FC = () => {
       setAiUrl(settings.ai_url || '')
     }
   }, [settings])
+
+  // Track if settings have unsaved changes
+  React.useEffect(() => {
+    if (settings) {
+      const hasChanges = 
+        themeForm !== settings.theme ||
+        autoLockMinutes !== settings.auto_lock_minutes.toString() ||
+        notesEnabled !== settings.notes_enabled ||
+        timerEnabled !== settings.timer_enabled ||
+        aiUrl !== (settings.ai_url || '')
+      
+      setHasUnsavedChanges(hasChanges)
+    }
+  }, [themeForm, autoLockMinutes, notesEnabled, timerEnabled, aiUrl, settings])
 
   const handleSaveSettings = async () => {
     const updates: Partial<UserSettings> = {
@@ -81,6 +98,10 @@ export const Settings: React.FC = () => {
       console.log('Saving settings:', updates)
       const result = await updateSettings.mutateAsync(updates)
       console.log('Settings saved successfully:', result)
+      
+      // Ensure theme context is synced after save
+      setThemeContext(themeForm)
+      
       alert('Settings saved successfully!')
     } catch (error) {
       console.error('Failed to save settings:', error)
@@ -434,10 +455,14 @@ export const Settings: React.FC = () => {
             <button
               onClick={handleSaveSettings}
               disabled={updateSettings.isPending}
-              className="inline-flex items-center px-6 py-3 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className={`inline-flex items-center px-6 py-3 text-white text-sm font-medium rounded-md transition-colors ${
+                hasUnsavedChanges 
+                  ? 'bg-purple-600 hover:bg-purple-700' 
+                  : 'bg-gray-400 cursor-not-allowed'
+              } disabled:bg-gray-400 disabled:cursor-not-allowed`}
             >
               <Save className="w-4 h-4 mr-2" />
-              {updateSettings.isPending ? 'Saving...' : 'Save Settings'}
+              {updateSettings.isPending ? 'Saving...' : hasUnsavedChanges ? 'Save Settings' : 'Settings Saved'}
             </button>
           </div>
         </div>

@@ -37,15 +37,18 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
   // Check if tutorial should auto-start for first-time users
   useEffect(() => {
     const tutorialCompleted = localStorage.getItem(TUTORIAL_COMPLETED_KEY)
-    const tutorialWasActive = sessionStorage.getItem(TUTORIAL_ACTIVE_KEY)
     
-    // Auto-start tutorial if it's never been completed and wasn't active in this session
-    if (!tutorialCompleted && !tutorialWasActive) {
+    // Auto-start tutorial if it's never been completed
+    if (!tutorialCompleted) {
       // Delay to allow the app to render first
       const timer = setTimeout(() => {
-        setIsActive(true)
-        sessionStorage.setItem(TUTORIAL_ACTIVE_KEY, 'true')
-      }, 1000)
+        const tutorialWasActive = sessionStorage.getItem(TUTORIAL_ACTIVE_KEY)
+        // Only start if not already active to prevent double-starting
+        if (!tutorialWasActive) {
+          setIsActive(true)
+          sessionStorage.setItem(TUTORIAL_ACTIVE_KEY, 'true')
+        }
+      }, 1500) // Increased delay to 1.5s for better UX
       return () => clearTimeout(timer)
     }
   }, [])

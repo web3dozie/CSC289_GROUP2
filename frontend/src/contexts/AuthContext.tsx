@@ -128,6 +128,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null)
       const result = await setupMutation.mutateAsync(data)
       setUser({ id: result.user.id, username: result.user.username })
+      
+      // Clear any previous tutorial state and trigger tutorial on first login
+      localStorage.removeItem('taskline_tutorial_completed')
+      sessionStorage.removeItem('taskline_tutorial_active')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Setup failed'
       setError(message)
