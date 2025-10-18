@@ -288,8 +288,11 @@ async def weekly_summary():
         days_in_week = 7
         average_daily = total_completed / days_in_week if days_in_week > 0 else 0
 
-        # Daily breakdown (exclude archived)
-        daily_breakdown = {}
+        # Daily breakdown - ensure proper weekday order (exclude archived)
+        daily_breakdown = []
+        max_count = 0
+        most_productive_day = None
+        
         for i in range(7):
             day = start_of_week + timedelta(days=i)
             result = await s.execute(
@@ -300,10 +303,18 @@ async def weekly_summary():
                     Task.archived == False
                 )
             )
-            daily_breakdown[day.strftime('%A')] = result.scalar_one()
-
-        # Most productive day
-        most_productive_day = max(daily_breakdown.items(), key=lambda x: x[1])[0] if daily_breakdown else None
+            count = result.scalar_one()
+            day_name = day.strftime('%A')
+            daily_breakdown.append({
+                'day': day_name,
+                'count': count,
+                'date': day.isoformat()
+            })
+            
+            # Track most productive day
+            if count > max_count:
+                max_count = count
+                most_productive_day = day_name
 
         # Total time spent (estimate_minutes field doesn't exist in new schema)
         total_time = 0  # Convert to hours

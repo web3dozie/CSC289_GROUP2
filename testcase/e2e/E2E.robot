@@ -139,11 +139,13 @@ Open Application
 Add Task
     [Arguments]    ${title}=${TASK}    ${description}=${Describe}
     Click Element   xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
     Wait Until Page Contains    New Task    10s
     Click Element   xpath://button[normalize-space()='New Task']
     Wait Until Element Is Visible    xpath://input[@id='task-title']    10s
     Input Text  xpath://input[@id='task-title']     ${title}
     Input Text      id:task-description     ${description}
+    Skip Tutorial If Present
     Click Button    id:task-priority
     Input Text    id:task-due-date     ${Date}
     Input Text    id:task-estimate      ${time}
@@ -151,6 +153,7 @@ Add Task
 
 Edit Existing Task
     Click Element       xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
     Wait Until Page Contains    Tasks    10s
     Click Element       xpath=/html[1]/body[1]/div[1]/div[1]/div[1]/main[1]/div[1]/div[2]/div[1]/div[2]/article[1]/header[1]/div[2]/button[1]/*[name()='svg'][1]
     Wait Until Page Contains Element    xpath://button[normalize-space()='Edit']    10s
@@ -163,6 +166,7 @@ Edit Existing Task
 
 Delete Task
     Click Element   xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
     Wait Until Page Contains    Tasks    10s
     Click Element   xpath:/html[1]/body[1]/div[1]/div[1]/div[1]/main[1]/div[1]/div[2]/div[1]/div[2]/article[1]/header[1]/div[2]/button[1]/*[name()='svg'][1]/*[name()='circle'][1]
     Click Element   xpath://button[normalize-space()='Delete']
@@ -180,11 +184,13 @@ Logout
 
 Verify Data Persisted
     Click Element       xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
     Wait Until Page Contains    ${TASK}    10s
     Log    Task persisted after logout and relogin
 
 Move Task
     Click Element   xpath://a[normalize-space()='Board']
+    Skip Tutorial If Present
     Wait Until Page Contains    Task Board    10s
     Wait Until Element Is Visible    xpath://div[.//button[contains(text(),'Move Forward →')]]//button[contains(text(),'Move Forward →')]    10s
     Click Button   xpath://div[.//button[contains(text(),'Move Forward →')]]//button[contains(text(),'Move Forward →')]
@@ -192,6 +198,7 @@ Move Task
 Drag Drop
     [Arguments]    ${task_title}=${TASK}
     Click Element   xpath://a[normalize-space()='Board']
+    Skip Tutorial If Present
     Wait Until Page Contains    To Do  timeout=10s
     Wait Until Element Is Visible    xpath=//*[contains(normalize-space(.), '${task_title}')]    10s
     Drag and Drop   xpath=//*[contains(normalize-space(.), '${task_title}')]    xpath://h3[normalize-space()='In Progress']
@@ -208,14 +215,21 @@ Segregation Flow
     Wait Until Location Contains    /app    timeout=10s
     Wait Until Element Is Visible   xpath://a[normalize-space()='List']    10s
     Click Element   xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
     Wait Until Page Contains    Tasks    10s
     Click Element   xpath://button[normalize-space()='New Task']
     Wait Until Element Is Visible    xpath://input[@id='task-title']    10s
     Input Text  xpath://input[@id='task-title']     ${TASK2}
     Input Text      id:task-description     ${Describe}
+    Skip Tutorial If Present
     Click Button    id:task-priority
     Input Text    id:task-due-date     ${Date}
     Input Text    id:task-estimate      ${time}
     Click Button  xpath://button[normalize-space()='Create Task']
     Should Not Contain      ${TASK2}    ${TASK}
+
+Skip Tutorial If Present
+    ${tutorial_present}=    Run Keyword And Return Status    Wait Until Element Is Visible    xpath://button[@aria-label='Skip tutorial']    2s
+    Run Keyword If    ${tutorial_present}    Click Button    xpath://button[@aria-label='Skip tutorial']
+    Sleep    0.5s
     

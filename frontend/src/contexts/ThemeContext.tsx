@@ -24,7 +24,7 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const { data: settings } = useSettings()
+  const { data: settings } = useSettings() // Fetch settings without auth check
   const [theme, setThemeState] = useState<Theme>(() => {
     // Load from localStorage first for immediate theme application
     const stored = localStorage.getItem('theme') as Theme

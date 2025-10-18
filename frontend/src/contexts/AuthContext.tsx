@@ -38,8 +38,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLocked, setIsLocked] = useState(false)
   const [lastActivity, setLastActivity] = useState<number>(Date.now())
 
-  // Settings for auto-lock
-  const { data: settings } = useSettings()
+  // Settings for auto-lock - only fetch when user is authenticated
+  const { data: settings } = useSettings(!!user && !isLoading)
 
   // Refs for timers
   const autoLockTimerRef = useRef<number | null>(null)
@@ -105,13 +105,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setError(null)
-      await logoutMutation.mutateAsync()
+      // Clear user state first to immediately disable authenticated queries
+      const previousUser = user
       setUser(null)
+      
+      try {
+        await logoutMutation.mutateAsync()
+      } catch (error) {
+        // If logout fails, restore user state
+        setUser(previousUser)
+        throw error
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Logout failed'
       setError(message)
-      // Still clear user state even if logout request fails
-      setUser(null)
       throw error
     }
   }
@@ -121,6 +128,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null)
       const result = await setupMutation.mutateAsync(data)
       setUser({ id: result.user.id, username: result.user.username })
+      
+      // Clear any previous tutorial state and trigger tutorial on first login
+      localStorage.removeItem('taskline_tutorial_completed')
+      sessionStorage.removeItem('taskline_tutorial_active')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Setup failed'
       setError(message)

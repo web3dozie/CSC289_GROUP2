@@ -6,6 +6,7 @@ import { router } from './routes/__root'
 import { queryClient } from './lib/queryClient'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { TutorialProvider } from './contexts/TutorialContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 
@@ -15,7 +16,9 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ThemeProvider>
-            <RouterProvider router={router} />
+            <TutorialProvider>
+              <RouterProvider router={router} />
+            </TutorialProvider>
           </ThemeProvider>
         </AuthProvider>
       </QueryClientProvider>

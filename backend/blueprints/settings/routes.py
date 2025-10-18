@@ -49,23 +49,36 @@ async def update_settings():
     if not data:
         raise ValidationError("No data provided")
     
+    # Require authenticated session
+    if 'user_id' not in session:
+        raise AuthenticationError('Authentication required')
+    
+    user_id = session['user_id']
+    
     try:
-        settings = await get_settings()
-
-        if "notes_enabled" in data:
-            settings.notes_enabled = bool(data["notes_enabled"])
-        if "timer_enabled" in data:
-            settings.timer_enabled = bool(data["timer_enabled"])
-        if "ai_url" in data:
-            settings.ai_url = data["ai_url"]
-        if "auto_lock_minutes" in data:
-            settings.auto_lock_minutes = int(data["auto_lock_minutes"])
-        if "theme" in data:
-            settings.theme = data["theme"]
-
         async with AsyncSessionLocal() as s:
-            await s.merge(settings)
+            # Fetch settings within the same session we'll use for updating
+            result = await s.execute(select(Configuration).filter_by(user_id=user_id))
+            settings = result.scalars().first()
+            
+            if not settings:
+                settings = Configuration(user_id=user_id)
+                s.add(settings)
+            
+            # Update fields
+            if "notes_enabled" in data:
+                settings.notes_enabled = bool(data["notes_enabled"])
+            if "timer_enabled" in data:
+                settings.timer_enabled = bool(data["timer_enabled"])
+            if "ai_url" in data:
+                settings.ai_url = data["ai_url"]
+            if "auto_lock_minutes" in data:
+                settings.auto_lock_minutes = int(data["auto_lock_minutes"])
+            if "theme" in data:
+                settings.theme = data["theme"]
+            
             await s.commit()
+            await s.refresh(settings)
             return success_response(settings.to_dict())
     except (ValidationError, AuthenticationError):
         raise  # Re-raise known errors
@@ -79,13 +92,26 @@ async def update_settings():
 async def update_notes():
     data = await request.get_json()
     
+    # Require authenticated session
+    if 'user_id' not in session:
+        raise AuthenticationError('Authentication required')
+    
+    user_id = session['user_id']
+    
     try:
-        settings = await get_settings()
-        if "enabled" in data:
-            settings.notes_enabled = bool(data["enabled"])
         async with AsyncSessionLocal() as s:
-            await s.merge(settings)
+            result = await s.execute(select(Configuration).filter_by(user_id=user_id))
+            settings = result.scalars().first()
+            
+            if not settings:
+                settings = Configuration(user_id=user_id)
+                s.add(settings)
+            
+            if "enabled" in data:
+                settings.notes_enabled = bool(data["enabled"])
+            
             await s.commit()
+            await s.refresh(settings)
             return success_response({"notes_enabled": settings.notes_enabled})
     except (ValidationError, AuthenticationError):
         raise  # Re-raise known errors
@@ -99,13 +125,26 @@ async def update_notes():
 async def update_timer():
     data = await request.get_json()
     
+    # Require authenticated session
+    if 'user_id' not in session:
+        raise AuthenticationError('Authentication required')
+    
+    user_id = session['user_id']
+    
     try:
-        settings = await get_settings()
-        if "enabled" in data:
-            settings.timer_enabled = bool(data["enabled"])
         async with AsyncSessionLocal() as s:
-            await s.merge(settings)
+            result = await s.execute(select(Configuration).filter_by(user_id=user_id))
+            settings = result.scalars().first()
+            
+            if not settings:
+                settings = Configuration(user_id=user_id)
+                s.add(settings)
+            
+            if "enabled" in data:
+                settings.timer_enabled = bool(data["enabled"])
+            
             await s.commit()
+            await s.refresh(settings)
             return success_response({"timer_enabled": settings.timer_enabled})
     except (ValidationError, AuthenticationError):
         raise  # Re-raise known errors
@@ -119,13 +158,26 @@ async def update_timer():
 async def update_ai_url():
     data = await request.get_json()
     
+    # Require authenticated session
+    if 'user_id' not in session:
+        raise AuthenticationError('Authentication required')
+    
+    user_id = session['user_id']
+    
     try:
-        settings = await get_settings()
-        if "url" in data:
-            settings.ai_url = data["url"]
         async with AsyncSessionLocal() as s:
-            await s.merge(settings)
+            result = await s.execute(select(Configuration).filter_by(user_id=user_id))
+            settings = result.scalars().first()
+            
+            if not settings:
+                settings = Configuration(user_id=user_id)
+                s.add(settings)
+            
+            if "url" in data:
+                settings.ai_url = data["url"]
+            
             await s.commit()
+            await s.refresh(settings)
             return success_response({"ai_url": settings.ai_url})
     except (ValidationError, AuthenticationError):
         raise  # Re-raise known errors
@@ -139,13 +191,26 @@ async def update_ai_url():
 async def update_auto_lock():
     data = await request.get_json()
     
+    # Require authenticated session
+    if 'user_id' not in session:
+        raise AuthenticationError('Authentication required')
+    
+    user_id = session['user_id']
+    
     try:
-        settings = await get_settings()
-        if "minutes" in data:
-            settings.auto_lock_minutes = int(data["minutes"])
         async with AsyncSessionLocal() as s:
-            await s.merge(settings)
+            result = await s.execute(select(Configuration).filter_by(user_id=user_id))
+            settings = result.scalars().first()
+            
+            if not settings:
+                settings = Configuration(user_id=user_id)
+                s.add(settings)
+            
+            if "minutes" in data:
+                settings.auto_lock_minutes = int(data["minutes"])
+            
             await s.commit()
+            await s.refresh(settings)
             return success_response({"auto_lock_minutes": settings.auto_lock_minutes})
     except (ValidationError, AuthenticationError):
         raise  # Re-raise known errors
@@ -159,13 +224,26 @@ async def update_auto_lock():
 async def update_theme():
     data = await request.get_json()
     
+    # Require authenticated session
+    if 'user_id' not in session:
+        raise AuthenticationError('Authentication required')
+    
+    user_id = session['user_id']
+    
     try:
-        settings = await get_settings()
-        if "theme" in data:
-            settings.theme = data["theme"]
         async with AsyncSessionLocal() as s:
-            await s.merge(settings)
+            result = await s.execute(select(Configuration).filter_by(user_id=user_id))
+            settings = result.scalars().first()
+            
+            if not settings:
+                settings = Configuration(user_id=user_id)
+                s.add(settings)
+            
+            if "theme" in data:
+                settings.theme = data["theme"]
+            
             await s.commit()
+            await s.refresh(settings)
             return success_response({"theme": settings.theme})
     except (ValidationError, AuthenticationError):
         raise  # Re-raise known errors
