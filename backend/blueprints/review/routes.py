@@ -156,7 +156,7 @@ async def daily_summary():
 
     try:
         async with AsyncSessionLocal() as s:
-            # Tasks completed on that day
+            # Tasks completed on that day (exclude archived)
             result = await s.execute(
                 select(func.count())
                 .select_from(Task)
@@ -164,35 +164,39 @@ async def daily_summary():
                     func.date(Task.created_on) == target_date,
                     Task.done == True,
                     Task.created_by == user_id,
+                    Task.archived == False
                 )
             )
             completed_tasks = result.scalar_one()
 
-            # Tasks created on that day
+            # Tasks created on that day (exclude archived)
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
                     func.date(Task.created_on) == target_date,
-                    Task.created_by == user_id
+                    Task.created_by == user_id,
+                    Task.archived == False
                 )
             )
             created_tasks = result.scalar_one()
 
-            # Overdue tasks (due date before today and not done)
+            # Overdue tasks (exclude archived)
             today = date.today()
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
                     Task.due_date < today,
                     Task.done == False,
-                    Task.created_by == user_id
+                    Task.created_by == user_id,
+                    Task.archived == False
                 )
             )
             overdue_tasks = result.scalar_one()
 
-            # In progress tasks (not done)
+            # In progress tasks (exclude archived)
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
                     Task.done == False,
-                    Task.created_by == user_id
+                    Task.created_by == user_id,
+                    Task.archived == False
                 )
             )
             in_progress_tasks = result.scalar_one()
@@ -200,7 +204,7 @@ async def daily_summary():
             # Time spent (since estimate_minutes field doesn't exist in new schema, set to 0)
             time_spent = 0
 
-            # Categories breakdown (using category_id instead of category string)
+            # Categories breakdown (exclude archived)
             try:
                 from backend.db.models import Category
             except ImportError:
@@ -212,7 +216,8 @@ async def daily_summary():
                 .where(
                     func.date(Task.created_on) == target_date,
                     Task.created_by == user_id,
-                    Task.category_id.isnot(None)
+                    Task.category_id.isnot(None),
+                    Task.archived == False
                 )
                 .group_by(Category.name)
             )
@@ -252,7 +257,7 @@ async def weekly_summary():
         return jsonify({'error': 'Authentication required'}), 401
 
     async with AsyncSessionLocal() as s:
-        # Tasks completed this week
+        # Tasks completed this week (exclude archived)
         result = await s.execute(
             select(func.count())
             .select_from(Task)
@@ -261,11 +266,12 @@ async def weekly_summary():
                 Task.created_on <= end_of_week + timedelta(days=1),
                 Task.done == True,
                 Task.created_by == user_id,
+                Task.archived == False
             )
         )
         total_completed = result.scalar_one()
 
-        # Total tasks created this week
+        # Total tasks created this week (exclude archived)
         result = await s.execute(
             select(func.count())
             .select_from(Task)
@@ -273,6 +279,7 @@ async def weekly_summary():
                 Task.created_on >= start_of_week,
                 Task.created_on <= end_of_week + timedelta(days=1),
                 Task.created_by == user_id,
+                Task.archived == False
             )
         )
         total_tasks = result.scalar_one()
@@ -281,26 +288,38 @@ async def weekly_summary():
         days_in_week = 7
         average_daily = total_completed / days_in_week if days_in_week > 0 else 0
 
-        # Daily breakdown
-        daily_breakdown = {}
+        # Daily breakdown - ensure proper weekday order (exclude archived)
+        daily_breakdown = []
+        max_count = 0
+        most_productive_day = None
+        
         for i in range(7):
             day = start_of_week + timedelta(days=i)
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
                     func.date(Task.created_on) == day,
                     Task.done == True,
-                    Task.created_by == user_id
+                    Task.created_by == user_id,
+                    Task.archived == False
                 )
             )
-            daily_breakdown[day.strftime('%A')] = result.scalar_one()
-
-        # Most productive day
-        most_productive_day = max(daily_breakdown.items(), key=lambda x: x[1])[0] if daily_breakdown else None
+            count = result.scalar_one()
+            day_name = day.strftime('%A')
+            daily_breakdown.append({
+                'day': day_name,
+                'count': count,
+                'date': day.isoformat()
+            })
+            
+            # Track most productive day
+            if count > max_count:
+                max_count = count
+                most_productive_day = day_name
 
         # Total time spent (estimate_minutes field doesn't exist in new schema)
         total_time = 0  # Convert to hours
 
-        # Category performance
+        # Category performance (exclude archived)
         from backend.db.models import Category
         result = await s.execute(
             select(Category.name, func.count(Task.id))
@@ -310,7 +329,8 @@ async def weekly_summary():
                 Task.created_on <= end_of_week + timedelta(days=1),
                 Task.done == True,
                 Task.created_by == user_id,
-                Task.category_id.isnot(None)
+                Task.category_id.isnot(None),
+                Task.archived == False
             )
             .group_by(Category.name)
         )
@@ -330,6 +350,7 @@ async def weekly_summary():
     })
 
 
+
 @review_bp.route("/api/review/insights", methods=["GET"])
 @auth_required
 async def get_insights():
@@ -339,14 +360,18 @@ async def get_insights():
         return jsonify({'error': 'Authentication required'}), 401
 
     async with AsyncSessionLocal() as s:
-        # Basic stats
-        result = await s.execute(select(func.count()).select_from(Task).where(Task.created_by == user_id))
+        # Basic stats (exclude archived)
+        result = await s.execute(
+            select(func.count())
+            .select_from(Task)
+            .where(Task.created_by == user_id, Task.archived == False)
+        )
         total_tasks = result.scalar_one()
 
         result = await s.execute(
             select(func.count())
             .select_from(Task)
-            .where(Task.done == True, Task.created_by == user_id)
+            .where(Task.done == True, Task.created_by == user_id, Task.archived == False)
         )
         completed_tasks = result.scalar_one()
 
@@ -358,19 +383,19 @@ async def get_insights():
         # Productivity score (based on completion rate and other factors)
         productivity_score = min(100, completion_rate * 1.2)  # Simple calculation
 
-        # Most productive day
+        # Most productive day (exclude archived)
         result = await s.execute(
             select(
                 func.date(Task.created_on).label("date"),
                 func.count(Task.id).label("count"),
             )
-            .where(Task.done == True, Task.created_by == user_id)
+            .where(Task.done == True, Task.created_by == user_id, Task.archived == False)
             .group_by(func.date(Task.created_on))
             .order_by(func.count(Task.id).desc())
         )
         productive_days = result.first()
 
-        # Performance trends (last 4 weeks)
+        # Performance trends (last 4 weeks, exclude archived)
         performance_trends = []
         for weeks_ago in range(4, 0, -1):
             week_start = date.today() - timedelta(days=date.today().weekday() + (weeks_ago * 7))
@@ -381,7 +406,8 @@ async def get_insights():
                     Task.created_on >= week_start,
                     Task.created_on <= week_end + timedelta(days=1),
                     Task.done == True,
-                    Task.created_by == user_id
+                    Task.created_by == user_id,
+                    Task.archived == False
                 )
             )
             weekly_completed = result.scalar_one()
@@ -438,3 +464,4 @@ async def get_insights():
         }
 
         return jsonify(insights)
+

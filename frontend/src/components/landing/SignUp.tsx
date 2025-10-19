@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTutorial } from '../../contexts/TutorialContext';
 
 const SignUp: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -11,6 +12,7 @@ const SignUp: React.FC = () => {
   const [showPin, setShowPin] = useState(false);
   const [showConfirmPin, setShowConfirmPin] = useState(false);
   const { setup, isLoading, error, clearError } = useAuth();
+  const { startTutorial } = useTutorial();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,6 +26,11 @@ const SignUp: React.FC = () => {
     try {
       await setup({ pin, username, email });
       navigate({ to: '/app' });
+      
+      // Start tutorial after successful signup and navigation
+      setTimeout(() => {
+        startTutorial();
+      }, 500);
     } catch (error) {
       // Error is handled by the auth context
     }

@@ -4,12 +4,14 @@ import { TimerControls } from '../timer/TimerControls'
 import { TaskSelector } from '../timer/TaskSelector'
 import { usePomodoroTimer } from '../../lib/hooks/timer'
 import { useSettings } from '../../lib/hooks'
+import { useAuth } from '../../contexts/AuthContext'
 
 export const PomodoroTimer: React.FC = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
   const [showCompletionAlert, setShowCompletionAlert] = useState(false)
 
-  const { data: settings } = useSettings()
+  const { isAuthenticated } = useAuth()
+  const { data: settings } = useSettings(isAuthenticated)
   const {
     timeLeft,
     totalTime,
