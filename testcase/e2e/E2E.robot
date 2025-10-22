@@ -4,9 +4,9 @@ Library     SeleniumLibrary
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
-${USERNAME}    testuser115
+${USERNAME}    testuser121
 ${PINCODE}     987654
-${USERNAME1}    user115
+${USERNAME1}    user121
 ${PINCODE1}     987654
 ${TASK}        Create User Story
 ${Taskadd}     Review PR Today
@@ -155,9 +155,7 @@ Edit Existing Task
     Click Element       xpath://a[normalize-space()='List']
     Skip Tutorial If Present
     Wait Until Page Contains    Tasks    10s
-    Click Element       xpath=/html[1]/body[1]/div[1]/div[1]/div[1]/main[1]/div[1]/div[2]/div[1]/div[2]/article[1]/header[1]/div[2]/button[1]/*[name()='svg'][1]
-    Wait Until Page Contains Element    xpath://button[normalize-space()='Edit']    10s
-    Click Button    xpath://button[normalize-space()='Edit']
+    Click Element    xpath://button[@data-tutorial='task-item-edit-button']//*[name()='svg']
     Wait Until Page Contains Element    xpath://input[@id='task-title']    10s
     Click Element       xpath://input[@id='task-title']
     Clear Element Text      xpath://input[@id='task-title']
@@ -168,16 +166,26 @@ Delete Task
     Click Element   xpath://a[normalize-space()='List']
     Skip Tutorial If Present
     Wait Until Page Contains    Tasks    10s
-    Click Element   xpath:/html[1]/body[1]/div[1]/div[1]/div[1]/main[1]/div[1]/div[2]/div[1]/div[2]/article[1]/header[1]/div[2]/button[1]/*[name()='svg'][1]/*[name()='circle'][1]
-    Click Element   xpath://button[normalize-space()='Delete']
+    Click Element   xpath://button[@data-tutorial='task-item-delete-button']
     Click Element   xpath://button[normalize-space()='Delete']
 
 Toggle DarkLight
+    Skip Tutorial If Present
     Click Element   xpath://a[normalize-space()='Settings']
-    Wait Until Page Contains    Appearance    10s
+    Wait Until Page Contains    Customize how Task Line looks and feels    10s
     Click Element   xpath://div[normalize-space()='Dark']
+    Click Element   xpath://button[normalize-space()='Save Settings']
+    Handle Alert    action=ACCEPT
+    Click Element   xpath://a[normalize-space()='Settings']
+    Wait Until Page Contains    Customize how Task Line looks and feels    10s
     Click Element   xpath://div[normalize-space()='Light']
+    Click Element   xpath://button[normalize-space()='Save Settings']
+    Handle Alert    action=ACCEPT
+    Click Element   xpath://a[normalize-space()='Settings']
+    Wait Until Page Contains    Customize how Task Line looks and feels    10s
     Click Element   xpath://div[normalize-space()='Auto']
+    Click Element   xpath://button[normalize-space()='Save Settings']
+    Handle Alert    action=ACCEPT
 
 Logout
     Click Element    xpath=/html/body/div/div/aside/div/section/div/button
