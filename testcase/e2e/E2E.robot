@@ -105,13 +105,13 @@ Data Segregation
     Segregation Flow
     [Teardown]    Close Browser
 
-Calender View
-    [Tags]  calender
+Calendar View
+    [Tags]  calendar
     Open Application
     Login With PIN
     Add Task
     Go To Calendar Page
-    Calender Task Verify    ${TASK}     {Date}
+    Calendar Task Verify    ${TASK}     {Date}
     Change Task Due Date From Calendar  ${Task}    ${Date}    ${NewDate}
     Verify Task Not In Old Date     ${Task}
     [Teardown]    Close Browser
@@ -257,7 +257,7 @@ Go To Calendar Page
     Click Element   xpath://a[normalize-space()='Calendar']
     Wait until page contains    Today
     
-Calender Task Verify
+Calendar Task Verify
     [Arguments]    ${TASK}    ${Date}
     ${locator}=    Set Variable    xpath=//div[@data-tutorial='calendar-event']
     Wait Until Page Contains Element    ${locator}
