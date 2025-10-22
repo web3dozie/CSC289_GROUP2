@@ -4,9 +4,9 @@ Library     SeleniumLibrary
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
-${USERNAME}    testuser121
+${USERNAME}    testuser123
 ${PINCODE}     987654
-${USERNAME1}    user121
+${USERNAME1}    user123
 ${PINCODE1}     987654
 ${TASK}        Create User Story
 ${Taskadd}     Review PR Today
@@ -14,8 +14,9 @@ ${TASK2}       Set an Alarm
 ${MOVE_TASK_TITLE}    Move Board Task
 ${DRAG_TASK_TITLE}    Drag Drop Story
 ${Describe}    Please try do it ASAP
-${Date}     01022026
+${Date}     10242025
 ${time}      120
+${NewDate}  10262025
 
 *** Test Cases ***
 Create User Account
@@ -102,6 +103,17 @@ Data Segregation
     Logout
     Open Application
     Segregation Flow
+    [Teardown]    Close Browser
+
+Calendar View
+    [Tags]  calendar
+    Open Application
+    Login With PIN
+    Add Task
+    Go To Calendar Page
+    Calendar Task Verify    ${TASK}     {Date}
+    Change Task Due Date From Calendar  ${Task}    ${Date}    ${NewDate}
+    Verify Task Not In Old Date     ${Task}
     [Teardown]    Close Browser
 
 *** Keywords ***
@@ -240,4 +252,30 @@ Skip Tutorial If Present
     ${tutorial_present}=    Run Keyword And Return Status    Wait Until Element Is Visible    xpath://button[@aria-label='Skip tutorial']    2s
     Run Keyword If    ${tutorial_present}    Click Button    xpath://button[@aria-label='Skip tutorial']
     Sleep    0.5s
+
+Go To Calendar Page
+    Click Element   xpath://a[normalize-space()='Calendar']
+    Wait until page contains    Today
     
+Calendar Task Verify
+    [Arguments]    ${TASK}    ${Date}
+    ${locator}=    Set Variable    xpath=//div[@data-tutorial='calendar-event']
+    Wait Until Page Contains Element    ${locator}
+    Log     Task '${TASK}' with due date '${Date}' is visible in calendar.
+
+Change Task Due Date From Calendar
+    [Arguments]    ${Task}    ${Date}    ${NewDate}
+    Click Element    xpath=//div[contains(@data-tutorial,'calendar-event') and contains(.,'${Task}')]
+    Sleep   10s
+    Click Element   xpath://input[@id='task-due-date']
+    Input Text  xpath=//input[@id='task-due-date']    ${NewDate}
+    Click Button    xpath://button[normalize-space()='Update Task']
+    Log To Console   Task '${Task}' due date changed from ${Date} to ${NewDate}.
+
+Verify Task Not In Old Date
+    [Arguments]    ${Task}
+    ${locator}=    Set Variable    xpath=//div[@data-date='${Date}']//div[@data-tutorial='calendar-event' and contains(.,'${Task}')]
+    Page Should Not Contain Element    ${locator}
+    Log To Console  Task '${Task}' correctly not displayed in calendar.
+
+
