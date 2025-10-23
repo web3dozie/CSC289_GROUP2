@@ -87,3 +87,121 @@ async def test_task_crud_workflow(client):
     error_data = await resp.get_json()
     assert error_data['success'] is False
     assert error_data['error']['code'] == 404
+
+
+@pytest.mark.asyncio
+async def test_export_data(client):
+    """Test exporting user data as JSON"""
+    # create user & authenticate
+    await create_user_and_login(client)
+
+    # create some test data
+    resp = await client.post('/api/tasks/', json={
+        'title': 'Export Test Task',
+        'description': 'Task for export testing',
+        'done': False
+    })
+    assert resp.status_code in (200, 201)
+
+    # export data
+    resp = await client.get('/api/export')
+    assert resp.status_code == 200
+    data = await resp.get_json()
+
+    # verify export structure
+    assert 'version' in data
+    assert 'exported_at' in data
+    assert 'tasks' in data
+    assert 'journal_entries' in data
+    assert 'settings' in data
+
+    assert isinstance(data['tasks'], list)
+    assert isinstance(data['journal_entries'], list)
+    assert isinstance(data['settings'], list)
+
+    # verify our test task is in the export
+    tasks = data['tasks']
+    assert len(tasks) >= 1
+    task_titles = [task['title'] for task in tasks]
+    assert 'Export Test Task' in task_titles
+
+
+@pytest.mark.asyncio
+async def test_import_data(client):
+    """Test importing user data from JSON"""
+    # create user & authenticate
+    await create_user_and_login(client)
+
+    # prepare import data
+    import_data = {
+        'version': '1.0',
+        'exported_at': '2025-10-23T16:00:00.000000',
+        'tasks': [{
+            'id': 999,
+            'title': 'Imported Task',
+            'description': 'Task imported from JSON',
+            'done': False,
+            'archived': False,
+            'priority': False,
+            'estimate_minutes': None,
+            'order': 0,
+            'due_date': '2025-10-25T00:00:00',
+            'created_at': '2025-10-23T15:00:00',
+            'updated_on': '2025-10-23T15:00:00',
+            'closed_on': None,
+            'created_by': 1  # will be overridden by current user
+        }],
+        'journal_entries': [{
+            'id': 999,
+            'user_id': 1,
+            'entry_date': '2025-10-23T00:00:00',
+            'content': 'Test journal entry',
+            'created_at': '2025-10-23T15:00:00',
+            'updated_on': '2025-10-23T15:00:00'
+        }],
+        'settings': [{
+            'id': 999,
+            'user_id': 1,
+            'notes_enabled': True,
+            'timer_enabled': False,
+            'ai_url': 'http://test.ai',
+            'auto_lock_minutes': 15,
+            'theme': 'dark',
+            'updated_on': '2025-10-23T15:00:00'
+        }]
+    }
+
+    # import data
+    resp = await client.post('/api/import', json=import_data)
+    assert resp.status_code == 200
+    data = await resp.get_json()
+
+    # verify import response
+    assert data['success'] is True
+    assert 'imported' in data
+    assert data['imported']['tasks'] >= 1
+    assert data['imported']['journal_entries'] >= 1
+    assert data['imported']['settings'] >= 1
+
+    # verify imported task exists
+    resp = await client.get('/api/tasks/')
+    assert resp.status_code == 200
+    tasks_data = await resp.get_json()
+    tasks = tasks_data['data']['tasks']
+    task_titles = [task['title'] for task in tasks]
+    assert 'Imported Task' in task_titles
+
+
+@pytest.mark.asyncio
+async def test_import_invalid_data(client):
+    """Test importing invalid data returns appropriate errors"""
+    # create user & authenticate
+    await create_user_and_login(client)
+
+    # test missing version
+    resp = await client.post('/api/import', json={'tasks': []})
+    assert resp.status_code == 400
+
+    # test invalid JSON structure
+    resp = await client.post('/api/import', json={'version': '1.0', 'invalid': 'data'})
+    assert resp.status_code == 200  # import succeeds but imports nothing

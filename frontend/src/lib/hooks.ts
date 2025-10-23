@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { authApi, tasksApi, reviewApi, settingsApi, healthApi, type Task } from './api'
+import { authApi, tasksApi, reviewApi, settingsApi, healthApi, dataApi, type Task } from './api'
 
 // Query keys for consistent caching
 export const queryKeys = {
@@ -377,3 +377,49 @@ export const useUpdateSettings = () => {
 
 // Timer hooks
 export { usePomodoroTimer } from './hooks/timer'
+
+// Data management hooks
+export const useExportData = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const blob = await dataApi.export()
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+      link.download = `taskline-export-${timestamp}.json`
+      
+      // Trigger download
+      document.body.appendChild(link)
+      link.click()
+      
+      // Cleanup
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+      return { success: true }
+    },
+  })
+}
+
+export const useImportData = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: dataApi.import,
+    onSuccess: () => {
+      // Invalidate all data queries to refresh the UI with imported data
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks })
+      queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories })
+      queryClient.invalidateQueries({ queryKey: queryKeys.archived })
+      queryClient.invalidateQueries({ queryKey: queryKeys.journal })
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+    },
+  })
+}
