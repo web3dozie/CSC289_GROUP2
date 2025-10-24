@@ -4,9 +4,9 @@ Library     SeleniumLibrary
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
-${USERNAME}    testuser123
+${USERNAME}    testuser125
 ${PINCODE}     987654
-${USERNAME1}    user123
+${USERNAME1}    user125
 ${PINCODE1}     987654
 ${TASK}        Create User Story
 ${Taskadd}     Review PR Today
@@ -115,6 +115,12 @@ Calendar View
     Change Task Due Date From Calendar  ${Task}    ${Date}    ${NewDate}
     Verify Task Not In Old Date     ${Task}
     [Teardown]    Close Browser
+
+Error Handling - Invalid PIN
+    [Tags]  LoginError
+    Open Application
+    Login With Incorrect pin
+
 
 *** Keywords ***
 Open Application
@@ -277,5 +283,21 @@ Verify Task Not In Old Date
     ${locator}=    Set Variable    xpath=//div[@data-date='${Date}']//div[@data-tutorial='calendar-event' and contains(.,'${Task}')]
     Page Should Not Contain Element    ${locator}
     Log To Console  Task '${Task}' correctly not displayed in calendar.
+
+Login With Incorrect pin
+    Wait Until Page Contains    Welcome Back    10s
+    Wait Until Element Is Visible    id:username    10s
+    Input Text    id:username   ${USERNAME}
+    Sleep    0.5s
+    Wait Until Element Is Visible    xpath://input[@id='pin']    10s
+    Input Text    xpath://input[@id='pin']    ${IncorrectPin}
+    Sleep    0.5s
+    Wait Until Element Is Enabled    xpath://button[normalize-space()='Unlock App']    10s
+    Sleep    0.3s
+    Click Button    xpath://button[normalize-space()='Unlock App']
+    Wait Until Page Contains   Invalid username or PIN     5s
+    ${current_url}=    Get Location
+    Should Not Contain    ${current_url}    /app
+
 
 
