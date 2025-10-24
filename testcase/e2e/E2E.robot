@@ -17,6 +17,7 @@ ${Describe}    Please try do it ASAP
 ${Date}     10242025
 ${time}      120
 ${NewDate}  10262025
+${IncorrectPin}     010101
 
 *** Test Cases ***
 Create User Account
