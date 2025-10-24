@@ -145,7 +145,7 @@ export const Settings: React.FC = () => {
   const handleExportData = async () => {
     try {
       await exportData.mutateAsync()
-      alert('Data exported successfully!')
+      // No success message - browser download manager provides feedback
     } catch (error) {
       console.error('Export failed:', error)
       alert('Failed to export data. Please try again.')
@@ -546,7 +546,7 @@ export const Settings: React.FC = () => {
                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
               >
                 <Download className="w-4 h-4 mr-2" />
-                {exportData.isPending ? 'Exporting...' : 'Export Data'}
+                {exportData.isPending ? 'Downloading...' : 'Download JSON'}
               </button>
             </div>
 
@@ -570,7 +570,7 @@ export const Settings: React.FC = () => {
                   className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Choose File
+                  Upload JSON
                 </label>
               </div>
             </div>
