@@ -121,6 +121,7 @@ Error Handling - Invalid PIN
     [Tags]  LoginError
     Open Application
     Login With Incorrect pin
+    [Teardown]      Close Browser
 
 
 *** Keywords ***
