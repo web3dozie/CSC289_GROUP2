@@ -3,6 +3,9 @@ Library     SeleniumLibrary
 Library     OperatingSystem
 Library     Collections
 
+Suite Setup    Setup Test Environment
+Suite Teardown    Cleanup Test Environment
+
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
@@ -21,7 +24,7 @@ ${time}      120
 ${NewDate}  10262025
 ${IncorrectPin}     010101
 ${Journalentry}     It was productive day as I attended 3 meetings
-${DOWNLOAD_DIR}    C:\\Users\\natiz\\Downloads
+${DOWNLOAD_DIR}    ${CURDIR}${/}test_downloads
 
 *** Test Cases ***
 Create User Account
@@ -141,9 +144,20 @@ Export and Import Tasks
     Import
 
 *** Keywords ***
+Setup Test Environment
+    Create Directory    ${DOWNLOAD_DIR}
+    Empty Directory     ${DOWNLOAD_DIR}
+
+Cleanup Test Environment
+    Remove Directory    ${DOWNLOAD_DIR}    recursive=True
+
 Open Application
-    open browser    ${URL}      ${browser}
+    ${chrome_options}=    Evaluate    sys.modules['selenium.webdriver'].ChromeOptions()    sys, selenium.webdriver
+    ${prefs}=    Create Dictionary    download.default_directory=${DOWNLOAD_DIR}    download.prompt_for_download=${False}    download.directory_upgrade=${True}    safebrowsing.enabled=${False}
+    Call Method    ${chrome_options}    add_experimental_option    prefs    ${prefs}
+    Create Webdriver    Chrome    options=${chrome_options}
     maximize browser window
+    Go To    ${URL}
     Wait Until Element Is Visible   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']    10s
     Click Element   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']
     Wait Until Location Contains    /login      timeout=10s
@@ -320,19 +334,24 @@ Login With Incorrect pin
 Add Journal
     Wait Until Page Contains    Tasks   0.5s
     Click Element   Xpath://a[normalize-space()='Review']
+    Wait Until Page Contains Element    Xpath://button[normalize-space()='New Entry']    10s
     Click Element   Xpath://button[normalize-space()='New Entry']
+    Wait Until Element Is Visible   Xpath://textarea[@id='entry-content']    10s
     Input Text   Xpath://textarea[@id='entry-content']      ${Journalentry}
     Click Element   Xpath://button[normalize-space()='Save Entry']
 
 Export
+    Empty Directory    ${DOWNLOAD_DIR}
+    Go To    ${URL}app
     Click Element   Xpath://a[normalize-space()='Settings']
+    Wait Until Page Contains Element    Xpath://button[normalize-space()='Download JSON']    10s
     Click Element   Xpath://button[normalize-space()='Download JSON']
+    Sleep    5s
 
 Get Latest Downloaded File
-    ${files}=    List Files In Directory    ${DOWNLOAD_DIR}
-    ${sorted}=    Sort List    ${files}
-    ${latest}=    Get From List    ${sorted}    -1
-    ${latest_file}=    Set Variable    ${DOWNLOAD_DIR}\\${latest}
+    Wait Until Created    ${DOWNLOAD_DIR}${/}*.json    timeout=30s
+    @{files}=    List Files In Directory    ${DOWNLOAD_DIR}    pattern=*.json    absolute=True
+    ${latest_file}=    Evaluate    max(@{files}, key=lambda x: __import__('os').path.getmtime(x))
     Log To Console    \nLatest downloaded file: ${latest_file}
     [Return]    ${latest_file}
 
@@ -341,8 +360,8 @@ Import
     File Should Exist    ${latest_file}
     Click Element   Xpath://a[normalize-space()='Settings']
     Click Element   Xpath://label[normalize-space()='Upload JSON']
-    Sleep   10s
     Choose File     xpath=//input[@type='file']     ${latest_file}
+    Sleep   2s
     Click Element   Xpath://button[normalize-space()='Import Data']
     Handle Alert    action=ACCEPT
 
