@@ -100,8 +100,8 @@ export const Settings: React.FC = () => {
     }
 
     try {
-      const result = await updateSettings.mutateAsync(updates)
-      
+      await updateSettings.mutateAsync(updates)
+
       // Ensure theme context is synced after save
       setThemeContext(themeForm)
       
@@ -506,3 +506,4 @@ export const Settings: React.FC = () => {
       </div>
     </div>
   )
+}
