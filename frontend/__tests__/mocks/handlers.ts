@@ -206,4 +206,12 @@ export const handlers = [
       ]
     })
   }),
+
+  // GET /api/tasks/categories - Get task categories (string array)
+  http.get('/api/tasks/categories', () => {
+    return HttpResponse.json({
+      success: true,
+      data: ['Work', 'Personal', 'Shopping', 'Health']
+    })
+  }),
 ]
