@@ -136,7 +136,6 @@ Export and Import Tasks
     Login With PIN
     Add Task
     Add Journal
-    Toggle DarkLight
     Export
     Sleep   10
     Delete Task
