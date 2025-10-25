@@ -124,8 +124,7 @@ export const handlers = [
   }),
 
   // POST /api/tasks/ - Create task
-  http.post('/api/tasks/', async ({ request }) => {
-    const body = await request.json() as any
+  http.post('/api/tasks/', async () => {
     return HttpResponse.json({
       success: true,
       data: {
