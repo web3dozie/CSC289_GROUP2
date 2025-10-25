@@ -133,6 +133,7 @@ def register_routes(app):
                 from db.models import Task, JournalEntry, Configuration, Status
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
+            import logging
             
             async with AsyncSessionLocal() as db_session:
                 # Export tasks
@@ -140,7 +141,33 @@ def register_routes(app):
                     select(Task).options(selectinload(Task.status))
                     .where(Task.created_by == session['user_id'])
                 )
-                tasks = [task.to_dict() for task in task_result.scalars().all()]
+                tasks = []
+                for task in task_result.scalars().all():
+                    try:
+                        tasks.append(task.to_dict())
+                    except Exception as e:
+                        logging.error(f"Error serializing task {task.id}: {e}")
+                        # Fallback: create dict manually
+                        tasks.append({
+                            "id": task.id,
+                            "title": task.title,
+                            "description": task.description,
+                            "notes": task.notes,
+                            "category": None,  # Skip complex relationships for now
+                            "status": {"id": task.status_id, "name": "Unknown"} if task.status_id else None,
+                            "tags": [],
+                            "done": task.done,
+                            "archived": task.archived,
+                            "priority": task.priority,
+                            "estimate_minutes": task.estimate_minutes,
+                            "order": task.order,
+                            "parent_id": task.parent_id,
+                            "due_date": task.due_date.isoformat() if task.due_date else None,
+                            "created_at": task.created_on.isoformat() if task.created_on else None,
+                            "updated_on": task.updated_on.isoformat() if task.updated_on else None,
+                            "closed_on": task.closed_on.isoformat() if task.closed_on else None,
+                            "created_by": task.created_by,
+                        })
                 
                 # Export journal entries
                 journal_result = await db_session.execute(
@@ -165,6 +192,8 @@ def register_routes(app):
                 return jsonify(export_data)
                 
         except Exception as e:
+            import logging
+            logging.exception("Failed to export data")
             return jsonify({'error': 'Failed to export data'}), 500
 
     @app.route('/api/import', methods=['POST'])
