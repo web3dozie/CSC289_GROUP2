@@ -205,3 +205,72 @@ async def test_import_invalid_data(client):
     # test invalid JSON structure
     resp = await client.post('/api/import', json={'version': '1.0', 'invalid': 'data'})
     assert resp.status_code == 200  # import succeeds but imports nothing
+
+
+@pytest.mark.asyncio
+async def test_archive_workflow(client):
+    """Test complete archive workflow: archive, restore, and permanent deletion"""
+    # Create user & authenticate
+    await create_user_and_login(client)
+
+    # Create a test task
+    resp = await client.post('/api/tasks/', json={'title': 'Archive Test Task'})
+    assert resp.status_code in (200, 201)
+    created = await resp.get_json()
+    assert created['success'] is True
+    task_id = created['data']['task_id']
+
+    # Archive the task
+    resp = await client.put(f'/api/tasks/{task_id}', json={'archived': True})
+    assert resp.status_code == 200
+    response_data = await resp.get_json()
+    assert response_data['success'] is True
+    updated = response_data['data']
+    assert updated['archived'] is True
+
+    # Verify task does NOT appear in main task list
+    resp = await client.get('/api/tasks/')
+    assert resp.status_code == 200
+    response_data = await resp.get_json()
+    assert response_data['success'] is True
+    tasks = response_data['data']['tasks']
+    task_ids = [t['id'] for t in tasks]
+    assert task_id not in task_ids, "Archived task should not appear in main list"
+
+    # Verify task DOES appear in archived list
+    resp = await client.get('/api/tasks/archived')
+    assert resp.status_code == 200
+    response_data = await resp.get_json()
+    assert response_data['success'] is True
+    archived_tasks = response_data['data']
+    archived_ids = [t['id'] for t in archived_tasks]
+    assert task_id in archived_ids, "Archived task should appear in archived list"
+
+    # Restore the task (unarchive)
+    resp = await client.put(f'/api/tasks/{task_id}', json={'archived': False})
+    assert resp.status_code == 200
+    response_data = await resp.get_json()
+    assert response_data['success'] is True
+    restored = response_data['data']
+    assert restored['archived'] is False
+
+    # Verify restored task appears in main list again
+    resp = await client.get('/api/tasks/')
+    assert resp.status_code == 200
+    response_data = await resp.get_json()
+    tasks = response_data['data']['tasks']
+    task_ids = [t['id'] for t in tasks]
+    assert task_id in task_ids, "Restored task should appear in main list"
+
+    # Re-archive for permanent deletion test
+    await client.put(f'/api/tasks/{task_id}', json={'archived': True})
+
+    # Permanently delete the archived task
+    resp = await client.delete(f'/api/tasks/{task_id}')
+    assert resp.status_code == 204
+
+    # Verify task no longer exists
+    resp = await client.get(f'/api/tasks/{task_id}')
+    assert resp.status_code == 404
+    error_data = await resp.get_json()
+    assert error_data['success'] is False
