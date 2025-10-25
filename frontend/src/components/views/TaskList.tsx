@@ -284,6 +284,7 @@ export const TaskList: React.FC = () => {
             </button>
             <button
               onClick={() => setShowCreateModal(true)}
+              data-tutorial="add-task-button"
               className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -404,6 +405,7 @@ export const TaskList: React.FC = () => {
           filteredAndSortedTasks.map((task, index) => (
             <div
               key={task.id}
+              data-tutorial={index === 0 ? "task-item" : undefined}
               className={`relative group ${dragOverIndex === index ? 'border-t-2 border-purple-500' : ''}`}
               draggable
               onDragStart={(e) => handleDragStart(e, task, index)}
@@ -427,6 +429,7 @@ export const TaskList: React.FC = () => {
                   onArchive={handleArchive}
                   onToggleComplete={handleToggleComplete}
                   showActions={true}
+                  isFirstTask={index === 0}
                 />
               </div>
             </div>

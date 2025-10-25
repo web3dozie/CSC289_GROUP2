@@ -485,9 +485,9 @@ export const TaskReview: React.FC = () => {
                   {/* Weekly Progress Chart */}
                   <BarChart
                     title="Tasks Completed by Day"
-                    data={weeklySummary.daily_breakdown ? Object.entries(weeklySummary.daily_breakdown).map(([day, count]) => ({
-                      label: day,
-                      value: count as number,
+                    data={weeklySummary.daily_breakdown ? weeklySummary.daily_breakdown.map((dayData: any) => ({
+                      label: dayData.day,
+                      value: dayData.count,
                       color: 'bg-green-500'
                     })) : []}
                   />

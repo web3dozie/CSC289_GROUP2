@@ -8,41 +8,66 @@ from backend.db.models import Task, Status, Category, auth_required
 from backend.cache_utils import cache
 from backend.errors import ValidationError, NotFoundError, DatabaseError, success_response
 
+from backend.validation import TaskValidator, create_validation_error_response
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/api/tasks")
 
 
 async def resolve_category_name_to_id(category_name: str, db_session, user_id: int) -> int | None:
-    """Resolve a category name to its database ID, creating it if needed."""
+    """
+    Resolve a category name to its database ID, creating it if needed.
+    Thread-safe with proper locking to prevent race conditions.
+    """
     if not category_name or not category_name.strip():
         return None
 
     category_name = category_name.strip()
 
+    # First attempt: try to get existing category
     result = await db_session.execute(
         select(Category).where(
             and_(
                 Category.name == category_name,
                 Category.created_by == user_id
             )
-        )
+        ).with_for_update()  # Lock the row to prevent race conditions
     )
     existing_category = result.scalars().first()
 
     if existing_category:
         return existing_category.id
 
-    new_category = Category(
-        name=category_name,
-        description=f"Auto-created category: {category_name}",
-        color_hex="808080",
-        created_by=user_id
-    )
-    db_session.add(new_category)
-    await db_session.flush()
-
-    return new_category.id
-
+    # Category doesn't exist, create it with exception handling for race conditions
+    try:
+        new_category = Category(
+            name=category_name,
+            description=f"Auto-created category: {category_name}",
+            color_hex="808080",
+            created_by=user_id
+        )
+        db_session.add(new_category)
+        await db_session.flush()
+        return new_category.id
+    except Exception:
+        # Race condition: another transaction created it, rollback and retry
+        await db_session.rollback()
+        
+        # Retry: fetch the category that was just created by another transaction
+        result = await db_session.execute(
+            select(Category).where(
+                and_(
+                    Category.name == category_name,
+                    Category.created_by == user_id
+                )
+            )
+        )
+        retry_category = result.scalars().first()
+        
+        if retry_category:
+            return retry_category.id
+        
+        # If still not found, something went wrong
+        raise
 
 @tasks_bp.route("/", methods=["GET"])
 @tasks_bp.route("", methods=["GET"])
@@ -95,48 +120,56 @@ async def get_tasks():
 @tasks_bp.route("", methods=["POST"])
 @auth_required
 async def create_task():
-    """Create a new task."""
+    """Create a new task with comprehensive validation."""
     data = await request.get_json()
 
-    if not data or not data.get("title", "").strip():
-        raise ValidationError("Task title is required", details={'field': 'title'})
+    if not data:
+        raise ValidationError("Request body is required")
 
     try:
+        # Validate all input data
+        validated_data = TaskValidator.validate_task_data(data)
+        
         async with AsyncSessionLocal() as db_session:
-            if data.get("status_id"):
-                status_id = int(data["status_id"])
+            # Get or default status_id
+            if 'status_id' in validated_data:
+                status_id = validated_data['status_id']
+                # Verify status exists
+                status_result = await db_session.execute(
+                    select(Status).where(Status.id == status_id)
+                )
+                if not status_result.scalar_one_or_none():
+                    raise ValidationError("Invalid status ID", details={'field': 'status_id'})
             else:
                 res = await db_session.execute(select(Status).limit(1))
                 first_status = res.scalars().first()
                 status_id = first_status.id if first_status else 1
 
-            if data.get("due_date"):
-                due_date = datetime.strptime(data["due_date"], "%Y-%m-%d")
-            else:
-                due_date = datetime.now()
-
+            # Handle category with thread-safe creation
             category_id = None
-            if data.get('category'):
+            if 'category' in validated_data:
                 category_id = await resolve_category_name_to_id(
-                    data['category'],
+                    validated_data['category'],
                     db_session,
                     session['user_id']
                 )
 
+            # Create task with validated data
             task = Task(
-                title=data['title'].strip(),
-                description=data.get('description', ''),
+                title=validated_data['title'],
+                description=validated_data['description'],
                 category_id=category_id,
                 status_id=status_id,
-                due_date=due_date,
-                priority=data.get('priority', False),
-                estimate_minutes=data.get('estimate_minutes'),
+                due_date=validated_data['due_date'] or datetime.now(),
+                priority=validated_data['priority'],
+                estimate_minutes=validated_data['estimate_minutes'],
                 created_by=session['user_id']
             )
 
             db_session.add(task)
             await db_session.commit()
             await db_session.refresh(task)
+            
             return success_response(
                 {
                     'message': 'Task created successfully',
@@ -144,6 +177,10 @@ async def create_task():
                 },
                 201
             )
+    except ValueError as e:
+        # Convert validation errors to user-friendly messages
+        error_info = create_validation_error_response(e)
+        raise ValidationError(error_info['error'], details=error_info)
     except ValidationError:
         raise
     except Exception:

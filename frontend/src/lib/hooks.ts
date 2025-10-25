@@ -59,6 +59,8 @@ export const useAuthLogout = () => {
   return useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
+      // Cancel any ongoing queries to prevent 401 errors
+      queryClient.cancelQueries()
       // Clear all cached data on logout
       queryClient.clear()
     },
@@ -344,10 +346,18 @@ export const useInsights = () => {
 }
 
 // Settings hooks
-export const useSettings = () => {
+export const useSettings = (enabled = true) => {
   return useQuery({
     queryKey: queryKeys.settings,
     queryFn: settingsApi.getSettings,
+    enabled: enabled, // Allow disabling the query when user is not authenticated
+    retry: (failureCount, error: any) => {
+      // do not retry on 401 authentication errors
+      if (error?.code === 401 || error?.isStatus?.(401)) {
+        return false
+      }
+      return failureCount < 3
+    },
   })
 }
 
@@ -356,9 +366,14 @@ export const useUpdateSettings = () => {
 
   return useMutation({
     mutationFn: settingsApi.updateSettings,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Mutation onSuccess - received data:', data)
       queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+      console.log('Invalidated settings query - refetch will happen')
     },
+    onError: (error) => {
+      console.error('Mutation onError:', error)
+    }
   })
 }
 

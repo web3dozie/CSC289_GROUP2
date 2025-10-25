@@ -8,6 +8,7 @@ node_modules/
 frontend/node_modules/
 taskline.db
 taskline.db*
+carranza-test-suite
 
 # Dependencies
 npm-debug.log*
@@ -84,3 +85,8 @@ debug_*.db*
 test.db*
 temp_*.py
 
+# testcase artifacts from robot
+testcase/e2e/log.html
+testcase/e2e/report.html
+testcase/e2e/output.xml
+testcase/e2e/selenium-screenshot-*

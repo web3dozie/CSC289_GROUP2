@@ -82,6 +82,7 @@ const Column: React.FC<ColumnProps> = ({
 
   return (
     <div
+      data-tutorial={type === 'todo' ? 'board-column-todo' : undefined}
       className={`flex-1 min-w-80 border-2 rounded-lg transition-colors ${
         columnColors[type]
       } ${isDragOver ? 'ring-2 ring-purple-400 ring-opacity-50' : ''}`}
@@ -118,9 +119,10 @@ const Column: React.FC<ColumnProps> = ({
             )}
           </div>
         ) : (
-          tasks.map(task => (
+          tasks.map((task, index) => (
             <div
               key={task.id}
+              data-tutorial={index === 0 && type === 'todo' ? 'board-card' : undefined}
               className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-600 group cursor-move"
               draggable
               onDragStart={(e) => onDragStart(e, task)}

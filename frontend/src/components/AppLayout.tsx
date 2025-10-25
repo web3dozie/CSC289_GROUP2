@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { ChatWidget } from './ChatWidget'
+import { TutorialOverlay } from './TutorialOverlay'
 
 const navigation = [
   { name: 'List', href: '/app/list', icon: CheckSquare },
@@ -72,10 +73,18 @@ export const AppLayout: React.FC = () => {
               const Icon = item.icon
               const isActive = location.pathname === item.href
 
+              // Map navigation names to tutorial data attributes
+              const tutorialAttr = item.name === 'List' ? 'nav-link-list' :
+                                   item.name === 'Board' ? 'nav-link-board' :
+                                   item.name === 'Calendar' ? 'nav-link-calendar' :
+                                   item.name === 'Review' ? 'nav-link-review' :
+                                   item.name === 'Timer' ? 'nav-link-timer' : undefined
+
               return (
                 <Link
                   key={item.name}
                   to={item.href}
+                  data-tutorial={tutorialAttr}
                   className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
                     isActive
                       ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-r-2 border-purple-700 dark:border-purple-300'
@@ -116,6 +125,7 @@ export const AppLayout: React.FC = () => {
             {/* Settings link */}
             <Link
               to="/app/settings"
+              data-tutorial="nav-link-settings"
               className="flex items-center mt-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
               aria-label="Go to settings page"
             >
@@ -140,6 +150,9 @@ export const AppLayout: React.FC = () => {
 
       {/* AI Chat Widget */}
       <ChatWidget />
+
+      {/* Tutorial Overlay */}
+      <TutorialOverlay />
     </div>
   )
 }

@@ -52,9 +52,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
 
       <div className="space-y-1">
         {/* Overdue tasks */}
-        {overdueTasks.slice(0, 2).map(task => (
+        {overdueTasks.slice(0, 2).map((task, index) => (
           <div
             key={task.id}
+            data-tutorial={index === 0 && dayTasks.length > 0 ? "calendar-event" : undefined}
             className="text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-red-200 dark:hover:bg-red-800"
             onClick={(e) => {
               e.stopPropagation()
@@ -67,9 +68,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         ))}
 
         {/* Pending tasks */}
-        {pendingTasks.slice(0, 2).map(task => (
+        {pendingTasks.slice(0, 2).map((task, index) => (
           <div
             key={task.id}
+            data-tutorial={index === 0 && overdueTasks.length === 0 && dayTasks.length > 0 ? "calendar-event" : undefined}
             className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800"
             onClick={(e) => {
               e.stopPropagation()
@@ -82,9 +84,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         ))}
 
         {/* Completed tasks */}
-        {completedTasks.slice(0, 2).map(task => (
+        {completedTasks.slice(0, 2).map((task, index) => (
           <div
             key={task.id}
+            data-tutorial={index === 0 && overdueTasks.length === 0 && pendingTasks.length === 0 && dayTasks.length > 0 ? "calendar-event" : undefined}
             className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-1 py-0.5 rounded truncate cursor-pointer hover:bg-green-200 dark:hover:bg-green-800 line-through"
             onClick={(e) => {
               e.stopPropagation()
@@ -457,7 +460,10 @@ export const TaskCalendar: React.FC = () => {
         {/* Calendar Grid or Agenda View */}
         <div className={viewMode === 'calendar' ? "lg:col-span-2" : "lg:col-span-3"}>
           {viewMode === 'calendar' ? (
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+            <div
+              data-tutorial="calendar-grid"
+              className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden"
+            >
               {/* Day headers */}
               <div className="grid grid-cols-7 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 {dayNames.map(day => (
