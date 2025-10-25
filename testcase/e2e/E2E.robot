@@ -1,5 +1,7 @@
 *** Settings ***
 Library     SeleniumLibrary
+Library     OperatingSystem
+Library     Collections
 
 *** Variables ***
 ${URL}  http://localhost:5173/
@@ -18,6 +20,8 @@ ${Date}     10242025
 ${time}      120
 ${NewDate}  10262025
 ${IncorrectPin}     010101
+${Journalentry}     It was productive day as I attended 3 meetings
+${DOWNLOAD_DIR}    C:\\Users\\natiz\\Downloads
 
 *** Test Cases ***
 Create User Account
@@ -123,6 +127,18 @@ Error Handling - Invalid PIN
     Login With Incorrect pin
     [Teardown]      Close Browser
 
+Export and Import Tasks
+    [Tags]  ExportImport
+    Open Application
+    Login With PIN
+    Add Task
+    Add Journal
+    Toggle DarkLight
+    Export
+    Sleep   10
+    Delete Task
+    Sleep   10
+    Import
 
 *** Keywords ***
 Open Application
@@ -300,6 +316,38 @@ Login With Incorrect pin
     Wait Until Page Contains   Invalid username or PIN     5s
     ${current_url}=    Get Location
     Should Not Contain    ${current_url}    /app
+
+Add Journal
+    Wait Until Page Contains    Tasks   0.5s
+    Click Element   Xpath://a[normalize-space()='Review']
+    Click Element   Xpath://button[normalize-space()='New Entry']
+    Input Text   Xpath://textarea[@id='entry-content']      ${Journalentry}
+    Click Element   Xpath://button[normalize-space()='Save Entry']
+
+Export
+    Click Element   Xpath://a[normalize-space()='Settings']
+    Click Element   Xpath://button[normalize-space()='Download JSON']
+
+Get Latest Downloaded File
+    ${files}=    List Files In Directory    ${DOWNLOAD_DIR}
+    ${sorted}=    Sort List    ${files}
+    ${latest}=    Get From List    ${sorted}    -1
+    ${latest_file}=    Set Variable    ${DOWNLOAD_DIR}\\${latest}
+    Log To Console    \nLatest downloaded file: ${latest_file}
+    [Return]    ${latest_file}
+
+Import
+    ${latest_file}=    Get Latest Downloaded File
+    File Should Exist    ${latest_file}
+    Click Element   Xpath://a[normalize-space()='Settings']
+    Click Element   Xpath://label[normalize-space()='Upload JSON']
+    Sleep   10s
+    Choose File     xpath=//input[@type='file']     ${latest_file}
+    Click Element   Xpath://button[normalize-space()='Import Data']
+    Handle Alert    action=ACCEPT
+
+
+
 
 
 
