@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, act } from './test-utils'
+import { render, screen, act } from '../test-utils'
 import userEvent from '@testing-library/user-event'
-import Login from '../src/components/landing/Login'
+import Login from '../../src/components/landing/Login'
 
 describe('Login', () => {
   it('renders the login form with all fields', () => {

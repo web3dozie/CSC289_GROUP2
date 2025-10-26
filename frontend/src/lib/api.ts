@@ -251,6 +251,7 @@ export const tasksApi = {
     description?: string
     notes?: string
     done: boolean
+    archived: boolean
     category?: string
     priority: boolean
     due_date?: string
@@ -319,7 +320,9 @@ export const reviewApi = {
 export interface UserSettings {
   notes_enabled: boolean
   timer_enabled: boolean
-  ai_url?: string
+  ai_api_url?: string
+  ai_model?: string
+  ai_api_key?: string
   auto_lock_minutes: number
   theme: string
   updated_on?: string

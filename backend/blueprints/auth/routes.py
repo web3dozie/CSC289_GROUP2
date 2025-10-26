@@ -73,7 +73,7 @@ async def setup_auth():
                 timer_enabled=True,
                 auto_lock_minutes=10,
                 theme="light",
-                ai_url="",
+                ai_api_url="",
             )
             db_session.add(default_settings)
             await db_session.commit()

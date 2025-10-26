@@ -141,6 +141,39 @@ Export and Import Tasks
     Delete Task
     Sleep   10
     Import
+    [Teardown]    Close Browser
+
+Archive Task
+    [Tags]  archive
+    Open Application
+    Login With PIN
+    Add Task    ${TASK}
+    Archive Task From List    ${TASK}
+    Verify Task Not In Main List    ${TASK}
+    [Teardown]    Close Browser
+
+View Archived Tasks
+    [Tags]  archives
+    Open Application
+    Login With PIN
+    Add Task    ${TASK}
+    Archive Task From List    ${TASK}
+    Go To Archives View
+    Verify Task In Archives    ${TASK}
+    [Teardown]    Close Browser
+
+Restore Archived Task
+    [Tags]  restore
+    Open Application
+    Login With PIN
+    Add Task    ${TASK}
+    Archive Task From List    ${TASK}
+    Go To Archives View
+    Restore Task From Archives    ${TASK}
+    Go To List View
+    Skip Tutorial If Present
+    Verify Task In Main List    ${TASK}
+    [Teardown]    Close Browser
 
 *** Keywords ***
 Setup Test Environment
@@ -364,8 +397,51 @@ Import
     Click Element   Xpath://button[normalize-space()='Import Data']
     Handle Alert    action=ACCEPT
 
+Archive Task From List
+    [Arguments]    ${task_title}
+    Click Element   xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
+    Wait Until Page Contains    Tasks    10s
+    # Find the archive button for the specific task
+    # The archive button is the middle button (orange hover) between Edit and Delete
+    ${archive_button}=    Set Variable    xpath://div[contains(., '${task_title}')]//button[@aria-label='Archive task: ${task_title}']
+    Wait Until Element Is Visible    ${archive_button}    10s
+    Click Element    ${archive_button}
+    Sleep    1s
 
+Go To Archives View
+    Click Element    xpath://a[normalize-space()='Archives']
+    Wait Until Page Contains    Archived Tasks    10s
 
+Verify Task In Archives
+    [Arguments]    ${task_title}
+    Wait Until Page Contains    ${task_title}    10s
+    Log    Task '${task_title}' found in archives
+
+Verify Task Not In Main List
+    [Arguments]    ${task_title}
+    Click Element   xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
+    Wait Until Page Contains    Tasks    5s
+    Page Should Not Contain    ${task_title}
+    Log    Task '${task_title}' correctly not in main list
+
+Verify Task In Main List
+    [Arguments]    ${task_title}
+    Wait Until Page Contains    ${task_title}    10s
+    Log    Task '${task_title}' found in main list
+
+Restore Task From Archives
+    [Arguments]    ${task_title}
+    # Find restore button for specific task in archives
+    ${restore_button}=    Set Variable    xpath://div[contains(., '${task_title}')]//button[contains(@aria-label, 'Restore')]
+    Wait Until Element Is Visible    ${restore_button}    10s
+    Click Element    ${restore_button}
+    Sleep    1s
+
+Go To List View
+    Click Element    xpath://a[normalize-space()='List']
+    Wait Until Page Contains    Tasks    10s
 
 
 

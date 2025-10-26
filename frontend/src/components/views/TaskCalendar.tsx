@@ -195,7 +195,18 @@ export const TaskCalendar: React.FC = () => {
     }
   }
 
-  const confirmDelete = async () => {
+  const handleArchive = async (task: Task) => {
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: { archived: true }
+      })
+    } catch (error) {
+      console.error('Failed to archive task:', error)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
     if (!deletingTask) return
 
     try {
@@ -293,6 +304,7 @@ export const TaskCalendar: React.FC = () => {
                             task={task}
                             onEdit={setEditingTask}
                             onDelete={setDeletingTask}
+                            onArchive={handleArchive}
                             onToggleComplete={handleToggleComplete}
                             showActions={true}
                           />
@@ -324,6 +336,7 @@ export const TaskCalendar: React.FC = () => {
                       task={task}
                       onEdit={setEditingTask}
                       onDelete={setDeletingTask}
+                      onArchive={handleArchive}
                       onToggleComplete={handleToggleComplete}
                       showActions={true}
                     />
@@ -511,6 +524,7 @@ export const TaskCalendar: React.FC = () => {
                       task={task}
                       onEdit={setEditingTask}
                       onDelete={setDeletingTask}
+                      onArchive={handleArchive}
                       onToggleComplete={handleToggleComplete}
                       showActions={true}
                     />
@@ -543,7 +557,7 @@ export const TaskCalendar: React.FC = () => {
       <DeleteConfirmation
         isOpen={!!deletingTask}
         onClose={() => setDeletingTask(null)}
-        onConfirm={confirmDelete}
+        onConfirm={handleDeleteConfirm}
         title="Delete Task"
         message={`Are you sure you want to delete "${deletingTask?.title}"? This action cannot be undone.`}
         isLoading={deleteTask.isPending}
