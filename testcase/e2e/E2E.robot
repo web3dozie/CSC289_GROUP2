@@ -385,7 +385,7 @@ Get Latest Downloaded File
     @{files}=    List Files In Directory    ${DOWNLOAD_DIR}    pattern=*.json    absolute=True
     ${latest_file}=    Evaluate    max(@{files}, key=lambda x: __import__('os').path.getmtime(x))
     Log To Console    \nLatest downloaded file: ${latest_file}
-    [Return]    ${latest_file}
+    RETURN    ${latest_file}
 
 Import
     ${latest_file}=    Get Latest Downloaded File
