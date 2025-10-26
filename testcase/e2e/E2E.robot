@@ -9,9 +9,9 @@ Suite Teardown    Cleanup Test Environment
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
-${USERNAME}    testuser125
+${USERNAME}    testuser126
 ${PINCODE}     987654
-${USERNAME1}    user125
+${USERNAME1}    user126
 ${PINCODE1}     987654
 ${TASK}        Create User Story
 ${Taskadd}     Review PR Today
