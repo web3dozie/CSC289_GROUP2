@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, Grid3X3 } from 'lucide-react'
-import { useCalendarTasks, useUpdateTask } from '../../lib/hooks'
+import { useCalendarTasks, useUpdateTask, useDeleteTask } from '../../lib/hooks'
 import { TaskItem, TaskModal, DeleteConfirmation, CompletionNotesModal } from '../tasks'
 import type { Task } from '../../lib/api'
 
@@ -121,6 +121,7 @@ export const TaskCalendar: React.FC = () => {
 
   const { data: tasksByDate = {}, isLoading, error } = useCalendarTasks()
   const updateTask = useUpdateTask()
+  const deleteTask = useDeleteTask()
 
   // Calculate calendar grid
   const calendarDays = useMemo(() => {
@@ -191,6 +192,28 @@ export const TaskCalendar: React.FC = () => {
       setCompletingTask(null)
     } catch (error) {
       console.error('Failed to complete task:', error)
+    }
+  }
+
+  const handleArchive = async (task: Task) => {
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: { archived: true }
+      })
+    } catch (error) {
+      console.error('Failed to archive task:', error)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingTask) return
+
+    try {
+      await deleteTask.mutateAsync(deletingTask.id)
+      setDeletingTask(null)
+    } catch (error) {
+      console.error('Failed to delete task:', error)
     }
   }
 
@@ -281,6 +304,7 @@ export const TaskCalendar: React.FC = () => {
                             task={task}
                             onEdit={setEditingTask}
                             onDelete={setDeletingTask}
+                            onArchive={handleArchive}
                             onToggleComplete={handleToggleComplete}
                             showActions={true}
                           />
@@ -312,6 +336,7 @@ export const TaskCalendar: React.FC = () => {
                       task={task}
                       onEdit={setEditingTask}
                       onDelete={setDeletingTask}
+                      onArchive={handleArchive}
                       onToggleComplete={handleToggleComplete}
                       showActions={true}
                     />
@@ -499,6 +524,7 @@ export const TaskCalendar: React.FC = () => {
                       task={task}
                       onEdit={setEditingTask}
                       onDelete={setDeletingTask}
+                      onArchive={handleArchive}
                       onToggleComplete={handleToggleComplete}
                       showActions={true}
                     />
@@ -531,12 +557,10 @@ export const TaskCalendar: React.FC = () => {
       <DeleteConfirmation
         isOpen={!!deletingTask}
         onClose={() => setDeletingTask(null)}
-        onConfirm={() => {
-          // Delete functionality would be implemented here
-          setDeletingTask(null)
-        }}
+        onConfirm={handleDeleteConfirm}
         title="Delete Task"
         message={`Are you sure you want to delete "${deletingTask?.title}"? This action cannot be undone.`}
+        isLoading={deleteTask.isPending}
       />
 
       <CompletionNotesModal

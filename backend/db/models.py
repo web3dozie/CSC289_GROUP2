@@ -419,7 +419,9 @@ class Configuration(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
     notes_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     timer_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    ai_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    ai_api_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    ai_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    ai_api_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     auto_lock_minutes: Mapped[int] = mapped_column(Integer, default=10)
     theme: Mapped[str] = mapped_column(String(50), default="light")
     updated_on: Mapped[datetime] = mapped_column(
@@ -434,7 +436,9 @@ class Configuration(Base):
             "user_id": getattr(self, "user_id", None),
             "notes_enabled": getattr(self, "notes_enabled", None),
             "timer_enabled": getattr(self, "timer_enabled", None),
-            "ai_url": getattr(self, "ai_url", None),
+            "ai_api_url": getattr(self, "ai_api_url", None),
+            "ai_model": getattr(self, "ai_model", None),
+            "ai_api_key": getattr(self, "ai_api_key", None),
             "auto_lock_minutes": getattr(self, "auto_lock_minutes", None),
             "theme": getattr(self, "theme", None),
             "updated_on": _iso(getattr(self, "updated_on", None)),

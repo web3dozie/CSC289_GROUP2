@@ -1,12 +1,17 @@
 *** Settings ***
 Library     SeleniumLibrary
+Library     OperatingSystem
+Library     Collections
+
+Suite Setup    Setup Test Environment
+Suite Teardown    Cleanup Test Environment
 
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
-${USERNAME}    testuser115
+${USERNAME}    testuser126
 ${PINCODE}     987654
-${USERNAME1}    user115
+${USERNAME1}    user126
 ${PINCODE1}     987654
 ${TASK}        Create User Story
 ${Taskadd}     Review PR Today
@@ -14,8 +19,12 @@ ${TASK2}       Set an Alarm
 ${MOVE_TASK_TITLE}    Move Board Task
 ${DRAG_TASK_TITLE}    Drag Drop Story
 ${Describe}    Please try do it ASAP
-${Date}     01022026
+${Date}     10242025
 ${time}      120
+${NewDate}  10262025
+${IncorrectPin}     010101
+${Journalentry}     It was productive day as I attended 3 meetings
+${DOWNLOAD_DIR}    ${CURDIR}${/}test_downloads
 
 *** Test Cases ***
 Create User Account
@@ -104,10 +113,83 @@ Data Segregation
     Segregation Flow
     [Teardown]    Close Browser
 
+Calendar View
+    [Tags]  calendar
+    Open Application
+    Login With PIN
+    Add Task
+    Go To Calendar Page
+    Calendar Task Verify    ${TASK}     {Date}
+    Change Task Due Date From Calendar  ${Task}    ${Date}    ${NewDate}
+    Verify Task Not In Old Date     ${Task}
+    [Teardown]    Close Browser
+
+Error Handling - Invalid PIN
+    [Tags]  LoginError
+    Open Application
+    Login With Incorrect pin
+    [Teardown]      Close Browser
+
+Export and Import Tasks
+    [Tags]  ExportImport
+    Open Application
+    Login With PIN
+    Add Task
+    Add Journal
+    Export
+    Sleep   10
+    Delete Task
+    Sleep   10
+    Import
+    [Teardown]    Close Browser
+
+Archive Task
+    [Tags]  archive
+    Open Application
+    Login With PIN
+    Add Task    ${TASK}
+    Archive Task From List    ${TASK}
+    Verify Task Not In Main List    ${TASK}
+    [Teardown]    Close Browser
+
+View Archived Tasks
+    [Tags]  archives
+    Open Application
+    Login With PIN
+    Add Task    ${TASK}
+    Archive Task From List    ${TASK}
+    Go To Archives View
+    Verify Task In Archives    ${TASK}
+    [Teardown]    Close Browser
+
+Restore Archived Task
+    [Tags]  restore
+    Open Application
+    Login With PIN
+    Add Task    ${TASK}
+    Archive Task From List    ${TASK}
+    Go To Archives View
+    Restore Task From Archives    ${TASK}
+    Go To List View
+    Skip Tutorial If Present
+    Verify Task In Main List    ${TASK}
+    [Teardown]    Close Browser
+
 *** Keywords ***
+Setup Test Environment
+    Create Directory    ${DOWNLOAD_DIR}
+    Empty Directory     ${DOWNLOAD_DIR}
+
+Cleanup Test Environment
+    Remove Directory    ${DOWNLOAD_DIR}    recursive=True
+
 Open Application
-    open browser    ${URL}      ${browser}
+    ${chrome_options}=    Evaluate    sys.modules['selenium.webdriver'].ChromeOptions()    sys, selenium.webdriver
+    ${prefs}=    Create Dictionary    download.default_directory=${DOWNLOAD_DIR}    download.prompt_for_download=${False}    download.directory_upgrade=${True}    safebrowsing.enabled=${False}
+    Call Method    ${chrome_options}    add_experimental_option    prefs    ${prefs}
+    Create Webdriver    Chrome    options=${chrome_options}
     maximize browser window
+    Go To    ${URL}
     Wait Until Element Is Visible   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']    10s
     Click Element   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']
     Wait Until Location Contains    /login      timeout=10s
@@ -155,9 +237,7 @@ Edit Existing Task
     Click Element       xpath://a[normalize-space()='List']
     Skip Tutorial If Present
     Wait Until Page Contains    Tasks    10s
-    Click Element       xpath=/html[1]/body[1]/div[1]/div[1]/div[1]/main[1]/div[1]/div[2]/div[1]/div[2]/article[1]/header[1]/div[2]/button[1]/*[name()='svg'][1]
-    Wait Until Page Contains Element    xpath://button[normalize-space()='Edit']    10s
-    Click Button    xpath://button[normalize-space()='Edit']
+    Click Element    xpath://button[@data-tutorial='task-item-edit-button']//*[name()='svg']
     Wait Until Page Contains Element    xpath://input[@id='task-title']    10s
     Click Element       xpath://input[@id='task-title']
     Clear Element Text      xpath://input[@id='task-title']
@@ -168,16 +248,26 @@ Delete Task
     Click Element   xpath://a[normalize-space()='List']
     Skip Tutorial If Present
     Wait Until Page Contains    Tasks    10s
-    Click Element   xpath:/html[1]/body[1]/div[1]/div[1]/div[1]/main[1]/div[1]/div[2]/div[1]/div[2]/article[1]/header[1]/div[2]/button[1]/*[name()='svg'][1]/*[name()='circle'][1]
-    Click Element   xpath://button[normalize-space()='Delete']
+    Click Element   xpath://button[@data-tutorial='task-item-delete-button']
     Click Element   xpath://button[normalize-space()='Delete']
 
 Toggle DarkLight
+    Skip Tutorial If Present
     Click Element   xpath://a[normalize-space()='Settings']
-    Wait Until Page Contains    Appearance    10s
+    Wait Until Page Contains    Customize how Task Line looks and feels    10s
     Click Element   xpath://div[normalize-space()='Dark']
+    Click Element   xpath://button[normalize-space()='Save Settings']
+    Handle Alert    action=ACCEPT
+    Click Element   xpath://a[normalize-space()='Settings']
+    Wait Until Page Contains    Customize how Task Line looks and feels    10s
     Click Element   xpath://div[normalize-space()='Light']
+    Click Element   xpath://button[normalize-space()='Save Settings']
+    Handle Alert    action=ACCEPT
+    Click Element   xpath://a[normalize-space()='Settings']
+    Wait Until Page Contains    Customize how Task Line looks and feels    10s
     Click Element   xpath://div[normalize-space()='Auto']
+    Click Element   xpath://button[normalize-space()='Save Settings']
+    Handle Alert    action=ACCEPT
 
 Logout
     Click Element    xpath=/html/body/div/div/aside/div/section/div/button
@@ -232,4 +322,126 @@ Skip Tutorial If Present
     ${tutorial_present}=    Run Keyword And Return Status    Wait Until Element Is Visible    xpath://button[@aria-label='Skip tutorial']    2s
     Run Keyword If    ${tutorial_present}    Click Button    xpath://button[@aria-label='Skip tutorial']
     Sleep    0.5s
+
+Go To Calendar Page
+    Click Element   xpath://a[normalize-space()='Calendar']
+    Wait until page contains    Today
     
+Calendar Task Verify
+    [Arguments]    ${TASK}    ${Date}
+    ${locator}=    Set Variable    xpath=//div[@data-tutorial='calendar-event']
+    Wait Until Page Contains Element    ${locator}
+    Log     Task '${TASK}' with due date '${Date}' is visible in calendar.
+
+Change Task Due Date From Calendar
+    [Arguments]    ${Task}    ${Date}    ${NewDate}
+    Click Element    xpath=//div[contains(@data-tutorial,'calendar-event') and contains(.,'${Task}')]
+    Sleep   10s
+    Click Element   xpath://input[@id='task-due-date']
+    Input Text  xpath=//input[@id='task-due-date']    ${NewDate}
+    Click Button    xpath://button[normalize-space()='Update Task']
+    Log To Console   Task '${Task}' due date changed from ${Date} to ${NewDate}.
+
+Verify Task Not In Old Date
+    [Arguments]    ${Task}
+    ${locator}=    Set Variable    xpath=//div[@data-date='${Date}']//div[@data-tutorial='calendar-event' and contains(.,'${Task}')]
+    Page Should Not Contain Element    ${locator}
+    Log To Console  Task '${Task}' correctly not displayed in calendar.
+
+Login With Incorrect pin
+    Wait Until Page Contains    Welcome Back    10s
+    Wait Until Element Is Visible    id:username    10s
+    Input Text    id:username   ${USERNAME}
+    Sleep    0.5s
+    Wait Until Element Is Visible    xpath://input[@id='pin']    10s
+    Input Text    xpath://input[@id='pin']    ${IncorrectPin}
+    Sleep    0.5s
+    Wait Until Element Is Enabled    xpath://button[normalize-space()='Unlock App']    10s
+    Sleep    0.3s
+    Click Button    xpath://button[normalize-space()='Unlock App']
+    Wait Until Page Contains   Invalid username or PIN     5s
+    ${current_url}=    Get Location
+    Should Not Contain    ${current_url}    /app
+
+Add Journal
+    Wait Until Page Contains    Tasks   0.5s
+    Click Element   Xpath://a[normalize-space()='Review']
+    Wait Until Page Contains Element    Xpath://button[normalize-space()='New Entry']    10s
+    Click Element   Xpath://button[normalize-space()='New Entry']
+    Wait Until Element Is Visible   Xpath://textarea[@id='entry-content']    10s
+    Input Text   Xpath://textarea[@id='entry-content']      ${Journalentry}
+    Click Element   Xpath://button[normalize-space()='Save Entry']
+
+Export
+    Empty Directory    ${DOWNLOAD_DIR}
+    Go To    ${URL}app
+    Click Element   Xpath://a[normalize-space()='Settings']
+    Wait Until Page Contains Element    Xpath://button[normalize-space()='Download JSON']    10s
+    Click Element   Xpath://button[normalize-space()='Download JSON']
+    Sleep    5s
+
+Get Latest Downloaded File
+    Wait Until Created    ${DOWNLOAD_DIR}${/}*.json    timeout=30s
+    @{files}=    List Files In Directory    ${DOWNLOAD_DIR}    pattern=*.json    absolute=True
+    ${latest_file}=    Evaluate    max(@{files}, key=lambda x: __import__('os').path.getmtime(x))
+    Log To Console    \nLatest downloaded file: ${latest_file}
+    RETURN    ${latest_file}
+
+Import
+    ${latest_file}=    Get Latest Downloaded File
+    File Should Exist    ${latest_file}
+    Click Element   Xpath://a[normalize-space()='Settings']
+    Click Element   Xpath://label[normalize-space()='Upload JSON']
+    Choose File     xpath=//input[@type='file']     ${latest_file}
+    Sleep   2s
+    Click Element   Xpath://button[normalize-space()='Import Data']
+    Handle Alert    action=ACCEPT
+
+Archive Task From List
+    [Arguments]    ${task_title}
+    Click Element   xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
+    Wait Until Page Contains    Tasks    10s
+    # Find the archive button for the specific task
+    # The archive button is the middle button (orange hover) between Edit and Delete
+    ${archive_button}=    Set Variable    xpath://div[contains(., '${task_title}')]//button[@aria-label='Archive task: ${task_title}']
+    Wait Until Element Is Visible    ${archive_button}    10s
+    Click Element    ${archive_button}
+    Sleep    1s
+
+Go To Archives View
+    Click Element    xpath://a[normalize-space()='Archives']
+    Wait Until Page Contains    Archived Tasks    10s
+
+Verify Task In Archives
+    [Arguments]    ${task_title}
+    Wait Until Page Contains    ${task_title}    10s
+    Log    Task '${task_title}' found in archives
+
+Verify Task Not In Main List
+    [Arguments]    ${task_title}
+    Click Element   xpath://a[normalize-space()='List']
+    Skip Tutorial If Present
+    Wait Until Page Contains    Tasks    5s
+    Page Should Not Contain    ${task_title}
+    Log    Task '${task_title}' correctly not in main list
+
+Verify Task In Main List
+    [Arguments]    ${task_title}
+    Wait Until Page Contains    ${task_title}    10s
+    Log    Task '${task_title}' found in main list
+
+Restore Task From Archives
+    [Arguments]    ${task_title}
+    # Find restore button for specific task in archives
+    ${restore_button}=    Set Variable    xpath://div[contains(., '${task_title}')]//button[contains(@aria-label, 'Restore')]
+    Wait Until Element Is Visible    ${restore_button}    10s
+    Click Element    ${restore_button}
+    Sleep    1s
+
+Go To List View
+    Click Element    xpath://a[normalize-space()='List']
+    Wait Until Page Contains    Tasks    10s
+
+
+

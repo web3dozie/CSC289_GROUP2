@@ -77,8 +77,11 @@ E2E testing ensures the complete workflow functions correctly when all component
 | **TC09** | Unlock App | Validate unlocking app after autolock | App unlocks with correct PIN |
 | **TC10** | Data Persistence | Ensure data persists after logout/login | Task data remains available post re-login |
 | **TC11** | Move Task | Verify task moves between workflow stages | Task moves to the next status column |
-| **TC12** | Drag and Drop Task | Validate drag-drop functionality on board | Task successfully drags and drops to “In Progress” |
+| **TC12** | Drag and Drop Task | Validate drag-drop functionality on board | Task successfully drags and drops to "In Progress" |
 | **TC13** | Data Segregation | Verify user-specific data isolation | UserB cannot see tasks created by UserA |
+| **TC14** | Archive Task | Test archiving a task from main list | Task is archived and removed from main view |
+| **TC15** | View Archived Tasks | Verify archived tasks appear in Archives view | Archived task is visible in Archives section |
+| **TC16** | Restore Archived Task | Validate restoring archived task to main list | Task returns to main list after restore |
 
 ---
 

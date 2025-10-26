@@ -251,6 +251,7 @@ export const tasksApi = {
     description?: string
     notes?: string
     done: boolean
+    archived: boolean
     category?: string
     priority: boolean
     due_date?: string
@@ -319,7 +320,9 @@ export const reviewApi = {
 export interface UserSettings {
   notes_enabled: boolean
   timer_enabled: boolean
-  ai_url?: string
+  ai_api_url?: string
+  ai_model?: string
+  ai_api_key?: string
   auto_lock_minutes: number
   theme: string
   updated_on?: string
@@ -370,4 +373,46 @@ export const settingsApi = {
 export const healthApi = {
   check: () =>
     apiRequest<{ status: string; timestamp: string; database: string }>('/api/health'),
+}
+
+// Data management API
+export const dataApi = {
+  export: async (): Promise<Blob> => {
+    const url = `${API_BASE_URL}/api/export`
+
+    const config: RequestInit = {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Include cookies for session management
+    }
+
+    const response = await fetch(url, config)
+
+    if (!response.ok) {
+      // Try to parse standardized error format
+      const data = await response.json().catch(() => null)
+      if (data && typeof data === 'object' && 'success' in data && data.success === false) {
+        const errorData = data as APIErrorResponse
+        throw new ApiError(
+          errorData.error.code,
+          errorData.error.message,
+          errorData.error.details
+        )
+      }
+
+      // Fallback for non-standardized errors
+      const message = data?.error || data?.message || `HTTP ${response.status}`
+      throw new ApiError(response.status, message)
+    }
+
+    return response.blob()
+  },
+
+  import: (data: any) =>
+    apiRequest<{ message: string; imported_count?: number; conflicts?: string[] }>('/api/import', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 }

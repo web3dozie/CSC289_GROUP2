@@ -1,12 +1,15 @@
 import React, { useState } from 'react'
-import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload } from 'lucide-react'
 import {
   useSettings,
   useUpdateSettings,
-  useAuthChangePin
+  useAuthChangePin,
+  useExportData,
+  useImportData
 } from '../../lib/hooks'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useTutorial } from '../../contexts/TutorialContext'
+import { ImportConfirmation } from '../tasks'
 import type { UserSettings } from '../../lib/api'
 
 interface SettingSectionProps {
@@ -37,15 +40,17 @@ export const Settings: React.FC = () => {
   const changePin = useAuthChangePin()
   const { theme, setTheme: setThemeContext } = useTheme()
   const { startTutorial } = useTutorial()
-
-  console.log('Settings component render - settings:', settings, 'isLoading:', isLoading)
+  const exportData = useExportData()
+  const importData = useImportData()
 
   // Local state for form inputs
   const [themeForm, setThemeForm] = useState(theme)
   const [autoLockMinutes, setAutoLockMinutes] = useState(settings?.auto_lock_minutes?.toString() || '30')
   const [notesEnabled, setNotesEnabled] = useState(settings?.notes_enabled || false)
   const [timerEnabled, setTimerEnabled] = useState(settings?.timer_enabled || false)
-  const [aiUrl, setAiUrl] = useState(settings?.ai_url || '')
+  const [aiApiUrl, setAiApiUrl] = useState(settings?.ai_api_url || '')
+  const [aiModel, setAiModel] = useState(settings?.ai_model || '')
+  const [aiApiKey, setAiApiKey] = useState(settings?.ai_api_key || '')
 
   // PIN change state
   const [showPinChange, setShowPinChange] = useState(false)
@@ -56,18 +61,24 @@ export const Settings: React.FC = () => {
   const [showNewPin, setShowNewPin] = useState(false)
   const [showConfirmPin, setShowConfirmPin] = useState(false)
 
+  // Import state
+  const [showImportConfirmation, setShowImportConfirmation] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importDataSummary, setImportDataSummary] = useState<any>(null)
+
   // Track unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   // Update local state when settings load
   React.useEffect(() => {
     if (settings) {
-      console.log('Settings loaded from API:', settings)
       setThemeForm(settings.theme as 'light' | 'dark' | 'auto')
       setAutoLockMinutes(settings.auto_lock_minutes.toString())
       setNotesEnabled(settings.notes_enabled)
       setTimerEnabled(settings.timer_enabled)
-      setAiUrl(settings.ai_url || '')
+      setAiApiUrl(settings.ai_api_url || '')
+      setAiModel(settings.ai_model || '')
+      setAiApiKey(settings.ai_api_key || '')
     }
   }, [settings])
 
@@ -79,11 +90,13 @@ export const Settings: React.FC = () => {
         autoLockMinutes !== settings.auto_lock_minutes.toString() ||
         notesEnabled !== settings.notes_enabled ||
         timerEnabled !== settings.timer_enabled ||
-        aiUrl !== (settings.ai_url || '')
+        aiApiUrl !== (settings.ai_api_url || '') ||
+        aiModel !== (settings.ai_model || '') ||
+        aiApiKey !== (settings.ai_api_key || '')
       
       setHasUnsavedChanges(hasChanges)
     }
-  }, [themeForm, autoLockMinutes, notesEnabled, timerEnabled, aiUrl, settings])
+  }, [themeForm, autoLockMinutes, notesEnabled, timerEnabled, aiApiUrl, aiModel, aiApiKey, settings])
 
   const handleSaveSettings = async () => {
     const updates: Partial<UserSettings> = {
@@ -91,14 +104,14 @@ export const Settings: React.FC = () => {
       auto_lock_minutes: parseInt(autoLockMinutes),
       notes_enabled: notesEnabled,
       timer_enabled: timerEnabled,
-      ai_url: aiUrl || undefined,
+      ai_api_url: aiApiUrl || undefined,
+      ai_model: aiModel || undefined,
+      ai_api_key: aiApiKey || undefined,
     }
 
     try {
-      console.log('Saving settings:', updates)
-      const result = await updateSettings.mutateAsync(updates)
-      console.log('Settings saved successfully:', result)
-      
+      await updateSettings.mutateAsync(updates)
+
       // Ensure theme context is synced after save
       setThemeContext(themeForm)
       
@@ -108,7 +121,6 @@ export const Settings: React.FC = () => {
       alert('Failed to save settings. Please try again.')
     }
   }
-
   const handleChangePin = async () => {
     if (newPin !== confirmPin) {
       alert('New PINs do not match')
@@ -129,6 +141,73 @@ export const Settings: React.FC = () => {
       alert('PIN changed successfully')
     } catch (error) {
       alert('Failed to change PIN. Please check your current PIN.')
+    }
+  }
+
+  const handleExportData = async () => {
+    try {
+      await exportData.mutateAsync()
+      // No success message - browser download manager provides feedback
+    } catch (error) {
+      console.error('Export failed:', error)
+      alert('Failed to export data. Please try again.')
+    }
+  }
+
+  const handleImportFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.endsWith('.json')) {
+      alert('Please select a valid JSON file.')
+      return
+    }
+
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+
+      // Validate the data structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid file format')
+      }
+
+      // Extract summary information
+      const summary = {
+        tasks: data.tasks?.length || 0,
+        journalEntries: data.journal_entries?.length || 0,
+        settings: !!data.settings
+      }
+
+      setImportFile(file)
+      setImportDataSummary(summary)
+      setShowImportConfirmation(true)
+    } catch (error) {
+      console.error('Error reading file:', error)
+      alert('Invalid file format. Please select a valid TaskLine export file.')
+    }
+
+    // Reset the input
+    event.target.value = ''
+  }
+
+  const handleImportConfirm = async () => {
+    if (!importFile) return
+
+    try {
+      const text = await importFile.text()
+      const data = JSON.parse(text)
+
+      await importData.mutateAsync(data)
+      
+      setShowImportConfirmation(false)
+      setImportFile(null)
+      setImportDataSummary(null)
+      
+      alert('Data imported successfully!')
+    } catch (error) {
+      console.error('Import failed:', error)
+      alert('Failed to import data. Please check the file and try again.')
     }
   }
 
@@ -392,25 +471,60 @@ export const Settings: React.FC = () => {
         </SettingSection>
 
         {/* AI Integration Settings */}
+        {/* AI Integration Settings */}
         <SettingSection
           title="AI Integration"
-          description="Configure AI assistant settings"
+          description="Configure AI assistant (OpenAI-compatible API)"
           icon={Cpu}
         >
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              AI API URL (Optional)
-            </label>
-            <input
-              type="url"
-              value={aiUrl}
-              onChange={(e) => setAiUrl(e.target.value)}
-              placeholder="https://your-ai-api.com"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Leave empty to use default AI integration
-            </p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                API URL
+              </label>
+              <input
+                type="url"
+                value={aiApiUrl}
+                onChange={(e) => setAiApiUrl(e.target.value)}
+                placeholder="https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                OpenAI-compatible chat completions endpoint (e.g., Gemini, OpenAI, Anthropic, etc.)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Model Name
+              </label>
+              <input
+                type="text"
+                value={aiModel}
+                onChange={(e) => setAiModel(e.target.value)}
+                placeholder="gemini-2.0-flash"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Model identifier (e.g., gemini-2.0-flash, gpt-4o-mini, claude-3-5-sonnet-20241022)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                API Key
+              </label>
+              <input
+                type="password"
+                value={aiApiKey}
+                onChange={(e) => setAiApiKey(e.target.value)}
+                placeholder="Your API key"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Your API key for authentication
+              </p>
+            </div>
           </div>
         </SettingSection>
 
@@ -449,6 +563,69 @@ export const Settings: React.FC = () => {
           </div>
         </SettingSection>
 
+        {/* Data Management */}
+        <SettingSection
+          title="Data Management"
+          description="Export and import your Task Line data"
+          icon={Download}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+              <div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">Export Data</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Download all your tasks, journal entries, and settings as a JSON file
+                </div>
+              </div>
+              <button
+                onClick={handleExportData}
+                disabled={exportData.isPending}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {exportData.isPending ? 'Downloading...' : 'Download JSON'}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+              <div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">Import Data</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Restore your data from a previously exported JSON file
+                </div>
+              </div>
+              <div>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportFileSelect}
+                  className="hidden"
+                  id="import-file"
+                />
+                <label
+                  htmlFor="import-file"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload JSON
+                </label>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="mb-2">
+                <strong>Important:</strong> Importing data will replace all your current data. Make sure to export first if you want to keep a backup.
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Export creates a timestamped JSON file with all your data</li>
+                <li>Import validates the file format before proceeding</li>
+                <li>You'll see a confirmation dialog showing what will be imported</li>
+                <li>This action cannot be undone</li>
+              </ul>
+            </div>
+          </div>
+        </SettingSection>
+
         {/* Save Button */}
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <div className="flex justify-end">
@@ -467,6 +644,20 @@ export const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Import Confirmation Modal */}
+      <ImportConfirmation
+        isOpen={showImportConfirmation}
+        onClose={() => {
+          setShowImportConfirmation(false)
+          setImportFile(null)
+          setImportDataSummary(null)
+        }}
+        onConfirm={handleImportConfirm}
+        fileName={importFile?.name || ''}
+        dataSummary={importDataSummary}
+        isLoading={importData.isPending}
+      />
     </div>
   )
 }
