@@ -1,11 +1,12 @@
 import React from 'react'
-import { Calendar, Clock, Star, Edit, Trash2 } from 'lucide-react'
+import { Calendar, Clock, Star, Edit, Trash2, Archive } from 'lucide-react'
 import type { Task } from '../../lib/api'
 
 interface TaskItemProps {
   task: Task
   onEdit: (task: Task) => void
   onDelete: (task: Task) => void
+  onArchive?: (task: Task) => void
   onToggleComplete: (task: Task) => void
   showActions?: boolean
   isFirstTask?: boolean
@@ -15,6 +16,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   task,
   onEdit,
   onDelete,
+  onArchive,
   onToggleComplete,
   showActions = true,
   isFirstTask = false
@@ -80,6 +82,15 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             >
               <Edit className="w-4 h-4" aria-hidden="true" />
             </button>
+            {onArchive && (
+              <button
+                onClick={() => onArchive(task)}
+                className="text-gray-400 dark:text-gray-500 hover:text-orange-600 dark:hover:text-orange-400 p-1 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+                aria-label={`Archive task: ${task.title}`}
+              >
+                <Archive className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
             <button
               onClick={() => onDelete(task)}
               className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"

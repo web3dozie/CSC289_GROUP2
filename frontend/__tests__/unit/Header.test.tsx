@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from './test-utils'
-import Header from '../src/components/landing/Header'
+import { render, screen } from '../test-utils'
+import Header from '../../src/components/landing/Header'
 
 // Partially mock the Link component but keep other router exports
 vi.mock('@tanstack/react-router', async (importOriginal) => {

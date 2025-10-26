@@ -282,16 +282,29 @@ def register_routes(app):
                         # Update existing
                         existing_settings.notes_enabled = settings_data.get('notes_enabled', True)
                         existing_settings.timer_enabled = settings_data.get('timer_enabled', True)
-                        existing_settings.ai_url = settings_data.get('ai_url')
+                        # Handle both old (ai_url) and new (ai_api_url, ai_model, ai_api_key) formats for backward compatibility
+                        if 'ai_api_url' in settings_data:
+                            existing_settings.ai_api_url = settings_data.get('ai_api_url')
+                        elif 'ai_url' in settings_data:
+                            # Backward compatibility: map old ai_url to new ai_api_url
+                            existing_settings.ai_api_url = settings_data.get('ai_url')
+                        if 'ai_model' in settings_data:
+                            existing_settings.ai_model = settings_data.get('ai_model')
+                        if 'ai_api_key' in settings_data:
+                            existing_settings.ai_api_key = settings_data.get('ai_api_key')
                         existing_settings.auto_lock_minutes = settings_data.get('auto_lock_minutes', 10)
                         existing_settings.theme = settings_data.get('theme', 'light')
                     else:
                         # Create new
+                        # Handle both old (ai_url) and new (ai_api_url, ai_model, ai_api_key) formats for backward compatibility
+                        ai_api_url = settings_data.get('ai_api_url') or settings_data.get('ai_url')
                         new_settings = Configuration(
                             user_id=session['user_id'],
                             notes_enabled=settings_data.get('notes_enabled', True),
                             timer_enabled=settings_data.get('timer_enabled', True),
-                            ai_url=settings_data.get('ai_url'),
+                            ai_api_url=ai_api_url,
+                            ai_model=settings_data.get('ai_model'),
+                            ai_api_key=settings_data.get('ai_api_key'),
                             auto_lock_minutes=settings_data.get('auto_lock_minutes', 10),
                             theme=settings_data.get('theme', 'light')
                         )

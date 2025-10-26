@@ -10,13 +10,12 @@ from sqlalchemy.orm import selectinload
 
 from backend.db.models import Conversation, Message, Configuration, auth_required, Task, Status, Category, Tag
 from backend.db.engine_async import AsyncSessionLocal
-from backend.services.llm_service import GeminiLLMService, LLMConfig
+from backend.services.llm_service import LLMService
 from backend.services.context_builder import ContextBuilder
 
 logger = logging.getLogger(__name__)
 
 chat_bp = Blueprint("chat", __name__)
-llm_service = GeminiLLMService()
 context_builder = ContextBuilder()
 
 
@@ -341,15 +340,15 @@ async def send_message():
             return jsonify({"error": "Message cannot be empty"}), 400
 
         async with AsyncSessionLocal() as db_session:
-            # Get API key from configuration
+            # Get AI configuration
             config_result = await db_session.execute(
                 select(Configuration).where(Configuration.user_id == user_id)
             )
             config = config_result.scalars().first()
 
-            if not config or not config.ai_url:
+            if not config or not config.ai_api_url or not config.ai_api_key or not config.ai_model:
                 return jsonify({
-                    "error": "AI API key not configured. Please set it in Settings."
+                    "error": "AI API not configured. Please set API URL, Model, and API Key in Settings."
                 }), 400
 
             # Get or create active conversation
@@ -397,20 +396,26 @@ async def send_message():
                 })
 
             # Get AI response
-            llm_config = LLMConfig(
-                api_key=config.ai_url,  # ai_url stores the API key
-                model="gemini-2.0-flash-exp",
-                temperature=0.7,
-                max_tokens=1000
-            )
+            llm_service = LLMService()
 
             try:
-                ai_response = await llm_service.get_completion(messages, llm_config)
+                ai_response = await llm_service.get_completion(
+                    messages=messages,
+                    api_url=config.ai_api_url,
+                    api_key=config.ai_api_key,
+                    model=config.ai_model,
+                    temperature=0.7,
+                    max_tokens=1000
+                )
             except Exception as e:
                 logger.error(f"LLM API error: {e}")
+                await llm_service.close()
                 return jsonify({
-                    "error": "Failed to get AI response. Check your API key and try again."
+                    "error": "Failed to get AI response. Check your API configuration and try again."
                 }), 500
+            finally:
+                # Clean up service resources
+                await llm_service.close()
 
             # Parse and execute any actions from AI response
             actions = parse_action_json(ai_response)

@@ -70,15 +70,22 @@ async def test_settings_endpoints(tmp_path, monkeypatch):
         data = response_data['data']
         assert data["timer_enabled"] is True
 
-        # PUT ai-url
+        # PUT AI configuration (OpenAI-compatible)
         r = await client.put(
-            "/api/settings/ai-url", json={"url": "https://example.com/ai"}
+            "/api/settings",
+            json={
+                "ai_api_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+                "ai_model": "gemini-2.0-flash",
+                "ai_api_key": "test-api-key-xyz123"
+            },
         )
         assert r.status_code == 200
         response_data = await r.get_json()
         assert response_data['success'] is True
-        data = response_data['data']
-        assert data["ai_url"] == "https://example.com/ai"
+        updated = response_data['data']
+        assert updated["ai_api_url"] == "https://generativelanguage.googleapis.com/v1beta/openai"
+        assert updated["ai_model"] == "gemini-2.0-flash"
+        assert updated["ai_api_key"] == "test-api-key-xyz123"
 
         # PUT auto-lock
         r = await client.put("/api/settings/auto-lock", json={"minutes": 5})
