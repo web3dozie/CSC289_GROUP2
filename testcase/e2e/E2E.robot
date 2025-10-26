@@ -1,12 +1,17 @@
 *** Settings ***
 Library     SeleniumLibrary
+Library     OperatingSystem
+Library     Collections
+
+Suite Setup    Setup Test Environment
+Suite Teardown    Cleanup Test Environment
 
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
-${USERNAME}    testuser125
+${USERNAME}    testuser126
 ${PINCODE}     987654
-${USERNAME1}    user125
+${USERNAME1}    user126
 ${PINCODE1}     987654
 ${TASK}        Create User Story
 ${Taskadd}     Review PR Today
@@ -18,6 +23,8 @@ ${Date}     10242025
 ${time}      120
 ${NewDate}  10262025
 ${IncorrectPin}     010101
+${Journalentry}     It was productive day as I attended 3 meetings
+${DOWNLOAD_DIR}    ${CURDIR}${/}test_downloads
 
 *** Test Cases ***
 Create User Account
@@ -123,6 +130,19 @@ Error Handling - Invalid PIN
     Login With Incorrect pin
     [Teardown]      Close Browser
 
+Export and Import Tasks
+    [Tags]  ExportImport
+    Open Application
+    Login With PIN
+    Add Task
+    Add Journal
+    Export
+    Sleep   10
+    Delete Task
+    Sleep   10
+    Import
+    [Teardown]    Close Browser
+
 Archive Task
     [Tags]  archive
     Open Application
@@ -155,11 +175,21 @@ Restore Archived Task
     Verify Task In Main List    ${TASK}
     [Teardown]    Close Browser
 
-
 *** Keywords ***
+Setup Test Environment
+    Create Directory    ${DOWNLOAD_DIR}
+    Empty Directory     ${DOWNLOAD_DIR}
+
+Cleanup Test Environment
+    Remove Directory    ${DOWNLOAD_DIR}    recursive=True
+
 Open Application
-    open browser    ${URL}      ${browser}
+    ${chrome_options}=    Evaluate    sys.modules['selenium.webdriver'].ChromeOptions()    sys, selenium.webdriver
+    ${prefs}=    Create Dictionary    download.default_directory=${DOWNLOAD_DIR}    download.prompt_for_download=${False}    download.directory_upgrade=${True}    safebrowsing.enabled=${False}
+    Call Method    ${chrome_options}    add_experimental_option    prefs    ${prefs}
+    Create Webdriver    Chrome    options=${chrome_options}
     maximize browser window
+    Go To    ${URL}
     Wait Until Element Is Visible   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']    10s
     Click Element   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']
     Wait Until Location Contains    /login      timeout=10s
@@ -332,6 +362,40 @@ Login With Incorrect pin
     Wait Until Page Contains   Invalid username or PIN     5s
     ${current_url}=    Get Location
     Should Not Contain    ${current_url}    /app
+
+Add Journal
+    Wait Until Page Contains    Tasks   0.5s
+    Click Element   Xpath://a[normalize-space()='Review']
+    Wait Until Page Contains Element    Xpath://button[normalize-space()='New Entry']    10s
+    Click Element   Xpath://button[normalize-space()='New Entry']
+    Wait Until Element Is Visible   Xpath://textarea[@id='entry-content']    10s
+    Input Text   Xpath://textarea[@id='entry-content']      ${Journalentry}
+    Click Element   Xpath://button[normalize-space()='Save Entry']
+
+Export
+    Empty Directory    ${DOWNLOAD_DIR}
+    Go To    ${URL}app
+    Click Element   Xpath://a[normalize-space()='Settings']
+    Wait Until Page Contains Element    Xpath://button[normalize-space()='Download JSON']    10s
+    Click Element   Xpath://button[normalize-space()='Download JSON']
+    Sleep    5s
+
+Get Latest Downloaded File
+    Wait Until Created    ${DOWNLOAD_DIR}${/}*.json    timeout=30s
+    @{files}=    List Files In Directory    ${DOWNLOAD_DIR}    pattern=*.json    absolute=True
+    ${latest_file}=    Evaluate    max(@{files}, key=lambda x: __import__('os').path.getmtime(x))
+    Log To Console    \nLatest downloaded file: ${latest_file}
+    RETURN    ${latest_file}
+
+Import
+    ${latest_file}=    Get Latest Downloaded File
+    File Should Exist    ${latest_file}
+    Click Element   Xpath://a[normalize-space()='Settings']
+    Click Element   Xpath://label[normalize-space()='Upload JSON']
+    Choose File     xpath=//input[@type='file']     ${latest_file}
+    Sleep   2s
+    Click Element   Xpath://button[normalize-space()='Import Data']
+    Handle Alert    action=ACCEPT
 
 Archive Task From List
     [Arguments]    ${task_title}
