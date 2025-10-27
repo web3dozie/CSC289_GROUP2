@@ -5,6 +5,7 @@ Shared pytest fixtures for backend tests
 import os
 import sys
 from pathlib import Path
+import uuid
 
 import pytest
 import pytest_asyncio
@@ -21,7 +22,8 @@ from backend.app import create_app
 @pytest.fixture(scope="session")
 def test_db_path(tmp_path_factory) -> Path:
     """Create a temporary database file for testing"""
-    return tmp_path_factory.mktemp("db") / "test_database.db"
+    db_dir = tmp_path_factory.mktemp("db")
+    return db_dir / f"test_database_{uuid.uuid4().hex}.db"
 
 
 def _alembic_upgrade_head(db_file: Path) -> None:
@@ -29,20 +31,17 @@ def _alembic_upgrade_head(db_file: Path) -> None:
     from alembic.config import Config
     from alembic import command
 
-    alembic_cfg = Config(os.path.join(ROOT, "backend", "alembic", "alembic.ini"))
+    alembic_cfg = Config(os.path.join(ROOT, "backend", "alembic.ini"))
     alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_file}")
     command.upgrade(alembic_cfg, "head")
-
-
-def _migrate_test_db(test_db_path: Path) -> None:
-    """Migrate the test database to latest schema"""
-    _alembic_upgrade_head(test_db_path)
 
 
 @pytest.fixture
 def app(test_db_path):
     """Create and configure app for testing"""
     os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{test_db_path.as_posix()}"
+    _alembic_upgrade_head(test_db_path)
+
     application = create_app()
     application.config.update({"TESTING": True})
     return application
