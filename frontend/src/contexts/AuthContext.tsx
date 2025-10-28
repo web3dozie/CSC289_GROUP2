@@ -18,6 +18,7 @@ interface AuthContextType {
   setup: (data: { pin: string; username: string; email?: string }) => Promise<void>
   changePin: (data: { currentPin: string; newPin: string }) => Promise<void>
   unlock: (pin: string) => Promise<void>
+  lock: () => void
   updateActivity: () => void
   error: string | null
   clearError: () => void
@@ -26,6 +27,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const AUTH_STORAGE_KEY = 'taskline_auth'
+const LOCK_STORAGE_KEY = 'taskline_lock_state'
 
 interface AuthProviderProps {
   children: ReactNode
@@ -62,15 +64,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           try {
             await settingsApi.getSettings()
             setUser(authData.user)
+            
+            // Restore lock state if it was locked before refresh
+            const lockState = localStorage.getItem(LOCK_STORAGE_KEY)
+            if (lockState === 'true') {
+              setIsLocked(true)
+            }
           } catch (error) {
             // Session is invalid or other error, clear localStorage
             console.log('Session validation failed, clearing auth state')
             localStorage.removeItem(AUTH_STORAGE_KEY)
+            localStorage.removeItem(LOCK_STORAGE_KEY)
           }
         }
       } catch (error) {
         console.error('Failed to load auth state:', error)
         localStorage.removeItem(AUTH_STORAGE_KEY)
+        localStorage.removeItem(LOCK_STORAGE_KEY)
       } finally {
         setIsLoading(false)
       }
@@ -86,9 +96,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user }))
       } else {
         localStorage.removeItem(AUTH_STORAGE_KEY)
+        localStorage.removeItem(LOCK_STORAGE_KEY)
       }
     }
   }, [user, isLoading])
+
+  // Save lock state to localStorage whenever it changes
+  useEffect(() => {
+    if (!isLoading && user) {
+      localStorage.setItem(LOCK_STORAGE_KEY, String(isLocked))
+    }
+  }, [isLocked, user, isLoading])
 
   const login = async (username: string, pin: string) => {
     try {
@@ -160,10 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Activity monitoring and auto-lock functionality
   const updateActivity = useCallback(() => {
     setLastActivity(Date.now())
-    if (isLocked) {
-      setIsLocked(false)
-    }
-  }, [isLocked])
+  }, [])
 
   const unlock = useCallback(async (pin: string) => {
     try {
@@ -171,6 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!user) throw new Error('No user session')
       await loginMutation.mutateAsync({ username: user.username, pin })
       setIsLocked(false)
+      localStorage.removeItem(LOCK_STORAGE_KEY)
       updateActivity()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unlock failed'
@@ -178,6 +194,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error
     }
   }, [loginMutation, updateActivity, user])
+
+  // Manual lock function for testing
+  const lock = useCallback(() => {
+    setIsLocked(true)
+  }, [])
 
   // Auto-lock logic
   useEffect(() => {
@@ -247,6 +268,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setup,
     changePin,
     unlock,
+    lock,
     updateActivity,
     error,
     clearError,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload, ShieldAlert } from 'lucide-react'
 import {
   useSettings,
   useUpdateSettings,
@@ -8,6 +8,7 @@ import {
   useImportData
 } from '../../lib/hooks'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { useTutorial } from '../../contexts/TutorialContext'
 import { ImportConfirmation } from '../tasks'
 import type { UserSettings } from '../../lib/api'
@@ -40,6 +41,7 @@ export const Settings: React.FC = () => {
   const changePin = useAuthChangePin()
   const { theme, setTheme: setThemeContext } = useTheme()
   const { startTutorial } = useTutorial()
+  const { lock } = useAuth()
   const exportData = useExportData()
   const importData = useImportData()
 
@@ -317,14 +319,27 @@ export const Settings: React.FC = () => {
               </select>
             </div>
 
-            <div className="pt-4 border-t border-gray-200">
-              <button
-                onClick={() => setShowPinChange(!showPinChange)}
-                className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                <Key className="w-4 h-4 mr-2" />
-                Change PIN
-              </button>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() => setShowPinChange(!showPinChange)}
+                  className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  Change PIN
+                </button>
+
+                <button
+                  onClick={lock}
+                  className="inline-flex items-center px-4 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 text-sm font-medium rounded-md hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                >
+                  <ShieldAlert className="w-4 h-4 mr-2" />
+                  Test Lock Now
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Use "Test Lock Now" to immediately lock the app and test the auto-lock feature
+              </p>
 
               {showPinChange && (
                 <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
