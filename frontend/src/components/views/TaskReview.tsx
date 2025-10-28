@@ -411,8 +411,9 @@ export const TaskReview: React.FC = () => {
                   <BarChart
                     title="Daily Productivity"
                     data={[
-                      { label: 'Completed', value: dailySummary.completed_tasks || 0, color: 'bg-green-500' },
+                      { label: 'To Do', value: dailySummary.todo_tasks || 0, color: 'bg-blue-500' },
                       { label: 'In Progress', value: dailySummary.in_progress_tasks || 0, color: 'bg-yellow-500' },
+                      { label: 'Completed', value: dailySummary.completed_tasks || 0, color: 'bg-green-500' },
                       { label: 'Overdue', value: dailySummary.overdue_tasks || 0, color: 'bg-red-500' },
                     ]}
                   />

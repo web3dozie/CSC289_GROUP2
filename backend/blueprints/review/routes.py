@@ -179,6 +179,17 @@ async def daily_summary():
             )
             created_tasks = result.scalar_one()
 
+            # To Do tasks - tasks with status_id = 1 (To Do) (exclude archived)
+            result = await s.execute(
+                select(func.count()).select_from(Task).where(
+                    Task.status_id == 1,
+                    Task.done == False,
+                    Task.created_by == user_id,
+                    Task.archived == False
+                )
+            )
+            todo_tasks = result.scalar_one()
+
             # Overdue tasks (exclude archived)
             today = date.today()
             result = await s.execute(
@@ -191,9 +202,10 @@ async def daily_summary():
             )
             overdue_tasks = result.scalar_one()
 
-            # In progress tasks (exclude archived)
+            # In progress tasks - only count tasks with status_id = 2 (In Progress) (exclude archived)
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
+                    Task.status_id == 2,
                     Task.done == False,
                     Task.created_by == user_id,
                     Task.archived == False
@@ -232,8 +244,9 @@ async def daily_summary():
             'date': target_date.isoformat(),
             'completed_tasks': completed_tasks,
             'created_tasks': created_tasks,
-            'overdue_tasks': overdue_tasks,
+            'todo_tasks': todo_tasks,
             'in_progress_tasks': in_progress_tasks,
+            'overdue_tasks': overdue_tasks,
             'time_spent': time_spent,
             'categories': categories,
             'journal_entry': journal_content
