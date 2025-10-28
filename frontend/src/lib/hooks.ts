@@ -121,6 +121,10 @@ export const useCreateTask = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks })
       queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
       queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
+      // Invalidate review analytics queries when a new task is created
+      queryClient.invalidateQueries({ queryKey: queryKeys.dailySummary })
+      queryClient.invalidateQueries({ queryKey: queryKeys.weeklySummary })
+      queryClient.invalidateQueries({ queryKey: queryKeys.insights })
     },
   })
 }
@@ -263,6 +267,10 @@ export const useDeleteTask = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
       queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
       queryClient.invalidateQueries({ queryKey: queryKeys.archived })
+      // Invalidate review analytics queries when tasks are deleted
+      queryClient.invalidateQueries({ queryKey: queryKeys.dailySummary })
+      queryClient.invalidateQueries({ queryKey: queryKeys.weeklySummary })
+      queryClient.invalidateQueries({ queryKey: queryKeys.insights })
     },
   })
 }
