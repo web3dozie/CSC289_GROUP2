@@ -5,115 +5,85 @@ Verifies retrieving and updating user settings, including toggles for notes
 and timer, updating AI URL, auto-lock minutes, and theme preferences.
 """
 
-import os
 import pytest
+from conftest import create_user_and_login
 
 
 @pytest.mark.asyncio
-async def test_settings_endpoints(tmp_path, monkeypatch):
-    # temporary DB
-    db_path = tmp_path / "test_settings.db"
-    db_uri = f"sqlite+aiosqlite:///{db_path.as_posix()}"
-    monkeypatch.setenv("DATABASE_URL", db_uri)
+async def test_settings_endpoints(client):
+    """Test user settings API endpoints"""
+    # Create user and login
+    await create_user_and_login(client)
 
-    from backend.app import create_app, initialize_database
+    # GET settings
+    r = await client.get("/api/settings")
+    assert r.status_code == 200
+    response_data = await r.get_json()
+    assert response_data["success"] is True
+    settings = response_data["data"]
+    assert "notes_enabled" in settings
 
-    app = create_app()
-    await initialize_database()
+    # PUT update settings
+    r = await client.put(
+        "/api/settings",
+        json={"notes_enabled": False, "timer_enabled": False, "theme": "dark"},
+    )
+    assert r.status_code == 200
+    response_data = await r.get_json()
+    assert response_data["success"] is True
+    updated = response_data["data"]
+    assert updated["notes_enabled"] is False
+    assert updated["timer_enabled"] is False
+    assert updated["theme"] == "dark"
 
-    async with app.test_client() as client:
-        # create a user/session (idempotent: if user exists, try login)
-        resp = await client.post(
-            "/api/auth/setup",
-            json={
-                "pin": "1234",
-                "username": "settings_tester",
-                "email": "settings_tester@example.com",
-            },
-        )
-        if resp.status_code == 400:
-            # user already exists; try to login to establish session
-            login = await client.post(
-                "/api/auth/login",
-                json={
-                    "pin": "1234",
-                    "username": "settings_tester",
-                    "email": "settings_tester@example.com",
-                },
-            )
-            assert login.status_code in (200, 201)
-        else:
-            assert resp.status_code in (200, 201)
+    # PUT notes toggle
+    r = await client.put("/api/settings/notes", json={"enabled": True})
+    assert r.status_code == 200
+    response_data = await r.get_json()
+    assert response_data["success"] is True
+    data = response_data["data"]
+    assert data["notes_enabled"] is True
 
-        # GET settings
-        r = await client.get("/api/settings")
-        assert r.status_code == 200
-        response_data = await r.get_json()
-        assert response_data["success"] is True
-        settings = response_data["data"]
-        assert "notes_enabled" in settings
+    # PUT timer toggle
+    r = await client.put("/api/settings/timer", json={"enabled": True})
+    assert r.status_code == 200
+    response_data = await r.get_json()
+    assert response_data["success"] is True
+    data = response_data["data"]
+    assert data["timer_enabled"] is True
 
-        # PUT update settings
-        r = await client.put(
-            "/api/settings",
-            json={"notes_enabled": False, "timer_enabled": False, "theme": "dark"},
-        )
-        assert r.status_code == 200
-        response_data = await r.get_json()
-        assert response_data["success"] is True
-        updated = response_data["data"]
-        assert updated["notes_enabled"] is False
-        assert updated["timer_enabled"] is False
-        assert updated["theme"] == "dark"
+    # PUT AI configuration (OpenAI-compatible)
+    r = await client.put(
+        "/api/settings",
+        json={
+            "ai_api_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "ai_model": "gemini-2.0-flash",
+            "ai_api_key": "test-api-key-xyz123",
+        },
+    )
+    assert r.status_code == 200
+    response_data = await r.get_json()
+    assert response_data["success"] is True
+    updated = response_data["data"]
+    assert (
+        updated["ai_api_url"]
+        == "https://generativelanguage.googleapis.com/v1beta/openai"
+    )
+    assert updated["ai_model"] == "gemini-2.0-flash"
+    assert updated["ai_api_key"] == "test-api-key-xyz123"
 
-        # PUT notes toggle
-        r = await client.put("/api/settings/notes", json={"enabled": True})
-        assert r.status_code == 200
-        response_data = await r.get_json()
-        assert response_data["success"] is True
-        data = response_data["data"]
-        assert data["notes_enabled"] is True
+    # PUT auto-lock
+    r = await client.put("/api/settings/auto-lock", json={"minutes": 5})
+    assert r.status_code == 200
+    response_data = await r.get_json()
+    assert response_data["success"] is True
+    data = response_data["data"]
+    assert data["auto_lock_minutes"] == 5
 
-        # PUT timer toggle
-        r = await client.put("/api/settings/timer", json={"enabled": True})
-        assert r.status_code == 200
-        response_data = await r.get_json()
-        assert response_data["success"] is True
-        data = response_data["data"]
-        assert data["timer_enabled"] is True
-
-        # PUT AI configuration (OpenAI-compatible)
-        r = await client.put(
-            "/api/settings",
-            json={
-                "ai_api_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-                "ai_model": "gemini-2.0-flash",
-                "ai_api_key": "test-api-key-xyz123",
-            },
-        )
-        assert r.status_code == 200
-        response_data = await r.get_json()
-        assert response_data["success"] is True
-        updated = response_data["data"]
-        assert (
-            updated["ai_api_url"]
-            == "https://generativelanguage.googleapis.com/v1beta/openai"
-        )
-        assert updated["ai_model"] == "gemini-2.0-flash"
-        assert updated["ai_api_key"] == "test-api-key-xyz123"
-
-        # PUT auto-lock
-        r = await client.put("/api/settings/auto-lock", json={"minutes": 5})
-        assert r.status_code == 200
-        response_data = await r.get_json()
-        assert response_data["success"] is True
-        data = response_data["data"]
-        assert data["auto_lock_minutes"] == 5
-
-        # PUT theme
-        r = await client.put("/api/settings/theme", json={"theme": "light"})
-        assert r.status_code == 200
-        response_data = await r.get_json()
-        assert response_data["success"] is True
-        data = response_data["data"]
-        assert data["theme"] == "light"
+    # PUT theme
+    r = await client.put("/api/settings/theme", json={"theme": "light"})
+    assert r.status_code == 200
+    response_data = await r.get_json()
+    assert response_data["success"] is True
+    data = response_data["data"]
+    assert data["theme"] == "light"
