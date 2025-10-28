@@ -1,7 +1,7 @@
 """Database health check utility module."""
 
 from __future__ import annotations
-from collections.abc import Iterable, Set
+from collections.abc import Iterable
 from sqlalchemy import text, inspect
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.engine import Connection
@@ -10,8 +10,8 @@ from alembic.script import ScriptDirectory
 from alembic.runtime.migration import MigrationContext
 
 
-# Syncronous helper functions
-def list_tables(sync_conn: Connection) -> Set[str]:
+# Synchronous helper functions
+def list_tables(sync_conn: Connection) -> set[str]:
     """List all tables in the connected database."""
     inspector = inspect(sync_conn)
     return set(inspector.get_table_names())
@@ -33,7 +33,17 @@ def get_head_revision(alembic_ini_path: str) -> str:
 async def check_db_health(
     engine: AsyncEngine, required_tables: Iterable[str], alembic_ini_path: str
 ):
-    """Check if the database is reachable and has the required tables"""
+    """Check if the database is reachable and has the required tables.
+
+    Args:
+        engine: Async SQLAlchemy engine
+        required_tables: Iterable of table names that must exist
+        alembic_ini_path: Path to alembic.ini configuration file
+
+    Raises:
+        RuntimeError: If database check fails for any reason (connection,
+                     missing tables, version mismatch, PRAGMA issues)
+    """
     try:
         async with engine.connect() as conn:
             # Check connection
