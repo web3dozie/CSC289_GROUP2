@@ -15,11 +15,8 @@ ROOT = Path(__file__).resolve().parents[2]  # .../CSC289_GROUP2
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Import app creation
-from backend.app import create_app
 
-
-@pytest.fixture(scope="session")
+@pytest.fixture
 def test_db_path(tmp_path_factory) -> Path:
     """Create a temporary database file for testing"""
     db_dir = tmp_path_factory.mktemp("db")
@@ -42,6 +39,9 @@ def app(test_db_path):
     os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{test_db_path.as_posix()}"
     _alembic_upgrade_head(test_db_path)
 
+    # Import app creation
+    from backend.app import create_app
+
     application = create_app()
     application.config.update({"TESTING": True})
     return application
@@ -54,11 +54,13 @@ async def client(app):
         yield c
 
 
-async def create_user_and_login(client, pin="1234", username="testuser"):
+async def create_user_and_login(
+    client, pin="1234", username="testuser", email="testuser@example.com"
+):
     """Helper to create a user and login"""
     resp = await client.post(
         "/api/auth/setup",
-        json={"pin": pin, "username": username, "email": "testuser@example.com"},
+        json={"pin": pin, "username": username, "email": email},
     )
     if resp.status_code in (200, 201):
         return await resp.get_json()
