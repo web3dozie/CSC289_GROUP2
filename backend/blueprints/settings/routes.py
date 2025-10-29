@@ -20,19 +20,28 @@ async def get_settings():
         raise AuthenticationError('Authentication required')
     
     user_id = session['user_id']
+    logging.debug(f"Fetching settings for user_id: {user_id}")
+    
     try:
         async with AsyncSessionLocal() as s:
+            logging.debug("Executing select query for Configuration")
             result = await s.execute(select(Configuration).filter_by(user_id=user_id))
             settings = result.scalars().first()
+            
             if not settings:
+                logging.info(f"No settings found for user {user_id}, creating default settings")
                 settings = Configuration(user_id=user_id)
                 s.add(settings)
                 await s.commit()
                 await s.refresh(settings)
+                logging.info(f"Created default settings for user {user_id}")
+            else:
+                logging.debug(f"Found existing settings for user {user_id}")
+            
             return settings
     except Exception as e:
-        logging.exception("Failed to fetch settings")
-        raise DatabaseError('Failed to fetch settings')
+        logging.exception(f"Failed to fetch settings for user {user_id}: {str(e)}")
+        raise DatabaseError(f'Failed to fetch settings: {str(e)}')
 
 
 @settings_bp.route("/api/settings", methods=["GET"])

@@ -176,14 +176,18 @@ async def login():
             session["user_id"] = user.id
             session["username"] = user.username
             session["session_id"] = session_id
-
+            
+            # Make session permanent based on remember_me
+            from quart import session as quart_session
+            session.permanent = remember_me
+            
             # Log successful login
             security_logger.log_login_attempt(username, ip_address, True, user.id)
             
             
             # Log successful login
             import logging
-            logging.info(f"User {user.id} logged in successfully with session {session_id}")
+            logging.info(f"User {user.id} logged in successfully with session {session_id}, remember_me={remember_me}, permanent={session.permanent}")
             
             return success_response({
                 'message': 'Login successful',

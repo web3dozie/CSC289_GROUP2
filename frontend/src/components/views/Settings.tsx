@@ -111,11 +111,15 @@ export const Settings: React.FC = () => {
       ai_api_key: aiApiKey || undefined,
     }
 
+    console.log('Settings: Saving settings with theme:', themeForm)
+
     try {
-      await updateSettings.mutateAsync(updates)
+      const result = await updateSettings.mutateAsync(updates)
+      console.log('Settings: Save result:', result)
 
       // Ensure theme context is synced after save
       setThemeContext(themeForm)
+      console.log('Settings: Called setThemeContext with:', themeForm)
       
       alert('Settings saved successfully!')
     } catch (error) {
@@ -266,24 +270,34 @@ export const Settings: React.FC = () => {
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {themeOptions.map(option => (
-                  <label key={option.value} className="relative">
+                  <label key={option.value} className="relative cursor-pointer">
                     <input
                       type="radio"
                       name="theme"
                       value={option.value}
                       checked={themeForm === option.value}
                       onChange={(e) => {
+                        console.log('Radio onChange triggered:', e.target.value)
                         const newTheme = e.target.value as 'light' | 'dark' | 'auto'
                         setThemeForm(newTheme)
                         setThemeContext(newTheme) // Apply immediately
                       }}
                       className="sr-only"
                     />
-                    <div className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      themeForm === option.value
-                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}>
+                    <div 
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        themeForm === option.value
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                      }`}
+                      onClick={() => {
+                        console.log('Div clicked:', option.value)
+                        const newTheme = option.value as 'light' | 'dark' | 'auto'
+                        console.log('Setting theme to:', newTheme)
+                        setThemeForm(newTheme)
+                        setThemeContext(newTheme) // Apply immediately
+                      }}
+                    >
                       <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{option.label}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{option.description}</div>
                     </div>
