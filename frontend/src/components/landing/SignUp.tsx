@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, UserPlus } from 'lucide-react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTutorial } from '../../contexts/TutorialContext';
 
@@ -161,9 +161,9 @@ const SignUp: React.FC = () => {
               <p className="text-sm text-gray-600">
                 Already have an account?
               </p>
-              <Link to="/login" className="text-sm text-purple-600 hover:text-purple-700 font-medium">
+              <a href="/login" className="text-sm text-purple-600 hover:text-purple-700 font-medium">
                 Sign in instead
-              </Link>
+              </a>
             </div>
           </div>
         </div>
