@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 
 interface FAQItem {
   question: string;
@@ -92,12 +93,12 @@ const FAQ: React.FC = () => {
               Check out our comprehensive documentation for more information.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a
-                href="/OVERVIEW.md"
+              <Link
+                to="/overview"
                 className="text-purple-400 hover:text-purple-300 font-medium"
               >
                 Read Documentation →
-              </a>
+              </Link>
             </div>
           </div>
         </div>
