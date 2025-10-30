@@ -51,7 +51,9 @@ const Footer: React.FC = () => {
             <ul className="space-y-2">
               <li>
                 <a 
-                  href="/" 
+                  href="https://github.com/web3dozie/CSC289_GROUP2" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors inline-flex items-center"
                 >
                   <Github className="h-4 w-4 mr-2" />
