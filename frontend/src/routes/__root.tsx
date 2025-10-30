@@ -37,8 +37,8 @@ const indexRoute = createRoute({
   path: '/',
   component: function LandingPage() {
     return (
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-        <div className="min-h-screen bg-white dark:bg-gray-900">
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-900">Loading...</div>}>
+        <div className="min-h-screen bg-slate-900">
           <Header />
           <main id="main">
             <Hero />

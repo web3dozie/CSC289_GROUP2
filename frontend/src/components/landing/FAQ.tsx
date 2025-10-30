@@ -45,14 +45,14 @@ const FAQ: React.FC = () => {
   ];
 
   return (
-    <section id="faq" className="py-16 md:py-24 bg-gray-50">
+    <section id="faq" className="py-16 md:py-24 bg-gradient-to-b from-slate-900 to-slate-800">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Frequently Asked Questions
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-400">
               Everything you need to know about Task Line
             </p>
           </div>
@@ -61,40 +61,40 @@ const FAQ: React.FC = () => {
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
+                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg hover:border-slate-600 transition-all duration-200"
               >
                 <button
-                  className="w-full px-6 py-4 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 rounded-lg"
+                  className="w-full px-6 py-4 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-slate-900 rounded-lg"
                   onClick={() => setOpenIndex(openIndex === index ? null : index)}
                   aria-expanded={openIndex === index}
                 >
-                  <span className="font-medium text-gray-900">{faq.question}</span>
+                  <span className="font-medium text-white">{faq.question}</span>
                   {openIndex === index ? (
-                    <ChevronUp className="h-5 w-5 text-purple-600 flex-shrink-0 ml-2" />
+                    <ChevronUp className="h-5 w-5 text-purple-400 flex-shrink-0 ml-2" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
+                    <ChevronDown className="h-5 w-5 text-gray-500 flex-shrink-0 ml-2" />
                   )}
                 </button>
                 {openIndex === index && (
                   <div className="px-6 pb-4">
-                    <p className="text-gray-600">{faq.answer}</p>
+                    <p className="text-gray-300">{faq.answer}</p>
                   </div>
                 )}
               </div>
             ))}
           </div>
 
-          <div className="mt-12 text-center p-8 bg-white rounded-2xl shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="mt-12 text-center p-8 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl">
+            <h3 className="text-lg font-semibold text-white mb-2">
               Still have questions?
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-400 mb-4">
               Check out our comprehensive documentation for more information.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
                 href="/OVERVIEW.md"
-                className="text-purple-600 hover:text-purple-700 font-medium"
+                className="text-purple-400 hover:text-purple-300 font-medium"
               >
                 Read Documentation →
               </a>

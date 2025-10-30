@@ -46,13 +46,16 @@ const Features: React.FC = () => {
   ];
 
   return (
-    <section id="features" className="py-16 md:py-24 bg-white">
-      <div className="container mx-auto px-4 md:px-6">
+    <section id="features" className="py-16 md:py-24 bg-slate-900 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"></div>
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40"></div>
+      
+      <div className="container mx-auto px-4 md:px-6 relative">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Everything You Need to Stay Organized
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
             A powerful yet simple task management system designed for privacy, speed, and focus.
           </p>
         </div>
@@ -63,16 +66,16 @@ const Features: React.FC = () => {
             return (
               <div
                 key={index}
-                className="group relative bg-white rounded-xl p-6 border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all duration-300"
+                className="group relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
               >
                 <div className="flex flex-col items-start h-full">
-                  <div className="mb-4 p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                    <Icon className="h-6 w-6 text-purple-600" />
+                  <div className="mb-4 p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-colors">
+                    <Icon className="h-6 w-6 text-purple-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-white mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <p className="text-gray-400 text-sm leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -82,11 +85,11 @@ const Features: React.FC = () => {
         </div>
 
         <div className="mt-16 text-center">
-          <div className="inline-block bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl px-8 py-6 border border-purple-200">
-            <p className="text-gray-900 font-medium mb-2">
+          <div className="inline-block bg-gradient-to-r from-purple-900/40 to-pink-900/40 backdrop-blur-sm rounded-2xl px-8 py-6 border border-purple-500/30">
+            <p className="text-white font-medium mb-2">
               Plus optional AI coaching
             </p>
-            <p className="text-gray-600 text-sm">
+            <p className="text-gray-300 text-sm">
               Enable "Zedd Mode" with your own AI API URL for smart task suggestions and daily planning assistance
             </p>
           </div>

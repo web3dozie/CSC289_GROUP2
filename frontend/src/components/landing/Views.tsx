@@ -54,13 +54,13 @@ const Views: React.FC = () => {
   ];
 
   return (
-    <section id="views" className="py-16 md:py-24 bg-gradient-to-b from-gray-50 to-white">
+    <section id="views" className="py-16 md:py-24 bg-gradient-to-b from-slate-800 to-slate-900">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Four Powerful Views
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
             See your tasks from different perspectives. Switch views instantly to match your workflow.
           </p>
         </div>
@@ -71,7 +71,7 @@ const Views: React.FC = () => {
             return (
               <div
                 key={index}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden"
+                className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 hover:border-slate-600 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
               >
                 <div className={`bg-gradient-to-r ${view.color} p-6`}>
                   <div className="flex items-center space-x-3 mb-2">
@@ -87,15 +87,15 @@ const Views: React.FC = () => {
                   </p>
                 </div>
                 
-                <div className="p-6">
+                <div className="p-6 bg-slate-800/80">
                   <ul className="space-y-3">
                     {view.features.map((feature, featureIndex) => (
                       <li
                         key={featureIndex}
-                        className="flex items-center text-gray-700"
+                        className="flex items-center text-gray-300"
                       >
                         <svg
-                          className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0"
+                          className="h-5 w-5 text-purple-400 mr-3 flex-shrink-0"
                           fill="none"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -116,7 +116,7 @@ const Views: React.FC = () => {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-gray-600">
+          <p className="text-gray-400">
             All views sync instantly and support drag-and-drop or keyboard navigation
           </p>
         </div>
