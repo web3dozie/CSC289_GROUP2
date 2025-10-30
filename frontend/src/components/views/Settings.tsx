@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload, ShieldAlert } from 'lucide-react'
 import {
   useSettings,
   useUpdateSettings,
@@ -8,6 +8,7 @@ import {
   useImportData
 } from '../../lib/hooks'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { useTutorial } from '../../contexts/TutorialContext'
 import { ImportConfirmation } from '../tasks'
 import type { UserSettings } from '../../lib/api'
@@ -40,6 +41,7 @@ export const Settings: React.FC = () => {
   const changePin = useAuthChangePin()
   const { theme, setTheme: setThemeContext } = useTheme()
   const { startTutorial } = useTutorial()
+  const { lock } = useAuth()
   const exportData = useExportData()
   const importData = useImportData()
 
@@ -109,11 +111,15 @@ export const Settings: React.FC = () => {
       ai_api_key: aiApiKey || undefined,
     }
 
+    console.log('Settings: Saving settings with theme:', themeForm)
+
     try {
-      await updateSettings.mutateAsync(updates)
+      const result = await updateSettings.mutateAsync(updates)
+      console.log('Settings: Save result:', result)
 
       // Ensure theme context is synced after save
       setThemeContext(themeForm)
+      console.log('Settings: Called setThemeContext with:', themeForm)
       
       alert('Settings saved successfully!')
     } catch (error) {
@@ -264,24 +270,34 @@ export const Settings: React.FC = () => {
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {themeOptions.map(option => (
-                  <label key={option.value} className="relative">
+                  <label key={option.value} className="relative cursor-pointer">
                     <input
                       type="radio"
                       name="theme"
                       value={option.value}
                       checked={themeForm === option.value}
                       onChange={(e) => {
+                        console.log('Radio onChange triggered:', e.target.value)
                         const newTheme = e.target.value as 'light' | 'dark' | 'auto'
                         setThemeForm(newTheme)
                         setThemeContext(newTheme) // Apply immediately
                       }}
                       className="sr-only"
                     />
-                    <div className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      themeForm === option.value
-                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}>
+                    <div 
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        themeForm === option.value
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                      }`}
+                      onClick={() => {
+                        console.log('Div clicked:', option.value)
+                        const newTheme = option.value as 'light' | 'dark' | 'auto'
+                        console.log('Setting theme to:', newTheme)
+                        setThemeForm(newTheme)
+                        setThemeContext(newTheme) // Apply immediately
+                      }}
+                    >
                       <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{option.label}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{option.description}</div>
                     </div>
@@ -317,14 +333,27 @@ export const Settings: React.FC = () => {
               </select>
             </div>
 
-            <div className="pt-4 border-t border-gray-200">
-              <button
-                onClick={() => setShowPinChange(!showPinChange)}
-                className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                <Key className="w-4 h-4 mr-2" />
-                Change PIN
-              </button>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() => setShowPinChange(!showPinChange)}
+                  className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  Change PIN
+                </button>
+
+                <button
+                  onClick={lock}
+                  className="inline-flex items-center px-4 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 text-sm font-medium rounded-md hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                >
+                  <ShieldAlert className="w-4 h-4 mr-2" />
+                  Test Lock Now
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Use "Test Lock Now" to immediately lock the app and test the auto-lock feature
+              </p>
 
               {showPinChange && (
                 <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">

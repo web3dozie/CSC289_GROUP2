@@ -326,6 +326,13 @@ async def update_task(task_id):
             if 'done' in data:
                 is_done = bool(data['done'])
                 task.done = is_done
+                # Set closed_on timestamp when task is completed
+                if is_done and not task.closed_on:
+                    task.closed_on = datetime.now()
+                elif not is_done:
+                    # Clear closed_on if task is marked as incomplete
+                    task.closed_on = None
+                    
                 if 'status_id' not in data:
                     if is_done:
                         status_override = await _resolve_status_id(db_session, 3, 'Done', 'Completed')

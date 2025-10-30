@@ -95,8 +95,15 @@ async function apiRequest<T>(
     ...options,
   }
 
+  console.log('[API] Request:', options.method || 'GET', endpoint)
+
   try {
     const response = await fetch(url, config)
+
+    console.log('[API] Response:', response.status, endpoint, {
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries())
+    })
 
     // Handle empty responses (like 204 No Content)
     if (response.status === 204) {
@@ -106,6 +113,8 @@ async function apiRequest<T>(
     const data = await response.json().catch(() => null)
 
     if (!response.ok) {
+      console.error('[API] Error response:', { endpoint, status: response.status, data })
+      
       // Try to parse standardized error format
       if (data && typeof data === 'object' && 'success' in data && data.success === false) {
         const errorData = data as APIErrorResponse
@@ -121,6 +130,8 @@ async function apiRequest<T>(
       throw new ApiError(response.status, message)
     }
 
+    console.log('[API] Success response:', { endpoint, dataKeys: data ? Object.keys(data) : [] })
+
     // Handle standardized success response format
     if (data && typeof data === 'object' && 'success' in data && data.success === true) {
       return (data as APISuccessResponse<T>).data
@@ -132,6 +143,8 @@ async function apiRequest<T>(
     if (error instanceof ApiError) {
       throw error
     }
+    
+    console.error('[API] Request failed:', { endpoint, error })
     
     // Network error or other fetch failures
     if (error instanceof TypeError && error.message.includes('fetch')) {
