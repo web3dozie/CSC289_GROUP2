@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 
 const Overview: React.FC = () => {
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const overviewContent = `# Project Overview — Task Line
 
 Tagline: "Lock in. Get it done. Stay zen."
