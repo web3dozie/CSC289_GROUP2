@@ -492,8 +492,14 @@ class UserSession(Base):
 def auth_required(f):
     @wraps(f)
     async def decorated_function(*args, **kwargs):
+        import logging
+        
+        # Enhanced logging for debugging session issues
+        logging.debug(f"auth_required check - session keys: {list(session.keys())}")
+        
         if "user_id" not in session:
             from backend.errors import AuthenticationError
+            logging.warning(f"Authentication required - no user_id in session. Session keys: {list(session.keys())}")
             raise AuthenticationError("Authentication required")
 
         # Validate session is still active in database
@@ -503,7 +509,8 @@ def auth_required(f):
             from backend.db.engine_async import AsyncSessionLocal
             from backend.errors import AuthenticationError
             from sqlalchemy import select, and_
-            import logging
+
+            logging.debug(f"Validating session {session_id} for user {session.get('user_id')}")
 
             async with AsyncSessionLocal() as db_session:
                 result = await db_session.execute(
@@ -519,7 +526,7 @@ def auth_required(f):
                 # Check if session exists
                 if not user_session:
                     session.clear()
-                    logging.warning(f"Invalid session attempt: {session_id}")
+                    logging.warning(f"Invalid session attempt: {session_id} - not found in database or inactive")
                     raise AuthenticationError("Session expired or invalid")
                 
                 # Check if session has expired
@@ -527,13 +534,15 @@ def auth_required(f):
                     user_session.is_active = False
                     await db_session.commit()
                     session.clear()
-                    logging.info(f"Session expired for user {user_session.user_id}")
+                    logging.info(f"Session expired for user {user_session.user_id} - expired at {user_session.expires_at}")
                     raise AuthenticationError("Session has expired")
                 
                 # Update last activity (sliding window)
                 user_session.last_activity = datetime.now()
                 await db_session.commit()
-                logging.debug(f"Session activity updated for user {user_session.user_id}")
+                logging.debug(f"Session activity updated for user {user_session.user_id}, expires at {user_session.expires_at}")
+        else:
+            logging.warning(f"No session_id in session for user {session.get('user_id')}")
 
         if inspect.iscoroutinefunction(f):
             return await f(*args, **kwargs)

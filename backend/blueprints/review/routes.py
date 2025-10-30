@@ -179,6 +179,17 @@ async def daily_summary():
             )
             created_tasks = result.scalar_one()
 
+            # To Do tasks - tasks with status_id = 1 (To Do) (exclude archived)
+            result = await s.execute(
+                select(func.count()).select_from(Task).where(
+                    Task.status_id == 1,
+                    Task.done == False,
+                    Task.created_by == user_id,
+                    Task.archived == False
+                )
+            )
+            todo_tasks = result.scalar_one()
+
             # Overdue tasks (exclude archived)
             today = date.today()
             result = await s.execute(
@@ -191,9 +202,10 @@ async def daily_summary():
             )
             overdue_tasks = result.scalar_one()
 
-            # In progress tasks (exclude archived)
+            # In progress tasks - only count tasks with status_id = 2 (In Progress) (exclude archived)
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
+                    Task.status_id == 2,
                     Task.done == False,
                     Task.created_by == user_id,
                     Task.archived == False
@@ -232,8 +244,9 @@ async def daily_summary():
             'date': target_date.isoformat(),
             'completed_tasks': completed_tasks,
             'created_tasks': created_tasks,
-            'overdue_tasks': overdue_tasks,
+            'todo_tasks': todo_tasks,
             'in_progress_tasks': in_progress_tasks,
+            'overdue_tasks': overdue_tasks,
             'time_spent': time_spent,
             'categories': categories,
             'journal_entry': journal_content
@@ -257,13 +270,13 @@ async def weekly_summary():
         return jsonify({'error': 'Authentication required'}), 401
 
     async with AsyncSessionLocal() as s:
-        # Tasks completed this week (exclude archived)
+        # Tasks completed this week - use closed_on if available, otherwise created_on (exclude archived)
         result = await s.execute(
             select(func.count())
             .select_from(Task)
             .where(
-                Task.created_on >= start_of_week,
-                Task.created_on <= end_of_week + timedelta(days=1),
+                func.coalesce(Task.closed_on, Task.created_on) >= start_of_week,
+                func.coalesce(Task.closed_on, Task.created_on) <= end_of_week + timedelta(days=1),
                 Task.done == True,
                 Task.created_by == user_id,
                 Task.archived == False
@@ -297,7 +310,7 @@ async def weekly_summary():
             day = start_of_week + timedelta(days=i)
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
-                    func.date(Task.created_on) == day,
+                    func.date(func.coalesce(Task.closed_on, Task.created_on)) == day,
                     Task.done == True,
                     Task.created_by == user_id,
                     Task.archived == False
@@ -325,8 +338,8 @@ async def weekly_summary():
             select(Category.name, func.count(Task.id))
             .join(Task)
             .where(
-                Task.created_on >= start_of_week,
-                Task.created_on <= end_of_week + timedelta(days=1),
+                func.coalesce(Task.closed_on, Task.created_on) >= start_of_week,
+                func.coalesce(Task.closed_on, Task.created_on) <= end_of_week + timedelta(days=1),
                 Task.done == True,
                 Task.created_by == user_id,
                 Task.category_id.isnot(None),
@@ -383,28 +396,28 @@ async def get_insights():
         # Productivity score (based on completion rate and other factors)
         productivity_score = min(100, completion_rate * 1.2)  # Simple calculation
 
-        # Most productive day (exclude archived)
+        # Most productive day (exclude archived) - use closed_on when available
         result = await s.execute(
             select(
-                func.date(Task.created_on).label("date"),
+                func.date(func.coalesce(Task.closed_on, Task.created_on)).label("date"),
                 func.count(Task.id).label("count"),
             )
             .where(Task.done == True, Task.created_by == user_id, Task.archived == False)
-            .group_by(func.date(Task.created_on))
+            .group_by(func.date(func.coalesce(Task.closed_on, Task.created_on)))
             .order_by(func.count(Task.id).desc())
         )
         productive_days = result.first()
 
-        # Performance trends (last 4 weeks, exclude archived)
+        # Performance trends (last 4 weeks including current week, exclude archived) - use closed_on when available
         performance_trends = []
-        for weeks_ago in range(4, 0, -1):
+        for weeks_ago in range(3, -1, -1):  # Changed to include current week (0)
             week_start = date.today() - timedelta(days=date.today().weekday() + (weeks_ago * 7))
             week_end = week_start + timedelta(days=6)
 
             result = await s.execute(
                 select(func.count()).select_from(Task).where(
-                    Task.created_on >= week_start,
-                    Task.created_on <= week_end + timedelta(days=1),
+                    func.coalesce(Task.closed_on, Task.created_on) >= week_start,
+                    func.coalesce(Task.closed_on, Task.created_on) <= week_end + timedelta(days=1),
                     Task.done == True,
                     Task.created_by == user_id,
                     Task.archived == False
@@ -412,9 +425,23 @@ async def get_insights():
             )
             weekly_completed = result.scalar_one()
 
+            # More intuitive labeling
+            if weeks_ago == 0:
+                period_label = "This Week"
+            elif weeks_ago == 1:
+                period_label = "Last Week"
+            elif weeks_ago == 2:
+                period_label = "2 Weeks Ago"
+            elif weeks_ago == 3:
+                period_label = "3 Weeks Ago"
+            else:
+                period_label = f"{weeks_ago} Weeks Ago"
+
             performance_trends.append({
-                'period': f'Week {5 - weeks_ago}',
-                'score': min(100, weekly_completed * 10)  # Simple scoring
+                'period': period_label,
+                'completed': weekly_completed,
+                'week_start': week_start.isoformat(),
+                'week_end': week_end.isoformat()
             })
 
         # Strengths and improvements based on data

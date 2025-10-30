@@ -50,18 +50,24 @@ interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>
   color: string
   change?: string
+  description?: string
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, change }) => {
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, change, description }) => {
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex-1">
           <p className="text-sm text-gray-600 dark:text-gray-400">{title}</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
           {change && (
             <p className={`text-sm ${change.startsWith('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {change}
+            </p>
+          )}
+          {description && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {description}
             </p>
           )}
         </div>
@@ -411,8 +417,9 @@ export const TaskReview: React.FC = () => {
                   <BarChart
                     title="Daily Productivity"
                     data={[
-                      { label: 'Completed', value: dailySummary.completed_tasks || 0, color: 'bg-green-500' },
+                      { label: 'To Do', value: dailySummary.todo_tasks || 0, color: 'bg-blue-500' },
                       { label: 'In Progress', value: dailySummary.in_progress_tasks || 0, color: 'bg-yellow-500' },
+                      { label: 'Completed', value: dailySummary.completed_tasks || 0, color: 'bg-green-500' },
                       { label: 'Overdue', value: dailySummary.overdue_tasks || 0, color: 'bg-red-500' },
                     ]}
                   />
@@ -467,6 +474,7 @@ export const TaskReview: React.FC = () => {
                       value={weeklySummary.average_daily || 0}
                       icon={Target}
                       color="bg-blue-500"
+                      description={`${weeklySummary.total_completed || 0} completed ÷ 7 days`}
                     />
                     <StatCard
                       title="Most Productive Day"
@@ -582,11 +590,11 @@ export const TaskReview: React.FC = () => {
                   {/* Performance Trends */}
                   {insights.performance_trends && (
                     <BarChart
-                      title="Performance Trends"
+                      title="Performance Trends (Tasks Completed per Week)"
                       data={insights.performance_trends.map((trend: any, _index: number) => ({
                         label: trend.period,
-                        value: trend.score,
-                        color: trend.score > 70 ? 'bg-green-500' : trend.score > 40 ? 'bg-yellow-500' : 'bg-red-500'
+                        value: trend.completed,
+                        color: trend.completed >= 10 ? 'bg-green-500' : trend.completed >= 5 ? 'bg-yellow-500' : trend.completed > 0 ? 'bg-blue-500' : 'bg-gray-400'
                       }))}
                     />
                   )}
