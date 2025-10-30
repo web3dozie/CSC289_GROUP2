@@ -6,7 +6,8 @@ import { AppLayout } from '../components/AppLayout'
 // Lazy load landing page components
 const Header = lazy(() => import('../components/landing/Header'))
 const Hero = lazy(() => import('../components/landing/Hero'))
-const Tutorial = lazy(() => import('../components/landing/Tutorial'))
+const Features = lazy(() => import('../components/landing/Features'))
+const Views = lazy(() => import('../components/landing/Views'))
 const Privacy = lazy(() => import('../components/landing/Privacy'))
 const FAQ = lazy(() => import('../components/landing/FAQ'))
 const CTA = lazy(() => import('../components/landing/CTA'))
@@ -41,7 +42,8 @@ const indexRoute = createRoute({
           <Header />
           <main id="main">
             <Hero />
-            <Tutorial />
+            <Features />
+            <Views />
             <Privacy />
             <FAQ />
             <CTA />

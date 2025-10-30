@@ -28,7 +28,6 @@ describe('Hero', () => {
     render(<Hero />)
 
     expect(screen.getByRole('link', { name: /open app/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /try tutorial/i })).toBeInTheDocument()
   })
 
   it('renders the task preview section', () => {

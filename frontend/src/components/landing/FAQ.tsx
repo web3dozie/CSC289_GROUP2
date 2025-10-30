@@ -89,7 +89,7 @@ const FAQ: React.FC = () => {
               Still have questions?
             </h3>
             <p className="text-gray-600 mb-4">
-              Check out our comprehensive documentation or start with the tutorial.
+              Check out our comprehensive documentation for more information.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
@@ -97,13 +97,6 @@ const FAQ: React.FC = () => {
                 className="text-purple-600 hover:text-purple-700 font-medium"
               >
                 Read Documentation →
-              </a>
-              <span className="hidden sm:inline text-gray-300">|</span>
-              <a
-                href="/#/tutorial"
-                className="text-purple-600 hover:text-purple-700 font-medium"
-              >
-                Start Tutorial →
               </a>
             </div>
           </div>

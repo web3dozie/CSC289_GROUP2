@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 
 const Hero: React.FC = () => {
@@ -26,14 +26,6 @@ const Hero: React.FC = () => {
           >
             Open App
             <ArrowRight className="ml-2 h-5 w-5" />
-          </Link>
-          
-          <Link
-            to="/tutorial"
-            className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-purple-600 bg-white border-2 border-purple-600 hover:bg-purple-50 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2"
-          >
-            <Play className="mr-2 h-5 w-5" />
-            Try Tutorial
           </Link>
         </div>
         
