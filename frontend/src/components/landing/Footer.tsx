@@ -61,13 +61,13 @@ const Footer: React.FC = () => {
                 </a>
               </li>
               <li>
-                <a 
-                  href="/OVERVIEW.md" 
+                <Link 
+                  to="/overview" 
                   className="text-gray-400 hover:text-white transition-colors inline-flex items-center"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Project Overview
-                </a>
+                </Link>
               </li>
               <li>
                 <a 
