@@ -1,5 +1,6 @@
 import React from 'react';
 import { Github, FileText, Folder } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 
 const Footer: React.FC = () => {
   return (
@@ -17,12 +18,12 @@ const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2">
               <li>
-                <a 
-                  href="/#/app" 
+                <Link 
+                  to="/app" 
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   Open App
-                </a>
+                </Link>
               </li>
               <li>
                 <a 
