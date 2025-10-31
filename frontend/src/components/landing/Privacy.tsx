@@ -34,7 +34,7 @@ const Privacy: React.FC = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="text-purple-400 mr-2">•</span>
-                  <span>Default 10-minute timeout</span>
+                  <span>Default 5-minute timeout</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-purple-400 mr-2">•</span>
