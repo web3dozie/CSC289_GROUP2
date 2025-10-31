@@ -30,6 +30,11 @@ except ImportError:
     from db.engine_async import async_engine, AsyncSessionLocal
     from db.models import Base, Status, Task, auth_required
 
+# Import for database health check and migrations
+from pathlib import Path
+from db.health_check import check_db_health
+
+
 def create_app():
     """Create and configure the Quart app"""
     app = Quart(__name__)
@@ -458,77 +463,24 @@ def register_routes(app):
 
 
 async def initialize_database():
-    """Initialize database with tables and default data"""
+    """Sanity check database schema and default data"""
     try:
-        # Create tables
-        async with async_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-            
-            # Enable WAL mode for better concurrency
-            await conn.execute(text("PRAGMA journal_mode=WAL"))
-            # Enable foreign key constraints
-            await conn.execute(text("PRAGMA foreign_keys=ON"))
-            
-        print("Database tables created successfully!")
-        print("WAL mode and foreign key constraints enabled!")
-        
-        # Seed default data
-        async with AsyncSessionLocal() as session:
-            # Add default statuses for kanban board
-            result = await session.execute(select(func.count(Status.id)))
-            status_count = result.scalar_one()
+        await check_db_health(
+            engine=async_engine,
+            alembic_ini_path=Path(__file__).with_name("alembic.ini"),
+            required_tables=(
+                "user",
+                "status",
+                "task",
+                "journal_entries",
+                "category",
+                "tag",
+                "task_tag",
+                "configuration",
+            ),
+        )
 
-            if status_count == 0:
-                now = datetime.now()
-                
-                # First create a system user for seeding default data
-                try:
-                    from backend.db.models import User
-                except ImportError:
-                    from db.models import User
-                system_user = User(
-                    id=0,
-                    username="system",
-                    email="system@taskline.local",
-                    pin_hash="system",  # Won't be used for login
-                    created_on=now,
-                    config_data="{}"
-                )
-                session.add(system_user)
-                await session.flush()  # Ensure system user exists before statuses
-                
-                default_statuses = [
-                    Status(
-                        id=1,
-                        title="Todo",
-                        description="Todo",
-                        created_on=now,
-                        updated_on=now,
-                        created_by=0,
-                    ),
-                    Status(
-                        id=2,
-                        title="In Progress",
-                        description="In Progress",
-                        created_on=now,
-                        updated_on=now,
-                        created_by=0,
-                    ),
-                    Status(
-                        id=3,
-                        title="Done",
-                        description="Done",
-                        created_on=now,
-                        updated_on=now,
-                        created_by=0,
-                    ),
-                ]
-                for status in default_statuses:
-                    session.add(status)
-                print("Default statuses created!")
-
-            await session.commit()
-
+        print("Database connection and schema verified")
     except Exception as e:
         print(f"Database initialization failed: {e}")
 
