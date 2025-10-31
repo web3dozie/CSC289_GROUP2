@@ -198,9 +198,9 @@ const SignUp: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-sm text-cyan-300">
+          {/* <p className="text-sm text-cyan-300">
             Your data stays local and private
-          </p>
+          </p> */}
         </div>
       </div>
     </div>
