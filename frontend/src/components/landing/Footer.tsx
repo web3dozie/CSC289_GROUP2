@@ -70,13 +70,13 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <a 
+                {/* <a 
                   href="/SDLC" 
                   className="text-gray-400 hover:text-white transition-colors inline-flex items-center"
                 >
                   <Folder className="h-4 w-4 mr-2" />
                   SDLC Documentation
-                </a>
+                </a> */}
               </li>
             </ul>
           </div>
