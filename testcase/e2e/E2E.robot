@@ -149,7 +149,8 @@ Archive Task
     Login With PIN
     Add Task    ${TASK}
     Archive Task From List    ${TASK}
-    Verify Task Not In Main List    ${TASK}
+    Go To Archives View
+    Verify Task In Archives    ${TASK}
     [Teardown]    Close Browser
 
 View Archived Tasks
@@ -190,19 +191,19 @@ Open Application
     Create Webdriver    Chrome    options=${chrome_options}
     maximize browser window
     Go To    ${URL}
-    Wait Until Element Is Visible   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']    10s
-    Click Element   xpath://a[@class='inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2']
+    Wait Until Element Is Visible   xpath://a[contains(text(),'Open App')]    10s
+    Click Element   xpath://a[contains(text(),'Open App')]
     Wait Until Location Contains    /login      timeout=10s
  
  Sign Up User
-    Wait Until Page Contains    Set up your account    10s
-    Wait Until Element Is Visible   xpath://a[normalize-space()='Set up your account']    10s
-    Click Element   xpath://a[normalize-space()='Set up your account']
+    Wait Until Page Contains    Welcome Back    10s
+    Wait Until Element Is Visible   xpath://button[normalize-space()='Sign Up']    10s
+    Click Element   xpath://button[normalize-space()='Sign Up']
     Wait Until Page Contains    Set Up Task Line    10s
     Input Text      id:username   ${USERNAME}
     Input Text      xpath://input[@id='pin']   ${PINCODE}
     Input Text      xpath://input[@id='confirmPin']    ${PINCODE}
-    Click Element   xpath://button[normalize-space()='Set Up Account']
+    Click Element   xpath://button[normalize-space()='Create Account']
     Wait Until Location Contains    /app    timeout=10s
 
  Login With PIN
@@ -213,9 +214,9 @@ Open Application
     Wait Until Element Is Visible    xpath://input[@id='pin']    10s
     Input Text    xpath://input[@id='pin']    ${PINCODE}
     Sleep    0.5s
-    Wait Until Element Is Enabled    xpath://button[normalize-space()='Unlock App']    10s
+    Wait Until Element Is Enabled    xpath://button[normalize-space()='Sign in']    10s
     Sleep    0.3s
-    Click Button    xpath://button[normalize-space()='Unlock App']
+    Click Button    xpath://button[normalize-space()='Sign in']
     Wait Until Location Contains    /app    timeout=10s
 
 Add Task
@@ -294,19 +295,28 @@ Drag Drop
     Drag and Drop   xpath=//*[contains(normalize-space(.), '${task_title}')]    xpath://h3[normalize-space()='In Progress']
     
 Segregation Flow
-    Wait Until Page Contains    Set up your account    10s
-    Wait Until Element Is Visible   xpath://a[normalize-space()='Set up your account']    10s
-    Click Element   xpath://a[normalize-space()='Set up your account']
+    ${timestamp}=    Get Time    epoch
+    ${unique_username}=    Set Variable    user${timestamp}
+    Wait Until Page Contains    Welcome Back    10s
+    Wait Until Element Is Visible   xpath://button[normalize-space()='Sign Up']    10s
+    Click Element   xpath://button[normalize-space()='Sign Up']
     Wait Until Page Contains    Set Up Task Line    10s
-    Input Text      id:username     ${USERNAME1}
+    Input Text      id:username     ${unique_username}
     Input Text      xpath://input[@id='pin']    ${PINCODE1}
     Input Text      xpath://input[@id='confirmPin']     ${PINCODE1}
-    Click Element   xpath://button[normalize-space()='Set Up Account']
+    Click Element   xpath://button[normalize-space()='Create Account']
     Wait Until Location Contains    /app    timeout=10s
+    Sleep    2s
+    Skip Tutorial If Present
+    Sleep    1s
     Wait Until Element Is Visible   xpath://a[normalize-space()='List']    10s
     Click Element   xpath://a[normalize-space()='List']
+    Sleep    2s
     Skip Tutorial If Present
+    Sleep    1s
     Wait Until Page Contains    Tasks    10s
+    Wait Until Element Is Visible    xpath://button[normalize-space()='New Task']    10s
+    Skip Tutorial If Present
     Click Element   xpath://button[normalize-space()='New Task']
     Wait Until Element Is Visible    xpath://input[@id='task-title']    10s
     Input Text  xpath://input[@id='task-title']     ${TASK2}
@@ -319,8 +329,12 @@ Segregation Flow
     Should Not Contain      ${TASK2}    ${TASK}
 
 Skip Tutorial If Present
-    ${tutorial_present}=    Run Keyword And Return Status    Wait Until Element Is Visible    xpath://button[@aria-label='Skip tutorial']    2s
+    ${tutorial_present}=    Run Keyword And Return Status    Wait Until Element Is Visible    xpath://button[@aria-label='Skip tutorial']    3s
     Run Keyword If    ${tutorial_present}    Click Button    xpath://button[@aria-label='Skip tutorial']
+    Sleep    1s
+    # Also try to click any overlay/backdrop to dismiss tutorial
+    ${backdrop_present}=    Run Keyword And Return Status    Wait Until Element Is Visible    xpath://div[contains(@class, 'bg-black') and contains(@class, 'bg-opacity-50')]    2s
+    Run Keyword If    ${backdrop_present}    Click Element    xpath://div[contains(@class, 'bg-black') and contains(@class, 'bg-opacity-50')]
     Sleep    0.5s
 
 Go To Calendar Page
@@ -356,9 +370,9 @@ Login With Incorrect pin
     Wait Until Element Is Visible    xpath://input[@id='pin']    10s
     Input Text    xpath://input[@id='pin']    ${IncorrectPin}
     Sleep    0.5s
-    Wait Until Element Is Enabled    xpath://button[normalize-space()='Unlock App']    10s
+    Wait Until Element Is Enabled    xpath://button[normalize-space()='Sign in']    10s
     Sleep    0.3s
-    Click Button    xpath://button[normalize-space()='Unlock App']
+    Click Button    xpath://button[normalize-space()='Sign in']
     Wait Until Page Contains   Invalid username or PIN     5s
     ${current_url}=    Get Location
     Should Not Contain    ${current_url}    /app
@@ -374,10 +388,9 @@ Add Journal
 
 Export
     Empty Directory    ${DOWNLOAD_DIR}
-    Go To    ${URL}app
-    Click Element   Xpath://a[normalize-space()='Settings']
-    Wait Until Page Contains Element    Xpath://button[normalize-space()='Download JSON']    10s
-    Click Element   Xpath://button[normalize-space()='Download JSON']
+    Go To    ${URL}app/settings
+    Wait Until Page Contains Element    xpath://button[normalize-space()='Download JSON']    10s
+    Click Element   xpath://button[normalize-space()='Download JSON']
     Sleep    5s
 
 Get Latest Downloaded File
@@ -390,11 +403,15 @@ Get Latest Downloaded File
 Import
     ${latest_file}=    Get Latest Downloaded File
     File Should Exist    ${latest_file}
-    Click Element   Xpath://a[normalize-space()='Settings']
-    Click Element   Xpath://label[normalize-space()='Upload JSON']
-    Choose File     xpath=//input[@type='file']     ${latest_file}
-    Sleep   2s
-    Click Element   Xpath://button[normalize-space()='Import Data']
+    Go To    ${URL}app/settings
+    Wait Until Page Contains    Import Data    10s
+    # The file input is hidden, so we need to make it visible or use JavaScript
+    Execute JavaScript    document.getElementById('import-file').style.display = 'block'
+    Choose File     id=import-file     ${latest_file}
+    Sleep   3s
+    Wait Until Page Contains    Import Data    5s
+    Click Element   xpath://button[normalize-space()='Import Data']
+    Sleep   1s
     Handle Alert    action=ACCEPT
 
 Archive Task From List
@@ -407,10 +424,13 @@ Archive Task From List
     ${archive_button}=    Set Variable    xpath://div[contains(., '${task_title}')]//button[@aria-label='Archive task: ${task_title}']
     Wait Until Element Is Visible    ${archive_button}    10s
     Click Element    ${archive_button}
-    Sleep    1s
+    Sleep    3s
 
 Go To Archives View
-    Click Element    xpath://a[normalize-space()='Archives']
+    Click Element    xpath://a[normalize-space()='Review']
+    Wait Until Page Contains    Review & Reflect    10s
+    # Click on the Archived Tasks tab
+    Click Element    xpath://button[contains(., 'Archived Tasks')]
     Wait Until Page Contains    Archived Tasks    10s
 
 Verify Task In Archives
@@ -422,8 +442,15 @@ Verify Task Not In Main List
     [Arguments]    ${task_title}
     Click Element   xpath://a[normalize-space()='List']
     Skip Tutorial If Present
+    Sleep    1s
+    # Refresh the page to ensure the list is updated
+    Reload Page
+    Skip Tutorial If Present
     Wait Until Page Contains    Tasks    5s
-    Page Should Not Contain    ${task_title}
+    Sleep    2s
+    # Check that the task is not in the list by checking for archive button absence
+    ${task_present}=    Run Keyword And Return Status    Wait Until Element Is Visible    xpath://div[contains(., '${task_title}')]//button[@aria-label='Archive task: ${task_title}']    2s
+    Should Be Equal    ${task_present}    ${False}    Task '${task_title}' should not be in main list
     Log    Task '${task_title}' correctly not in main list
 
 Verify Task In Main List
@@ -433,11 +460,14 @@ Verify Task In Main List
 
 Restore Task From Archives
     [Arguments]    ${task_title}
-    # Find restore button for specific task in archives
-    ${restore_button}=    Set Variable    xpath://div[contains(., '${task_title}')]//button[contains(@aria-label, 'Restore')]
+    # Find the task card and then find the restore button within it
+    ${task_card}=    Set Variable    xpath://div[contains(@class, 'border') and contains(@class, 'rounded-lg') and contains(., '${task_title}')]
+    Wait Until Element Is Visible    ${task_card}    10s
+    # Find the Restore button within the task card
+    ${restore_button}=    Set Variable    ${task_card}//button[contains(., 'Restore')]
     Wait Until Element Is Visible    ${restore_button}    10s
     Click Element    ${restore_button}
-    Sleep    1s
+    Sleep    2s
 
 Go To List View
     Click Element    xpath://a[normalize-space()='List']

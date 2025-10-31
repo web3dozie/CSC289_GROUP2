@@ -1,5 +1,5 @@
 import React from 'react';
-import { Github, FileText, Folder } from 'lucide-react';
+import { Github, FileText} from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 
 const Footer: React.FC = () => {

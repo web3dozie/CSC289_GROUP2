@@ -17,6 +17,7 @@ const SignUp = lazy(() => import('../components/landing/SignUp'))
 const Overview = lazy(() => import('../components/landing/Overview'))
 
 // Lazy load view components
+const Dashboard = lazy(() => import('../components/views/Dashboard').then(module => ({ default: module.Dashboard })))
 const TaskList = lazy(() => import('../components/views/TaskList').then(module => ({ default: module.TaskList })))
 const TaskBoard = lazy(() => import('../components/views/TaskBoard').then(module => ({ default: module.TaskBoard })))
 const TaskCalendar = lazy(() => import('../components/views/TaskCalendar').then(module => ({ default: module.TaskCalendar })))
@@ -108,6 +109,19 @@ const appRoute = createRoute({
   },
 })
 
+// Dashboard - index route for /app
+const dashboardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/',
+  component: function DashboardPage() {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+        <Dashboard />
+      </Suspense>
+    )
+  },
+})
+
 // Individual app views
 const listRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -186,7 +200,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   signupRoute,
   overviewRoute,
-  appRoute.addChildren([listRoute, boardRoute, calendarRoute, reviewRoute, timerRoute, settingsRoute])
+  appRoute.addChildren([dashboardRoute, listRoute, boardRoute, calendarRoute, reviewRoute, timerRoute, settingsRoute])
 ])
 
 export const router = createRouter({ routeTree })
