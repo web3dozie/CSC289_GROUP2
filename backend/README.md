@@ -162,7 +162,7 @@ Example .env file:
 SECRET_KEY=dev-secret-key
 
 # Async SQLite database connection (update path as needed)
-DATABASE_URL=sqlite+aiosqlite:///backend/taskline.db
+DATABASE_URL=sqlite+aiosqlite:///db/taskline.db
 ```
 ---
 
