@@ -201,15 +201,29 @@ Cleanup Test Environment
     Remove Directory    ${DOWNLOAD_DIR}    recursive=True
 
 Open Application
+    # Build Chrome options (your existing prefs preserved)
     ${chrome_options}=    Evaluate    sys.modules['selenium.webdriver'].ChromeOptions()    sys, selenium.webdriver
-    ${prefs}=    Create Dictionary    download.default_directory=${DOWNLOAD_DIR}    download.prompt_for_download=${False}    download.directory_upgrade=${True}    safebrowsing.enabled=${False}
+    ${prefs}=    Create Dictionary
+    ...    download.default_directory=${DOWNLOAD_DIR}
+    ...    download.prompt_for_download=${False}
+    ...    download.directory_upgrade=${True}
+    ...    safebrowsing.enabled=${False}
     Call Method    ${chrome_options}    add_experimental_option    prefs    ${prefs}
-    Create Webdriver    Chrome    options=${chrome_options}
-    maximize browser window
+    # Optional: headless (uncomment if needed)
+    # Call Method    ${chrome_options}    add_argument    --headless=new
+
+    # Get the correct driver path via webdriver-manager and wrap it in a Selenium Service
+    ${driver_path}=    Evaluate    __import__('webdriver_manager.chrome').chrome.ChromeDriverManager().install()
+    ${service}=        Evaluate    __import__('selenium.webdriver.chrome.service').webdriver.chrome.service.Service(r"""${driver_path}""")
+
+    # Create the WebDriver using the Service (Selenium 4 style)
+    Create Webdriver    Chrome    options=${chrome_options}    service=${service}
+
+    Maximize Browser Window
     Go To    ${URL}
-    Wait Until Element Is Visible   xpath://a[contains(text(),'Open App')]    10s
-    Click Element   xpath://a[contains(text(),'Open App')]
-    Wait Until Location Contains    /login      timeout=10s
+    Wait Until Element Is Visible    xpath://a[contains(text(),'Open App')]    10s
+    Click Element    xpath://a[contains(text(),'Open App')]
+    Wait Until Location Contains    /login    timeout=10s
  
  Sign Up User
     Wait Until Page Contains    Welcome Back    10s

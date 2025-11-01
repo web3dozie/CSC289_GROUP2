@@ -90,3 +90,7 @@ testcase/e2e/log.html
 testcase/e2e/report.html
 testcase/e2e/output.xml
 testcase/e2e/selenium-screenshot-*
+log.html
+report.html
+output.xml
+selenium-screenshot-*
