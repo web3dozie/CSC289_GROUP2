@@ -9,7 +9,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-key-change-in-production")
 
 # Database URL - construct path relative to backend directory
 def get_database_url():
-    db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///taskline.db")
+    db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///db/taskline.db")
     if db_url.startswith("sqlite+aiosqlite:///") and not db_url.startswith("sqlite+aiosqlite:////"):
         # Relative path - make it relative to backend directory
         db_filename = db_url.replace("sqlite+aiosqlite:///", "")

@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import declarative_base
 
 # Database URL - SQLite with aiosqlite driver for async support
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite+aiosqlite:///taskline.db')
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite+aiosqlite:///db/taskline.db')
 
 # Create async engine with WAL mode
 engine = create_async_engine(
