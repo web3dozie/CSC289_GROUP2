@@ -9,9 +9,9 @@ Suite Teardown    Cleanup Test Environment
 *** Variables ***
 ${URL}  http://localhost:5173/
 ${browser}     chrome
-${USERNAME}    testuser126
+${USERNAME}    testuser2
 ${PINCODE}     987654
-${USERNAME1}    user126
+${USERNAME1}    user2
 ${PINCODE1}     987654
 ${TASK}        Create User Story
 ${Taskadd}     Review PR Today
@@ -174,6 +174,17 @@ Restore Archived Task
     Skip Tutorial If Present
     Verify Task In Main List    ${TASK}
     [Teardown]    Close Browser
+
+Review Analytics displayed
+    [Tags]  analytics
+    Open Application
+    Login With PIN
+    Skip Tutorial If Present
+    Sleep      2s
+    Go To Analytics Page
+    Verify Daily Summary
+    Verify Weekly Summary
+    [Teardown]  Close Browser
 
 *** Keywords ***
 Setup Test Environment
@@ -443,5 +454,30 @@ Go To List View
     Click Element    xpath://a[normalize-space()='List']
     Wait Until Page Contains    Tasks    10s
 
+Go To Analytics Page
+    Click Element   xpath://a[normalize-space()='Review']
 
+Verify Daily Summary
+    Click Element   xpath://button[normalize-space()='Daily Summary']
+    Wait Until Page Contains Element    xpath://p[normalize-space()='Tasks Completed']    timeout=10s
+    ${task_completed}=   Get Text    xpath://p[normalize-space()='0']
+    Log To Console  Task Completed:${task_completed}
+    Should Be Equal As Integers     ${task_completed}    0
+    ${task_created}=    Get Text    xpath://p[normalize-space()='0']
+    Log To Console  Task created:${task_created}
+    Should Be Equal As Integers     ${task_created}    0
+    Wait Until Page Contains Element    xpath://p[normalize-space()='Overdue Tasks']    timeout=10s
+    ${task_overdue}=     Get Text  xpath://p[normalize-space()='5']
+    Log To Console  Total Overdue:${task_overdue}
+    Should Be Equal As Integers     ${task_overdue}    5
+    Wait Until Page Contains Element    xpath://div[normalize-space()='To Do']    timeout=10s
+    ${to-do}=   Get Text   xpath://div[normalize-space()='4']
+    Log To Console  To Do:${to-do}
+    Should Be Equal As Integers     ${to-do}    4
 
+Verify Weekly Summary
+    Click Element   xpath://button[normalize-space()='Weekly Summary']
+    Wait Until Page Contains    Tasks Completed by Day    10s
+    ${average_daily}=   Get Text    xpath://p[normalize-space()='0']
+    Log To Console  Task Completed:${average_daily}
+    Should Be Equal As Integers     ${average_daily}    0
