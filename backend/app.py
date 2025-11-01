@@ -482,7 +482,36 @@ async def initialize_database():
 
         print("Database connection and schema verified")
     except Exception as e:
-        print(f"Database initialization failed: {e}")
+        print(f"Database health check failed: {e}")
+        print("Attempting to run migrations...")
+        try:
+            # Try to run alembic migrations automatically
+            from alembic.config import Config
+            from alembic import command
+            
+            alembic_cfg = Config(str(Path(__file__).with_name("alembic.ini")))
+            command.upgrade(alembic_cfg, "head")
+            print("Database migrations completed successfully")
+            
+            # Verify again after migrations
+            await check_db_health(
+                engine=async_engine,
+                alembic_ini_path=Path(__file__).with_name("alembic.ini"),
+                required_tables=(
+                    "user",
+                    "status",
+                    "task",
+                    "journal_entries",
+                    "category",
+                    "tag",
+                    "task_tag",
+                    "configuration",
+                ),
+            )
+            print("Database connection and schema verified after migration")
+        except Exception as migration_error:
+            print(f"Database initialization failed: {migration_error}")
+            raise
 
 
 def main():
