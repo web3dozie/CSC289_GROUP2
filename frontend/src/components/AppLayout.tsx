@@ -8,13 +8,15 @@ import {
   Settings,
   LogOut,
   User,
-  Timer
+  Timer,
+  LayoutDashboard
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { ChatWidget } from './ChatWidget'
 import { TutorialOverlay } from './TutorialOverlay'
 
 const navigation = [
+  { name: 'Dashboard', href: '/app', icon: LayoutDashboard },
   { name: 'List', href: '/app/list', icon: CheckSquare },
   { name: 'Board', href: '/app/board', icon: Kanban },
   { name: 'Calendar', href: '/app/calendar', icon: Calendar },
@@ -74,7 +76,8 @@ export const AppLayout: React.FC = () => {
               const isActive = location.pathname === item.href
 
               // Map navigation names to tutorial data attributes
-              const tutorialAttr = item.name === 'List' ? 'nav-link-list' :
+              const tutorialAttr = item.name === 'Dashboard' ? 'nav-link-dashboard' :
+                                   item.name === 'List' ? 'nav-link-list' :
                                    item.name === 'Board' ? 'nav-link-board' :
                                    item.name === 'Calendar' ? 'nav-link-calendar' :
                                    item.name === 'Review' ? 'nav-link-review' :

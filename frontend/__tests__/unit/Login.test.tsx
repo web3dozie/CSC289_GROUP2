@@ -9,7 +9,7 @@ describe('Login', () => {
 
     expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/pin code/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /unlock app/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
   it('validates PIN input to only allow numbers', async () => {
@@ -59,7 +59,7 @@ describe('Login', () => {
   it('disables submit button when form is invalid', () => {
     render(<Login />)
 
-    const submitButton = screen.getByRole('button', { name: /unlock app/i })
+    const submitButton = screen.getByRole('button', { name: /sign in/i })
     expect(submitButton).toBeDisabled()
   })
 
@@ -69,7 +69,7 @@ describe('Login', () => {
 
     const usernameInput = screen.getByLabelText(/username/i)
     const pinInput = screen.getByLabelText(/pin code/i)
-    const submitButton = screen.getByRole('button', { name: /unlock app/i })
+    const submitButton = screen.getByRole('button', { name: /sign in/i })
 
     await act(async () => {
       await user.type(usernameInput, 'testuser')

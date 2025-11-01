@@ -6,7 +6,8 @@ import { AppLayout } from '../components/AppLayout'
 // Lazy load landing page components
 const Header = lazy(() => import('../components/landing/Header'))
 const Hero = lazy(() => import('../components/landing/Hero'))
-const Tutorial = lazy(() => import('../components/landing/Tutorial'))
+const Features = lazy(() => import('../components/landing/Features'))
+const Views = lazy(() => import('../components/landing/Views'))
 const Privacy = lazy(() => import('../components/landing/Privacy'))
 const FAQ = lazy(() => import('../components/landing/FAQ'))
 const CTA = lazy(() => import('../components/landing/CTA'))
@@ -16,6 +17,7 @@ const SignUp = lazy(() => import('../components/landing/SignUp'))
 const Overview = lazy(() => import('../components/landing/Overview'))
 
 // Lazy load view components
+const Dashboard = lazy(() => import('../components/views/Dashboard').then(module => ({ default: module.Dashboard })))
 const TaskList = lazy(() => import('../components/views/TaskList').then(module => ({ default: module.TaskList })))
 const TaskBoard = lazy(() => import('../components/views/TaskBoard').then(module => ({ default: module.TaskBoard })))
 const TaskCalendar = lazy(() => import('../components/views/TaskCalendar').then(module => ({ default: module.TaskCalendar })))
@@ -36,12 +38,13 @@ const indexRoute = createRoute({
   path: '/',
   component: function LandingPage() {
     return (
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-        <div className="min-h-screen bg-white dark:bg-gray-900">
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-900">Loading...</div>}>
+        <div className="min-h-screen bg-slate-900">
           <Header />
           <main id="main">
             <Hero />
-            <Tutorial />
+            <Features />
+            <Views />
             <Privacy />
             <FAQ />
             <CTA />
@@ -102,6 +105,19 @@ const appRoute = createRoute({
       <AuthGuard requireAuth={true}>
         <AppLayout />
       </AuthGuard>
+    )
+  },
+})
+
+// Dashboard - index route for /app
+const dashboardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/',
+  component: function DashboardPage() {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+        <Dashboard />
+      </Suspense>
     )
   },
 })
@@ -184,7 +200,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   signupRoute,
   overviewRoute,
-  appRoute.addChildren([listRoute, boardRoute, calendarRoute, reviewRoute, timerRoute, settingsRoute])
+  appRoute.addChildren([dashboardRoute, listRoute, boardRoute, calendarRoute, reviewRoute, timerRoute, settingsRoute])
 ])
 
 export const router = createRouter({ routeTree })

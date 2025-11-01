@@ -487,8 +487,8 @@ async def initialize_database():
 
 def main():
     print("Starting Task Line API...")
-    print("Server starting on http://localhost:5000")
-    print("Health check at http://localhost:5000/api/health")
+    print("Server starting on http://localhost:5001")
+    print("Health check at http://localhost:5001/api/health")
     print("Press Ctrl+C to stop")
     
     debug_mode = os.environ.get('TASKLINE_DEBUG', '0') == '1'
