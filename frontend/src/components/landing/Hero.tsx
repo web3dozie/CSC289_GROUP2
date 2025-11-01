@@ -39,7 +39,6 @@ const Hero: React.FC = () => {
                     <h3 className="text-lg font-semibold text-white">Today's Focus</h3>
                     <p className="text-sm text-gray-400">3 tasks to complete</p>
                   </div>
-                  <div className="text-3xl">✨</div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center p-3 bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-lg border border-purple-500/30">
