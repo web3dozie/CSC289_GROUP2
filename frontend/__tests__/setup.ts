@@ -6,6 +6,26 @@ import * as matchers from '@testing-library/jest-dom/matchers'
 // Extend expect with jest-dom matchers
 expect.extend(matchers)
 
+// Suppress React act() warnings in tests
+// These warnings are expected during async state updates in tests
+const originalError = console.error
+beforeAll(() => {
+  console.error = (...args: any[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('Warning: An update to') &&
+      args[0].includes('was not wrapped in act')
+    ) {
+      return
+    }
+    originalError.call(console, ...args)
+  }
+})
+
+afterAll(() => {
+  console.error = originalError
+})
+
 // Clean up after each test
 afterEach(() => {
   cleanup()

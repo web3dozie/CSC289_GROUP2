@@ -315,10 +315,15 @@ async def update_task(task_id):
             if not task or task.created_by != session["user_id"]:
                 raise NotFoundError("Task not found", details={'task_id': task_id})
 
+            # Validate and update title if provided
             if 'title' in data:
-                task.title = data['title']
+                validated_title = TaskValidator.validate_title(data['title'])
+                task.title = validated_title
+            
             if 'description' in data:
-                task.description = data['description']
+                validated_description = TaskValidator.validate_description(data.get('description'))
+                task.description = validated_description
+            
             if 'notes' in data:
                 task.notes = data['notes']
 
@@ -343,8 +348,11 @@ async def update_task(task_id):
                 task.archived = bool(data['archived'])
             if 'priority' in data:
                 task.priority = bool(data['priority'])
+            
             if 'estimate_minutes' in data:
-                task.estimate_minutes = data['estimate_minutes']
+                validated_estimate = TaskValidator.validate_estimate_minutes(data.get('estimate_minutes'))
+                task.estimate_minutes = validated_estimate
+            
             if 'order' in data:
                 task.order = int(data['order'])
 
@@ -358,7 +366,9 @@ async def update_task(task_id):
                 task.category_id = data['category_id']
 
             if 'due_date' in data:
-                task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d') if data['due_date'] else None
+                validated_due_date = TaskValidator.validate_due_date(data.get('due_date'))
+                task.due_date = validated_due_date if validated_due_date else None
+            
             if 'status_id' in data:
                 task.status_id = int(data['status_id'])
             elif status_override is not None:
@@ -374,6 +384,10 @@ async def update_task(task_id):
             return success_response(task.to_dict())
     except (ValidationError, NotFoundError):
         raise
+    except ValueError as e:
+        # Convert validation errors to user-friendly messages
+        error_info = create_validation_error_response(e)
+        raise ValidationError(error_info['error'], details=error_info)
     except Exception:
         logging.exception("Failed to update task")
         raise DatabaseError('Failed to update task')
