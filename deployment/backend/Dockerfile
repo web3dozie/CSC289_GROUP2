@@ -1,27 +1,25 @@
-# Use Python 3.12 slim image for smaller size
-FROM python:3.12-slim
+# Multi-stage Dockerfile for Task Line backend
 
-# Set working directory
-WORKDIR /app
+# Base stage with common dependencies (use pre-built base image)
+FROM web3dozie/taskline-backend-base:latest AS base
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+# Development stage
+FROM base AS development
 
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Copy entire project
+COPY . .
 
-# Copy requirements from project root
-COPY requirements.txt .
+# Set Python path
+ENV PYTHONPATH=/app:/app/backend
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Expose port
+EXPOSE 5001
+
+# Development command (with auto-reload, bind to 0.0.0.0 for Docker)
+CMD ["sh", "-c", "cd backend && alembic upgrade head && cd .. && python -c 'import os; os.environ[\"TASKLINE_DEBUG\"] = \"1\"; from backend.app import create_app; app = create_app(); app.run(debug=True, host=\"0.0.0.0\", port=5001)'"]
+
+# Production stage
+FROM base AS production
 
 # Copy entire project
 COPY . .
