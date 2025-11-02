@@ -1,7 +1,5 @@
-version: '3.8'
-
 # Development-specific overrides for docker-compose.yml
-# Run with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Run with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
   backend:
