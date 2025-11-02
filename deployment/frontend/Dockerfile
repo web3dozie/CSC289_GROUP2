@@ -1,21 +1,7 @@
 # Multi-stage build for React + Vite frontend
 
-# Stage 1: Build the application
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY frontend/package*.json ./
-
-# Install dependencies
-RUN npm ci --silent
-
-# Copy source code
-COPY frontend/ ./
-
-# Build the application
-RUN npm run build
+# Stage 1: Use pre-built base image with dependencies already installed
+FROM web3dozie/taskline-frontend-base:latest AS builder
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
