@@ -486,15 +486,17 @@ async def initialize_database():
 
 
 def main():
+    # Default to 0.0.0.0 for Docker compatibility, but allow override via env var
+    host = os.environ.get('TASKLINE_HOST', '0.0.0.0')
     print("Starting Task Line API...")
-    print("Server starting on http://localhost:5001")
-    print("Health check at http://localhost:5001/api/health")
+    print(f"Server starting on http://{host}:5001")
+    print(f"Health check at http://{host}:5001/api/health")
     print("Press Ctrl+C to stop")
-    
+
     debug_mode = os.environ.get('TASKLINE_DEBUG', '0') == '1'
     app.run(
         debug=debug_mode,
-        host='localhost',
+        host=host,
         port=5001
     )
 
