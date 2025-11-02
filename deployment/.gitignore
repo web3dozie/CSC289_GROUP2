@@ -1,0 +1,17 @@
+# Environment variables
+.env
+
+# Database backups
+backups/
+*.db
+
+# Docker volumes
+volumes/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
