@@ -14,7 +14,7 @@ async def test_chat_rejects_when_ai_not_configured(client):
 @pytest.mark.asyncio
 async def test_chat_executes_create_task_action(monkeypatch, client):
     await create_user_and_login(client)
-    # Configure AI settings so the route won’t bail early
+    # Configure AI settings
     await client.put(
         "/api/settings",
         json={"ai_api_url": "http://fake", "ai_model": "fake", "ai_api_key": "fake"},

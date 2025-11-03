@@ -62,15 +62,28 @@ async def create_user_and_login(
         "/api/auth/setup",
         json={"pin": pin, "username": username, "email": email},
     )
+
     if resp.status_code in (200, 201):
-        return await resp.get_json()
-    # If user already exists, attempt login to establish session
-    if resp.status_code == 400:
-        # try login
+        # User created, now log in to establish session
         login_resp = await client.post(
             "/api/auth/login", json={"pin": pin, "username": username}
         )
-        assert login_resp.status_code in (200, 201)
+        assert login_resp.status_code in (200, 201), (
+            f"Login failed after setup: {login_resp.status_code}, "
+            f"{await login_resp.get_json()}"
+        )
         return await login_resp.get_json()
-    # otherwise fail
+
+    if resp.status_code == 400:
+        # User likely “already exists” login to establish session
+        login_resp = await client.post(
+            "/api/auth/login", json={"pin": pin, "username": username}
+        )
+        assert login_resp.status_code in (200, 201), (
+            f"Login failed after 400 from setup: {login_resp.status_code}, "
+            f"{await login_resp.get_json()}"
+        )
+        return await login_resp.get_json()
+
+    # Otherwise fail
     assert False, f"Unexpected response from setup: {resp.status_code}"
