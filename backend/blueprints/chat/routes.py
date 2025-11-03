@@ -8,10 +8,19 @@ from datetime import datetime
 from sqlalchemy import select, and_, desc
 from sqlalchemy.orm import selectinload
 
-from backend.db.models import Conversation, Message, Configuration, auth_required, Task, Status, Category, Tag
+from backend.db.models import (
+    Conversation,
+    Message,
+    Configuration,
+    Task,
+    Status,
+    Category,
+    Tag,
+)
 from backend.db.engine_async import AsyncSessionLocal
 from backend.services.llm_service import LLMService
 from backend.services.context_builder import ContextBuilder
+from backend.security.auth_decorators import auth_required
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +36,13 @@ def parse_action_json(ai_response: str) -> list[dict]:
     """
     actions = []
     # Match ```json ... ``` code blocks
-    pattern = r'```json\s*(\{.*?\})\s*```'
+    pattern = r"```json\s*(\{.*?\})\s*```"
     matches = re.findall(pattern, ai_response, re.DOTALL)
 
     for match in matches:
         try:
             action_data = json.loads(match)
-            if isinstance(action_data, dict) and 'action' in action_data:
+            if isinstance(action_data, dict) and "action" in action_data:
                 actions.append(action_data)
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse action JSON: {e}")
@@ -44,10 +53,14 @@ def parse_action_json(ai_response: str) -> list[dict]:
 
 def strip_json_blocks(ai_response: str) -> str:
     """Remove JSON code blocks from AI response before showing to user."""
-    return re.sub(r'```json\s*\{.*?\}\s*```\s*', '', ai_response, flags=re.DOTALL).strip()
+    return re.sub(
+        r"```json\s*\{.*?\}\s*```\s*", "", ai_response, flags=re.DOTALL
+    ).strip()
 
 
-async def create_task_from_ai(db_session, user_id: int, action_data: dict) -> int | None:
+async def create_task_from_ai(
+    db_session, user_id: int, action_data: dict
+) -> int | None:
     """
     Create task from AI action with comprehensive metadata.
 
@@ -83,9 +96,7 @@ async def create_task_from_ai(db_session, user_id: int, action_data: dict) -> in
 
         # Fallback: use any status if "Todo" not found
         if not default_status:
-            status_result = await db_session.execute(
-                select(Status).limit(1)
-            )
+            status_result = await db_session.execute(select(Status).limit(1))
             default_status = status_result.scalars().first()
 
         if not default_status:
@@ -109,7 +120,7 @@ async def create_task_from_ai(db_session, user_id: int, action_data: dict) -> in
                     name=category_name,
                     description=f"Auto-created from AI: {category_name}",
                     color_hex="808080",  # Default gray
-                    created_by=user_id
+                    created_by=user_id,
                 )
                 db_session.add(category)
                 await db_session.flush()
@@ -128,7 +139,7 @@ async def create_task_from_ai(db_session, user_id: int, action_data: dict) -> in
             priority=action_data.get("priority", False),
             estimate_minutes=action_data.get("estimate_minutes"),
             archived=False,
-            order=0
+            order=0,
         )
         db_session.add(task)
         await db_session.flush()
@@ -154,7 +165,7 @@ async def create_task_from_ai(db_session, user_id: int, action_data: dict) -> in
                         name=tag_name,
                         description=f"Auto-created from AI: {tag_name}",
                         color_hex="808080",  # Default gray
-                        created_by=user_id
+                        created_by=user_id,
                     )
                     db_session.add(tag)
                     await db_session.flush()
@@ -189,7 +200,7 @@ async def find_task_by_title(db_session, user_id: int, task_title: str) -> Task 
                 and_(
                     Task.created_by == user_id,
                     Task.title == task_title,
-                    Task.archived == False
+                    Task.archived == False,
                 )
             )
         )
@@ -200,13 +211,15 @@ async def find_task_by_title(db_session, user_id: int, task_title: str) -> Task 
 
         # Fallback: case-insensitive partial match
         result = await db_session.execute(
-            select(Task).where(
+            select(Task)
+            .where(
                 and_(
                     Task.created_by == user_id,
                     Task.title.ilike(f"%{task_title}%"),
-                    Task.archived == False
+                    Task.archived == False,
                 )
-            ).limit(1)
+            )
+            .limit(1)
         )
         return result.scalars().first()
 
@@ -266,7 +279,10 @@ async def update_task_action(db_session, user_id: int, action_data: dict) -> boo
             if category_name:
                 category_result = await db_session.execute(
                     select(Category).where(
-                        and_(Category.name == category_name, Category.created_by == user_id)
+                        and_(
+                            Category.name == category_name,
+                            Category.created_by == user_id,
+                        )
                     )
                 )
                 category = category_result.scalars().first()
@@ -276,7 +292,7 @@ async def update_task_action(db_session, user_id: int, action_data: dict) -> boo
                         name=category_name,
                         description=f"Auto-created from AI: {category_name}",
                         color_hex="808080",
-                        created_by=user_id
+                        created_by=user_id,
                     )
                     db_session.add(category)
                     await db_session.flush()
@@ -346,10 +362,20 @@ async def send_message():
             )
             config = config_result.scalars().first()
 
-            if not config or not config.ai_api_url or not config.ai_api_key or not config.ai_model:
-                return jsonify({
-                    "error": "AI API not configured. Please set API URL, Model, and API Key in Settings."
-                }), 400
+            if (
+                not config
+                or not config.ai_api_url
+                or not config.ai_api_key
+                or not config.ai_model
+            ):
+                return (
+                    jsonify(
+                        {
+                            "error": "AI API not configured. Please set API URL, Model, and API Key in Settings."
+                        }
+                    ),
+                    400,
+                )
 
             # Get or create active conversation
             conversation_result = await db_session.execute(
@@ -367,9 +393,7 @@ async def send_message():
 
             # Save user message
             user_msg = Message(
-                conversation_id=conversation.id,
-                role="user",
-                content=user_message
+                conversation_id=conversation.id, role="user", content=user_message
             )
             db_session.add(user_msg)
             await db_session.flush()
@@ -390,10 +414,7 @@ async def send_message():
             # Build messages array for LLM
             messages = [{"role": "system", "content": system_prompt}]
             for msg in history_messages:
-                messages.append({
-                    "role": msg.role,
-                    "content": msg.content
-                })
+                messages.append({"role": msg.role, "content": msg.content})
 
             # Get AI response
             llm_service = LLMService()
@@ -405,14 +426,19 @@ async def send_message():
                     api_key=config.ai_api_key,
                     model=config.ai_model,
                     temperature=0.7,
-                    max_tokens=1000
+                    max_tokens=1000,
                 )
             except Exception as e:
                 logger.error(f"LLM API error: {e}")
                 await llm_service.close()
-                return jsonify({
-                    "error": "Failed to get AI response. Check your API configuration and try again."
-                }), 500
+                return (
+                    jsonify(
+                        {
+                            "error": "Failed to get AI response. Check your API configuration and try again."
+                        }
+                    ),
+                    500,
+                )
             finally:
                 # Clean up service resources
                 await llm_service.close()
@@ -427,23 +453,33 @@ async def send_message():
                 if action_type == "create_task":
                     task_id = await create_task_from_ai(db_session, user_id, action)
                     if task_id:
-                        logger.info(f"Executed create_task action, created task ID {task_id}")
-                        executed_actions.append({"action": "create_task", "task_id": task_id})
+                        logger.info(
+                            f"Executed create_task action, created task ID {task_id}"
+                        )
+                        executed_actions.append(
+                            {"action": "create_task", "task_id": task_id}
+                        )
                     else:
                         logger.error(f"Failed to execute create_task action: {action}")
 
                 elif action_type == "complete_task":
                     success = await complete_task_action(db_session, user_id, action)
                     if success:
-                        logger.info(f"Executed complete_task action for '{action.get('task_title')}'")
+                        logger.info(
+                            f"Executed complete_task action for '{action.get('task_title')}'"
+                        )
                         executed_actions.append({"action": "complete_task"})
                     else:
-                        logger.error(f"Failed to execute complete_task action: {action}")
+                        logger.error(
+                            f"Failed to execute complete_task action: {action}"
+                        )
 
                 elif action_type == "update_task":
                     success = await update_task_action(db_session, user_id, action)
                     if success:
-                        logger.info(f"Executed update_task action for '{action.get('task_title')}'")
+                        logger.info(
+                            f"Executed update_task action for '{action.get('task_title')}'"
+                        )
                         executed_actions.append({"action": "update_task"})
                     else:
                         logger.error(f"Failed to execute update_task action: {action}")
@@ -451,7 +487,9 @@ async def send_message():
                 elif action_type == "archive_task":
                     success = await archive_task_action(db_session, user_id, action)
                     if success:
-                        logger.info(f"Executed archive_task action for '{action.get('task_title')}'")
+                        logger.info(
+                            f"Executed archive_task action for '{action.get('task_title')}'"
+                        )
                         executed_actions.append({"action": "archive_task"})
                     else:
                         logger.error(f"Failed to execute archive_task action: {action}")
@@ -463,7 +501,7 @@ async def send_message():
             ai_msg = Message(
                 conversation_id=conversation.id,
                 role="assistant",
-                content=clean_response
+                content=clean_response,
             )
             db_session.add(ai_msg)
 
@@ -472,11 +510,16 @@ async def send_message():
 
             await db_session.commit()
 
-            return jsonify({
-                "response": clean_response,
-                "conversation_id": conversation.id,
-                "actions_executed": executed_actions  # For frontend cache invalidation
-            }), 200
+            return (
+                jsonify(
+                    {
+                        "response": clean_response,
+                        "conversation_id": conversation.id,
+                        "actions_executed": executed_actions,  # For frontend cache invalidation
+                    }
+                ),
+                200,
+            )
 
     except Exception as e:
         logger.error(f"Error in send_message: {e}")
@@ -516,9 +559,7 @@ async def get_history():
             )
             messages = messages_result.scalars().all()
 
-            return jsonify({
-                "messages": [msg.to_dict() for msg in messages]
-            }), 200
+            return jsonify({"messages": [msg.to_dict() for msg in messages]}), 200
 
     except Exception as e:
         logger.error(f"Error in get_history: {e}")
@@ -548,7 +589,9 @@ async def clear_history():
 
             await db_session.commit()
 
-            logger.info(f"Cleared {len(conversations)} conversations for user {user_id}")
+            logger.info(
+                f"Cleared {len(conversations)} conversations for user {user_id}"
+            )
 
             return jsonify({"success": True}), 200
 
