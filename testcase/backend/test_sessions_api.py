@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from conftest import create_user_and_login
 
 from sqlalchemy import select
-from backend.db.engine_async import AsyncSessionLocal
 from backend.db.models import UserSession
 
 
@@ -55,6 +54,7 @@ async def test_auto_lock_timeout_expires_session(client):
     session_id = cur["current_session_id"]
 
     # Force this session to be expired in the DB
+    from backend.db.engine_async import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
         # Try to locate the active session for this user
         q = await db.execute(

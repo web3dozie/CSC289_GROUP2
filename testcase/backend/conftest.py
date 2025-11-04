@@ -16,11 +16,17 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
+@pytest.fixture(scope="session")
+def session_test_db_path(tmp_path_factory) -> Path:
+    """Create a session-level temporary database directory"""
+    db_dir = tmp_path_factory.mktemp("db_session")
+    return db_dir
+
+
 @pytest.fixture
-def test_db_path(tmp_path_factory) -> Path:
-    """Create a temporary database file for testing"""
-    db_dir = tmp_path_factory.mktemp("db")
-    return db_dir / f"test_database_{uuid.uuid4().hex}.db"
+def test_db_path(session_test_db_path) -> Path:
+    """Create a temporary database file for each test"""
+    return session_test_db_path / f"test_database_{uuid.uuid4().hex}.db"
 
 
 def _alembic_upgrade_head(db_file: Path) -> None:
@@ -34,17 +40,70 @@ def _alembic_upgrade_head(db_file: Path) -> None:
 
 
 @pytest.fixture
-def app(test_db_path):
+def app(test_db_path, monkeypatch):
     """Create and configure app for testing"""
-    os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{test_db_path.as_posix()}"
+    db_url = f"sqlite+aiosqlite:///{test_db_path.as_posix()}"
+    
+    # Set environment variable BEFORE any backend imports
+    monkeypatch.setenv("DATABASE_URL", db_url)
+    
+    # Patch the config module BEFORE it's used to create engine
+    import backend.config
+    monkeypatch.setattr(backend.config, "DATABASE_URL", db_url)
+    
+    # Force reimport of engine_async and all modules that use it to pick up new DATABASE_URL
+    import sys
+    modules_to_reload = [
+        'backend.db.engine_async',
+        'backend.app',
+        'backend.blueprints.auth.routes',
+        'backend.blueprints.tasks.routes',
+        'backend.blueprints.review.routes',
+        'backend.blueprints.settings.routes',
+        'backend.blueprints.chat.routes',
+        'backend.blueprints.sessions.routes',
+    ]
+    for module in modules_to_reload:
+        if module in sys.modules:
+            del sys.modules[module]
+    
+    # Now import the engine module - it will create engine with test DB
+    from backend.db import engine_async
+    
+    # Run migrations on test database
     _alembic_upgrade_head(test_db_path)
 
-    # Import app creation
+    # Import app creation (after engine is set up)
     from backend.app import create_app
 
     application = create_app()
     application.config.update({"TESTING": True})
-    return application
+    
+    yield application
+    
+    # Cleanup: properly dispose of the test engine to free greenlet context
+    import asyncio
+    try:
+        # Create a new event loop for cleanup if needed
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        # Dispose the engine synchronously
+        async def cleanup():
+            await engine_async.async_engine.dispose()
+        
+        if loop.is_running():
+            # Schedule disposal
+            asyncio.create_task(cleanup())
+        else:
+            # Run disposal
+            loop.run_until_complete(cleanup())
+    except Exception:
+        # If disposal fails, just pass
+        pass
 
 
 @pytest_asyncio.fixture

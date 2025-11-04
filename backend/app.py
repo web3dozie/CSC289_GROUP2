@@ -145,8 +145,10 @@ def register_routes(app):
         try:
             try:
                 from backend.db.models import Task, JournalEntry, Configuration, Status
+                from backend.db.engine_async import AsyncSessionLocal
             except ImportError:
                 from db.models import Task, JournalEntry, Configuration, Status
+                from db.engine_async import AsyncSessionLocal
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
             import logging
@@ -254,8 +256,10 @@ def register_routes(app):
 
             try:
                 from backend.db.models import Task, JournalEntry, Configuration, Status
+                from backend.db.engine_async import AsyncSessionLocal
             except ImportError:
                 from db.models import Task, JournalEntry, Configuration, Status
+                from db.engine_async import AsyncSessionLocal
             from sqlalchemy import select
             from datetime import datetime
 
@@ -465,9 +469,9 @@ def register_routes(app):
         except ImportError:
             from blueprints.chat.routes import chat_bp
         app.register_blueprint(chat_bp)
-        print("✓ Chat blueprint registered")
+        print("[OK] Chat blueprint registered")
     except ImportError as e:
-        print(f"⚠ Chat blueprint not available: {e}")
+        print(f"[WARN] Chat blueprint not available: {e}")
 
     try:
         try:
@@ -475,9 +479,9 @@ def register_routes(app):
         except ImportError:
             from blueprints.sessions.routes import sessions_bp
         app.register_blueprint(sessions_bp)
-        print("✓ Sessions blueprint registered")
+        print("[OK] Sessions blueprint registered")
     except ImportError as e:
-        print(f"⚠ Sessions blueprint not available: {e}")
+        print(f"[WARN] Sessions blueprint not available: {e}")
 
     # Error handlers - Standardized error responses
     try:
