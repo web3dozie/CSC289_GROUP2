@@ -53,5 +53,5 @@ jobs:
       - name: Run tests
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
-          cd backend && pytest -q 
+          pytest testcase/backend -q 
 
