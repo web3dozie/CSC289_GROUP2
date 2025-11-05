@@ -35,7 +35,10 @@ export const Dashboard: React.FC = () => {
     })
     const overdueTasks = tasks.filter(t => {
       if (!t.due_date || t.done) return false
-      return new Date(t.due_date) < now
+      const dueDate = new Date(t.due_date)
+      // Compare dates only (not time) - task is overdue only after the due date has passed
+      const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())
+      return dueDateOnly < todayStart
     })
     const highPriorityTasks = tasks.filter(t => !t.done && t.priority === true)
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0

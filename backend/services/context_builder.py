@@ -52,13 +52,15 @@ class ContextBuilder:
 
             # Get overdue tasks
             now = datetime.now()
+            # Only consider tasks overdue if the due date has passed (compare dates only, not time)
+            today_start = datetime(now.year, now.month, now.day)
             overdue_result = await db_session.execute(
                 select(Task).where(
                     and_(
                         Task.created_by == user_id,
                         Task.done == False,
                         Task.archived == False,
-                        Task.due_date < now
+                        Task.due_date < today_start
                     )
                 ).order_by(Task.due_date.asc()).limit(5)
             )

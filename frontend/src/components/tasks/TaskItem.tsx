@@ -31,11 +31,24 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     })
   }
 
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !task.done
-  const isDueSoon = task.due_date &&
-    new Date(task.due_date).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000 &&
-    new Date(task.due_date) > new Date() &&
-    !task.done
+  // Compare dates only (not time) - task is overdue only after the due date has passed
+  const isOverdue = task.due_date && (() => {
+    const dueDate = new Date(task.due_date)
+    const today = new Date()
+    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    return dueDateOnly < todayStart && !task.done
+  })()
+  
+  const isDueSoon = task.due_date && (() => {
+    const dueDate = new Date(task.due_date)
+    const today = new Date()
+    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const tomorrowStart = new Date(todayStart)
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1)
+    return dueDateOnly >= todayStart && dueDateOnly < tomorrowStart && !task.done
+  })()
 
   const taskStatus = task.done ? 'completed' : 'pending'
   const priorityText = task.priority ? 'high priority' : 'normal priority'

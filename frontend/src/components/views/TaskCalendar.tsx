@@ -26,7 +26,11 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
 
   const overdueTasks = dayTasks.filter(task => {
     const taskDate = new Date(task.due_date!)
-    return taskDate < new Date() && !task.done
+    const today = new Date()
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    // Compare dates only (not time) - task is overdue only after the due date has passed
+    const taskDateOnly = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate())
+    return taskDateOnly < todayStart && !task.done
   })
 
   const completedTasks = dayTasks.filter(task => task.done)
