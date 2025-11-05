@@ -1,10 +1,15 @@
 import '@testing-library/jest-dom'
-import { expect, afterEach, beforeAll, afterAll } from 'vitest'
+import { expect, afterEach, beforeAll, afterAll, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
 
 // Extend expect with jest-dom matchers
 expect.extend(matchers)
+
+// Mock scrollIntoView for jsdom
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+})
 
 // Suppress React act() warnings in tests
 // These warnings are expected during async state updates in tests
