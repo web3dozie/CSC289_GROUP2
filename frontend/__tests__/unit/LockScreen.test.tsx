@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '../test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { LockScreen } from '../../src/components/LockScreen'
-import * as AuthContext from '../../src/contexts/AuthContext'
 
 // Mock AuthContext
 const mockUnlock = vi.fn()
