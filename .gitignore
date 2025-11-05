@@ -29,6 +29,8 @@ build/
 # Test coverage reports
 coverage/
 *.lcov
+.coveragerc
+.coverage
 
 # IDE and editor files
 .vscode/

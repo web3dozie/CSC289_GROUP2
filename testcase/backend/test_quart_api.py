@@ -6,10 +6,7 @@ temporary file-backed SQLite database to avoid in-memory multi-connection
 issues when running the async engine.
 """
 
-import os
-import tempfile
 import pytest
-import pytest_asyncio
 
 from conftest import create_user_and_login
 
