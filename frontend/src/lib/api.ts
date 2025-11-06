@@ -188,6 +188,12 @@ export const authApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  changeUsername: (data: { new_username: string; pin: string }) =>
+    apiRequest<{ message: string; username: string }>('/api/auth/username', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 }
 
 // Tasks API

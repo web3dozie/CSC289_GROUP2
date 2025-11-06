@@ -73,6 +73,18 @@ export const useAuthChangePin = () => {
   })
 }
 
+export const useAuthChangeUsername = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: authApi.changeUsername,
+    onSuccess: () => {
+      // Invalidate settings to refresh any user-related data
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+    },
+  })
+}
+
 // Tasks hooks
 export const useTasks = (params?: { status?: string; category?: string; page?: number }) => {
   return useQuery({
