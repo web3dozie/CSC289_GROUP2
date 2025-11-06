@@ -427,15 +427,25 @@ export const Settings: React.FC = () => {
               </div>
             </div>
 
-            {/* Change Username Section */}
+            {/* Change Username and PIN Section */}
             <div className="pt-2 space-y-3">
-              <button
-                onClick={() => setShowUsernameChange(!showUsernameChange)}
-                className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                <Key className="w-4 h-4 mr-2" />
-                Change Username
-              </button>
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() => setShowUsernameChange(!showUsernameChange)}
+                  className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  Change Username
+                </button>
+
+                <button
+                  onClick={() => setShowPinChange(!showPinChange)}
+                  className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  Change PIN
+                </button>
+              </div>
 
               {showUsernameChange && (
                 <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
@@ -503,52 +513,9 @@ export const Settings: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Auto-lock and PIN Settings */}
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Auto-lock (minutes)
-                </label>
-                <select
-                  value={autoLockMinutes}
-                  onChange={(e) => setAutoLockMinutes(e.target.value)}
-                  className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="5">5 minutes</option>
-                  <option value="15">15 minutes</option>
-                  <option value="30">30 minutes</option>
-                  <option value="60">1 hour</option>
-                  <option value="240">4 hours</option>
-                  <option value="0">Never</option>
-                </select>
-              </div>
-
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
-              <div className="flex items-start gap-3">
-                <button
-                  onClick={() => setShowPinChange(!showPinChange)}
-                  className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <Key className="w-4 h-4 mr-2" />
-                  Change PIN
-                </button>
-
-                <button
-                  onClick={lock}
-                  className="inline-flex items-center px-4 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 text-sm font-medium rounded-md hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
-                >
-                  <ShieldAlert className="w-4 h-4 mr-2" />
-                  Test Lock Now
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Use "Test Lock Now" to immediately lock the app and test the auto-lock feature
-              </p>
 
               {showPinChange && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Current PIN
@@ -558,7 +525,7 @@ export const Settings: React.FC = () => {
                         type={showCurrentPin ? 'text' : 'password'}
                         value={currentPin}
                         onChange={(e) => setCurrentPin(e.target.value)}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                       <button
                         type="button"
@@ -583,7 +550,7 @@ export const Settings: React.FC = () => {
                         type={showNewPin ? 'text' : 'password'}
                         value={newPin}
                         onChange={(e) => setNewPin(e.target.value)}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                       <button
                         type="button"
@@ -608,7 +575,7 @@ export const Settings: React.FC = () => {
                         type={showConfirmPin ? 'text' : 'password'}
                         value={confirmPin}
                         onChange={(e) => setConfirmPin(e.target.value)}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                       <button
                         type="button"
@@ -639,13 +606,46 @@ export const Settings: React.FC = () => {
                     <button
                       onClick={handleChangePin}
                       disabled={!currentPin || !newPin || !confirmPin || changePin.isPending}
-                      className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {changePin.isPending ? 'Changing...' : 'Change PIN'}
                     </button>
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Auto-lock Settings */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Auto-lock (minutes)
+                </label>
+                <select
+                  value={autoLockMinutes}
+                  onChange={(e) => setAutoLockMinutes(e.target.value)}
+                  className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="5">5 minutes</option>
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="240">4 hours</option>
+                  <option value="0">Never</option>
+                </select>
+              </div>
+
+            <div className="pt-4 space-y-3">
+              <button
+                onClick={lock}
+                className="inline-flex items-center px-4 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 text-sm font-medium rounded-md hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+              >
+                <ShieldAlert className="w-4 h-4 mr-2" />
+                Test Lock Now
+              </button>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Use "Test Lock Now" to immediately lock the app and test the auto-lock feature
+              </p>
             </div>
             </div>
           </div>
