@@ -113,8 +113,36 @@ async def setup_auth():
             db_session.add(default_settings)
             await db_session.commit()
 
+            # Create session record (same as login)
+            session_id = secrets.token_hex(32)
+            ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+            user_agent = request.headers.get("User-Agent", "Unknown")
+            
+            # Default to 24-hour session for new accounts
+            expires_at = datetime.now() + timedelta(hours=24)
+            
+            user_session = UserSession(
+                session_id=session_id,
+                user_id=new_user.id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                is_remember_me=False,
+                expires_at=expires_at,
+            )
+            db_session.add(user_session)
+            await db_session.commit()
+
+            # Set up the user session
             session["user_id"] = new_user.id
             session["username"] = username
+            session["session_id"] = session_id
+            session.permanent = False
+
+            # Log successful signup
+            security_logger.log_login_attempt(username, ip_address, True, new_user.id)
+            logging.info(
+                f"User {new_user.id} created account and logged in with session {session_id}"
+            )
 
             return success_response(
                 {
