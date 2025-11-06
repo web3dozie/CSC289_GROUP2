@@ -29,11 +29,15 @@ async def get_journal():
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
     if start_date:
-        start_date = date.fromisoformat(start_date)
+        # Handle both date and datetime strings
+        if isinstance(start_date, str):
+            start_date = datetime.fromisoformat(start_date).date()
     else:
         start_date = date.today() - timedelta(days=30)
     if end_date:
-        end_date = date.fromisoformat(end_date)
+        # Handle both date and datetime strings
+        if isinstance(end_date, str):
+            end_date = datetime.fromisoformat(end_date).date()
     else:
         end_date = date.today()
 
@@ -69,7 +73,9 @@ async def create_journal():
         raise ValidationError("Content is required", details={"field": "content"})
 
     entry_date = data.get("entry_date", date.today().isoformat())
-    entry_date = date.fromisoformat(entry_date)
+    # Handle both date and datetime strings
+    if isinstance(entry_date, str):
+        entry_date = datetime.fromisoformat(entry_date).date()
     # Store as a datetime at midnight to match the JournalEntry DateTime column
     entry_datetime = datetime.combine(entry_date, datetime.min.time())
 
@@ -117,7 +123,11 @@ async def update_journal(entry_id):
             if "entry_date" in data:
                 # Convert incoming date string to a datetime at midnight to match the
                 # JournalEntry.entry_date DateTime column and satisfy type checkers
-                new_date = date.fromisoformat(data["entry_date"])
+                # Handle both date and datetime strings
+                if isinstance(data["entry_date"], str):
+                    new_date = datetime.fromisoformat(data["entry_date"]).date()
+                else:
+                    new_date = data["entry_date"]
                 entry.entry_date = datetime.combine(new_date, datetime.min.time())
 
             await s.commit()
@@ -161,7 +171,9 @@ async def delete_journal(entry_id):
 @auth_required
 async def daily_summary():
     target_date = request.args.get("date", date.today().isoformat())
-    target_date = date.fromisoformat(target_date)
+    # Handle both date and datetime strings
+    if isinstance(target_date, str):
+        target_date = datetime.fromisoformat(target_date).date()
 
     user_id = session.get("user_id")
     if not user_id:
