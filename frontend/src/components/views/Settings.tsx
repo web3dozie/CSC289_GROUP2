@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
-import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload, ShieldAlert } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload, ShieldAlert, AlertTriangle } from 'lucide-react'
 import {
   useSettings,
   useUpdateSettings,
   useAuthChangePin,
   useExportData,
-  useImportData
+  useImportData,
+  useAccountDeletionPreview,
+  useDeleteAccount
 } from '../../lib/hooks'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -41,9 +43,11 @@ export const Settings: React.FC = () => {
   const changePin = useAuthChangePin()
   const { theme, setTheme: setThemeContext } = useTheme()
   const { startTutorial } = useTutorial()
-  const { lock } = useAuth()
+  const { lock, user, changeUsername } = useAuth()
   const exportData = useExportData()
   const importData = useImportData()
+  const { refetch: fetchDeletionPreview } = useAccountDeletionPreview()
+  const deleteAccount = useDeleteAccount()
 
   // Local state for form inputs
   const [themeForm, setThemeForm] = useState(theme)
@@ -63,10 +67,23 @@ export const Settings: React.FC = () => {
   const [showNewPin, setShowNewPin] = useState(false)
   const [showConfirmPin, setShowConfirmPin] = useState(false)
 
+  // Username change state
+  const [showUsernameChange, setShowUsernameChange] = useState(false)
+  const [newUsername, setNewUsername] = useState('')
+  const [usernameVerifyPin, setUsernameVerifyPin] = useState('')
+  const [showUsernameVerifyPin, setShowUsernameVerifyPin] = useState(false)
+
   // Import state
   const [showImportConfirmation, setShowImportConfirmation] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importDataSummary, setImportDataSummary] = useState<any>(null)
+
+  // Account deletion state
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [deletePin, setDeletePin] = useState('')
+  const [deleteAgreed, setDeleteAgreed] = useState(false)
+  const [deletionPreview, setDeletionPreview] = useState<any>(null)
 
   // Track unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -150,6 +167,33 @@ export const Settings: React.FC = () => {
     }
   }
 
+  const handleChangeUsername = async () => {
+    if (!newUsername.trim()) {
+      alert('Username cannot be empty')
+      return
+    }
+
+    if (newUsername.length > 20) {
+      alert('Username must be 20 characters or less')
+      return
+    }
+
+    if (!usernameVerifyPin) {
+      alert('Please enter your PIN to verify')
+      return
+    }
+
+    try {
+      await changeUsername({ newUsername: newUsername.trim(), pin: usernameVerifyPin })
+      setShowUsernameChange(false)
+      setNewUsername('')
+      setUsernameVerifyPin('')
+      alert('Username changed successfully')
+    } catch (error) {
+      alert('Failed to change username. Please check your PIN and try again.')
+    }
+  }
+
   const handleExportData = async () => {
     try {
       await exportData.mutateAsync()
@@ -214,6 +258,64 @@ export const Settings: React.FC = () => {
     } catch (error) {
       console.error('Import failed:', error)
       alert('Failed to import data. Please check the file and try again.')
+    }
+  }
+
+  const handleShowDeleteAccount = async () => {
+    if (!showDeleteAccount) {
+      // Fetch preview when opening the section
+      try {
+        const result = await fetchDeletionPreview()
+        if (result.data) {
+          setDeletionPreview(result.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch deletion preview:', error)
+      }
+    }
+    setShowDeleteAccount(!showDeleteAccount)
+    // Reset form
+    setDeleteConfirmation('')
+    setDeletePin('')
+    setDeleteAgreed(false)
+  }
+
+  const handleDeleteAccount = async () => {
+    // Validate inputs
+    if (deleteConfirmation !== 'DELETE') {
+      alert('Please type DELETE to confirm')
+      return
+    }
+
+    if (!deletePin) {
+      alert('Please enter your PIN')
+      return
+    }
+
+    if (!deleteAgreed) {
+      alert('Please check the agreement checkbox')
+      return
+    }
+
+    // Final confirmation
+    if (!confirm('Are you absolutely sure? This action CANNOT be undone. All your data will be permanently deleted.')) {
+      return
+    }
+
+    try {
+      await deleteAccount.mutateAsync({
+        pin: deletePin,
+        confirmation: deleteConfirmation
+      })
+      
+      alert('Your account has been successfully deleted.')
+      
+      // Redirect to login/setup page
+      window.location.href = '/'
+    } catch (error: any) {
+      console.error('Account deletion failed:', error)
+      const message = error?.message || 'Failed to delete account. Please check your PIN and try again.'
+      alert(message)
     }
   }
 
@@ -311,27 +413,117 @@ export const Settings: React.FC = () => {
         {/* Security Settings */}
         <SettingSection
           title="Security"
-          description="Manage your account security and privacy"
+          description="Manage your account security and login settings"
           icon={Lock}
         >
           <div className="space-y-4">
+            {/* Current Username Display */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Auto-lock (minutes)
+                Current Username
               </label>
-              <select
-                value={autoLockMinutes}
-                onChange={(e) => setAutoLockMinutes(e.target.value)}
-                className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              >
-                <option value="5">5 minutes</option>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="60">1 hour</option>
-                <option value="240">4 hours</option>
-                <option value="0">Never</option>
-              </select>
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                <span className="text-gray-900 dark:text-gray-100 font-medium">{user?.username}</span>
+              </div>
             </div>
+
+            {/* Change Username Section */}
+            <div className="pt-2 space-y-3">
+              <button
+                onClick={() => setShowUsernameChange(!showUsernameChange)}
+                className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Key className="w-4 h-4 mr-2" />
+                Change Username
+              </button>
+
+              {showUsernameChange && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      New Username
+                    </label>
+                    <input
+                      type="text"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                      placeholder="Enter new username"
+                      maxLength={20}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Maximum 20 characters
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Verify with PIN
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showUsernameVerifyPin ? 'text' : 'password'}
+                        value={usernameVerifyPin}
+                        onChange={(e) => setUsernameVerifyPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                        placeholder="Enter your PIN"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowUsernameVerifyPin(!showUsernameVerifyPin)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showUsernameVerifyPin ? (
+                          <EyeOff className="w-4 h-4 text-gray-400" />
+                        ) : (
+                          <Eye className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => {
+                        setShowUsernameChange(false)
+                        setNewUsername('')
+                        setUsernameVerifyPin('')
+                      }}
+                      className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleChangeUsername}
+                      disabled={!newUsername.trim() || !usernameVerifyPin}
+                      className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      Change Username
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Auto-lock and PIN Settings */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Auto-lock (minutes)
+                </label>
+                <select
+                  value={autoLockMinutes}
+                  onChange={(e) => setAutoLockMinutes(e.target.value)}
+                  className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="5">5 minutes</option>
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="240">4 hours</option>
+                  <option value="0">Never</option>
+                </select>
+              </div>
 
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
               <div className="flex items-start gap-3">
@@ -454,6 +646,7 @@ export const Settings: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
             </div>
           </div>
         </SettingSection>
@@ -651,6 +844,122 @@ export const Settings: React.FC = () => {
                 <li>You'll see a confirmation dialog showing what will be imported</li>
                 <li>This action cannot be undone</li>
               </ul>
+            </div>
+          </div>
+        </SettingSection>
+
+        {/* Danger Zone - Account Deletion */}
+        <SettingSection
+          title="Danger Zone"
+          description="Permanently delete your account and all data"
+          icon={AlertTriangle}
+        >
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-2 border-red-200 dark:border-red-700">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-red-900 dark:text-red-100 mb-2">Delete Account</h4>
+                  <p className="text-sm text-red-800 dark:text-red-200 mb-3">
+                    Once you delete your account, there is no going back. This action is permanent and cannot be undone.
+                  </p>
+                  <p className="text-sm text-red-800 dark:text-red-200 font-medium">
+                    Before deleting, we recommend exporting your data using the "Data Management" section above.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleShowDeleteAccount}
+                className="w-full px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              >
+                {showDeleteAccount ? 'Cancel Account Deletion' : 'Delete My Account'}
+              </button>
+
+              {showDeleteAccount && (
+                <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg border border-red-300 dark:border-red-600 space-y-4">
+                  {deletionPreview && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                      <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        What will be deleted:
+                      </h5>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                        <li>• Account: <strong>{deletionPreview.username}</strong></li>
+                        <li>• Tasks: <strong>{deletionPreview.data_summary.tasks}</strong></li>
+                        <li>• Journal Entries: <strong>{deletionPreview.data_summary.journal_entries}</strong></li>
+                        <li>• Conversations: <strong>{deletionPreview.data_summary.conversations}</strong></li>
+                        <li>• All settings and preferences</li>
+                      </ul>
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-3 font-medium">
+                        {deletionPreview.warning}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Type <span className="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">DELETE</span> to confirm
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteConfirmation}
+                      onChange={(e) => setDeleteConfirmation(e.target.value)}
+                      placeholder="DELETE"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Enter your PIN
+                    </label>
+                    <input
+                      type="password"
+                      value={deletePin}
+                      onChange={(e) => setDeletePin(e.target.value)}
+                      placeholder="Enter your PIN"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+
+                  <div 
+                    onClick={() => setDeleteAgreed(!deleteAgreed)}
+                    className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    <div className="flex items-center justify-center mt-0.5 h-5 w-5 min-w-5 border-2 border-gray-400 dark:border-gray-500 rounded cursor-pointer">
+                      {deleteAgreed && (
+                        <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-700 dark:text-gray-300 select-none">
+                      I understand that this action is permanent and cannot be undone. All my data will be deleted.
+                    </span>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <button
+                      onClick={() => {
+                        setShowDeleteAccount(false)
+                        setDeleteConfirmation('')
+                        setDeletePin('')
+                        setDeleteAgreed(false)
+                      }}
+                      className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmation !== 'DELETE' || !deletePin || !deleteAgreed || deleteAccount.isPending}
+                      className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {deleteAccount.isPending ? 'Deleting Account...' : 'Permanently Delete Account'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </SettingSection>

@@ -113,8 +113,36 @@ async def setup_auth():
             db_session.add(default_settings)
             await db_session.commit()
 
+            # Create session record (same as login)
+            session_id = secrets.token_hex(32)
+            ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+            user_agent = request.headers.get("User-Agent", "Unknown")
+            
+            # Default to 24-hour session for new accounts
+            expires_at = datetime.now() + timedelta(hours=24)
+            
+            user_session = UserSession(
+                session_id=session_id,
+                user_id=new_user.id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                is_remember_me=False,
+                expires_at=expires_at,
+            )
+            db_session.add(user_session)
+            await db_session.commit()
+
+            # Set up the user session
             session["user_id"] = new_user.id
             session["username"] = username
+            session["session_id"] = session_id
+            session.permanent = False
+
+            # Log successful signup
+            security_logger.log_login_attempt(username, ip_address, True, new_user.id)
+            logging.info(
+                f"User {new_user.id} created account and logged in with session {session_id}"
+            )
 
             return success_response(
                 {
@@ -340,3 +368,105 @@ async def change_pin():
     except Exception as e:
         logging.exception("Failed to update PIN")
         raise DatabaseError("Failed to update PIN")
+
+
+@auth_bp.route("/username", methods=["PUT"])
+@auth_required
+@rate_limit(3, timedelta(minutes=5))  # 3 attempts per 5 minutes
+async def change_username():
+    """Change existing username with PIN verification"""
+    data = await request.get_json()
+
+    if not data or "new_username" not in data or "pin" not in data:
+        raise ValidationError(
+            "New username and PIN are required",
+            details={
+                "missing_fields": [
+                    f for f in ["new_username", "pin"] if f not in (data or {})
+                ]
+            },
+        )
+
+    new_username = data["new_username"].strip()
+    pin = data["pin"].strip()
+
+    # Validate new username
+    if not new_username:
+        raise ValidationError("Username cannot be empty")
+
+    if len(new_username) > 20:
+        raise ValidationError(
+            "Username is too long",
+            details={"field": "new_username", "max_length": 20},
+        )
+
+    try:
+        async with AsyncSessionLocal() as db_session:
+            # Get current user
+            result = await db_session.execute(
+                select(User).where(User.id == session["user_id"])
+            )
+            user = result.scalar_one_or_none()
+
+            if not user:
+                raise AuthenticationError("User not found")
+
+            # Verify PIN for security
+            is_valid, _ = verify_and_migrate_pin(pin, user.pin_hash)
+            if not is_valid:
+                # Log failed attempt
+                ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+                security_logger.log_sensitive_operation(
+                    "username_change_failed",
+                    user.id,
+                    ip_address,
+                    {"old_username": user.username, "reason": "invalid_pin"},
+                )
+                raise AuthenticationError("Invalid PIN")
+
+            # Check if new username already exists
+            existing_user = await db_session.execute(
+                select(User).where(User.username == new_username)
+            )
+            if existing_user.scalar_one_or_none():
+                raise ValidationError(
+                    "Username already exists",
+                    details={"field": "new_username", "value": new_username},
+                )
+
+            # Store old username for logging
+            old_username = user.username
+
+            # Update username
+            user.username = new_username
+
+            await db_session.commit()
+
+            # Update session with new username
+            session["username"] = new_username
+
+            # Log successful username change
+            ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+            security_logger.log_sensitive_operation(
+                "username_change",
+                user.id,
+                ip_address,
+                {"old_username": old_username, "new_username": new_username},
+            )
+
+            logging.info(
+                f"User {user.id} changed username from '{old_username}' to '{new_username}'"
+            )
+
+            return success_response(
+                {
+                    "message": "Username updated successfully",
+                    "username": new_username,
+                }
+            )
+
+    except (ValidationError, AuthenticationError):
+        raise  # Re-raise known errors
+    except Exception as e:
+        logging.exception("Failed to update username")
+        raise DatabaseError("Failed to update username")
