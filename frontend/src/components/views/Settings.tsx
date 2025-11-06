@@ -412,7 +412,7 @@ export const Settings: React.FC = () => {
 
         {/* Security Settings */}
         <SettingSection
-          title="Security & Account"
+          title="Security"
           description="Manage your account security and login settings"
           icon={Lock}
         >
