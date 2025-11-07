@@ -483,6 +483,16 @@ def register_routes(app):
     except ImportError as e:
         print(f"[WARN] Sessions blueprint not available: {e}")
 
+    try:
+        try:
+            from backend.blueprints.account_deletion.routes import account_deletion_bp
+        except ImportError:
+            from blueprints.account_deletion.routes import account_deletion_bp
+        app.register_blueprint(account_deletion_bp)
+        print("[OK] Account deletion blueprint registered")
+    except ImportError as e:
+        print(f"[WARN] Account deletion blueprint not available: {e}")
+
     # Error handlers - Standardized error responses
     try:
         from backend.errors import (

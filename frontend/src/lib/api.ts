@@ -188,6 +188,12 @@ export const authApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  changeUsername: (data: { new_username: string; pin: string }) =>
+    apiRequest<{ message: string; username: string }>('/api/auth/username', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 }
 
 // Tasks API
@@ -429,3 +435,27 @@ export const dataApi = {
       body: JSON.stringify(data),
     }),
 }
+
+// Account deletion API
+export interface AccountDeletionPreview {
+  username: string
+  data_summary: {
+    tasks: number
+    journal_entries: number
+    conversations: number
+    sessions: number
+  }
+  warning: string
+}
+
+export const accountApi = {
+  previewDeletion: () =>
+    apiRequest<AccountDeletionPreview>('/api/account/preview'),
+
+  deleteAccount: (data: { pin: string; confirmation: string }) =>
+    apiRequest<{ message: string; deleted_at: string }>('/api/account', {
+      method: 'DELETE',
+      body: JSON.stringify(data),
+    }),
+}
+

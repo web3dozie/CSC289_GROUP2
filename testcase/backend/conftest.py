@@ -44,6 +44,27 @@ def app(test_db_path, monkeypatch):
     """Create and configure app for testing"""
     db_url = f"sqlite+aiosqlite:///{test_db_path.as_posix()}"
     
+    # Dispose of any existing engine first to prevent connection leaks
+    import sys
+    if 'backend.db.engine_async' in sys.modules:
+        try:
+            from backend.db import engine_async
+            import asyncio
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            async def dispose_old_engine():
+                if hasattr(engine_async, 'async_engine'):
+                    await engine_async.async_engine.dispose()
+            
+            if not loop.is_running():
+                loop.run_until_complete(dispose_old_engine())
+        except Exception:
+            pass  # Ignore errors during cleanup of old engine
+    
     # Set environment variable BEFORE any backend imports
     monkeypatch.setenv("DATABASE_URL", db_url)
     
@@ -52,9 +73,9 @@ def app(test_db_path, monkeypatch):
     monkeypatch.setattr(backend.config, "DATABASE_URL", db_url)
     
     # Force reimport of engine_async and all modules that use it to pick up new DATABASE_URL
-    import sys
     modules_to_reload = [
         'backend.db.engine_async',
+        'backend.db.session',
         'backend.app',
         'backend.blueprints.auth.routes',
         'backend.blueprints.tasks.routes',
@@ -62,6 +83,7 @@ def app(test_db_path, monkeypatch):
         'backend.blueprints.settings.routes',
         'backend.blueprints.chat.routes',
         'backend.blueprints.sessions.routes',
+        'backend.blueprints.account_deletion.routes',
     ]
     for module in modules_to_reload:
         if module in sys.modules:

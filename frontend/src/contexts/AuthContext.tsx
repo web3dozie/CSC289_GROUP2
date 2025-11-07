@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react'
-import { useAuthLogin, useAuthLogout, useAuthSetup, useAuthChangePin } from '../lib/hooks'
+import { useAuthLogin, useAuthLogout, useAuthSetup, useAuthChangePin, useAuthChangeUsername } from '../lib/hooks'
 import { settingsApi } from '../lib/api'
 import { useSettings } from '../lib/hooks'
 
@@ -17,6 +17,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   setup: (data: { pin: string; username: string; email?: string }) => Promise<void>
   changePin: (data: { currentPin: string; newPin: string }) => Promise<void>
+  changeUsername: (data: { newUsername: string; pin: string }) => Promise<void>
   unlock: (pin: string) => Promise<void>
   lock: () => void
   updateActivity: () => void
@@ -52,6 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logoutMutation = useAuthLogout()
   const setupMutation = useAuthSetup()
   const changePinMutation = useAuthChangePin()
+  const changeUsernameMutation = useAuthChangeUsername()
 
   // Load auth state from localStorage on mount
   useEffect(() => {
@@ -188,6 +190,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  const changeUsername = async (data: { newUsername: string; pin: string }) => {
+    try {
+      setError(null)
+      const result = await changeUsernameMutation.mutateAsync({
+        new_username: data.newUsername,
+        pin: data.pin,
+      })
+      // Update local user state with new username
+      if (user) {
+        setUser({ ...user, username: result.username })
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Username change failed'
+      setError(message)
+      throw error
+    }
+  }
+
   const clearError = () => {
     setError(null)
   }
@@ -289,6 +309,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     setup,
     changePin,
+    changeUsername,
     unlock,
     lock,
     updateActivity,

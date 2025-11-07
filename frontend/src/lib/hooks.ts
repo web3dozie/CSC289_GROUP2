@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { authApi, tasksApi, reviewApi, settingsApi, healthApi, dataApi, type Task } from './api'
+import { authApi, tasksApi, reviewApi, settingsApi, healthApi, dataApi, accountApi, type Task } from './api'
 
 // Query keys for consistent caching
 export const queryKeys = {
@@ -70,6 +70,18 @@ export const useAuthLogout = () => {
 export const useAuthChangePin = () => {
   return useMutation({
     mutationFn: authApi.changePin,
+  })
+}
+
+export const useAuthChangeUsername = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: authApi.changeUsername,
+    onSuccess: () => {
+      // Invalidate settings to refresh any user-related data
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+    },
   })
 }
 
@@ -431,6 +443,28 @@ export const useImportData = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.archived })
       queryClient.invalidateQueries({ queryKey: queryKeys.journal })
       queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+    },
+  })
+}
+
+// Account deletion hooks
+export const useAccountDeletionPreview = () => {
+  return useQuery({
+    queryKey: ['account', 'deletion-preview'],
+    queryFn: accountApi.previewDeletion,
+    enabled: false, // Don't fetch automatically, only when explicitly called
+    staleTime: 0, // Always fetch fresh data
+  })
+}
+
+export const useDeleteAccount = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: accountApi.deleteAccount,
+    onSuccess: () => {
+      // Clear all cached data after account deletion
+      queryClient.clear()
     },
   })
 }
