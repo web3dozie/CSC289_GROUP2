@@ -139,32 +139,50 @@ async def create_user_and_login(
     client, pin="1234", username="testuser", email="testuser@example.com"
 ):
     """Helper to create a user and login"""
-    resp = await client.post(
+    # Create a user via setup
+    setup_resp = await client.post(
         "/api/auth/setup",
         json={"pin": pin, "username": username, "email": email},
     )
 
-    if resp.status_code in (200, 201):
-        # User created, now log in to establish session
-        login_resp = await client.post(
-            "/api/auth/login", json={"pin": pin, "username": username}
-        )
-        assert login_resp.status_code in (200, 201), (
-            f"Login failed after setup: {login_resp.status_code}, "
-            f"{await login_resp.get_json()}"
-        )
-        return await login_resp.get_json()
+    if setup_resp.status_code not in (200, 201, 400):
+        raise AssertionError(f"Unexpected setup status: {setup_resp.status_code}, {await setup_resp.get_json()}")
 
-    if resp.status_code == 400:
-        # User likely “already exists” login to establish session
-        login_resp = await client.post(
-            "/api/auth/login", json={"pin": pin, "username": username}
-        )
-        assert login_resp.status_code in (200, 201), (
-            f"Login failed after 400 from setup: {login_resp.status_code}, "
-            f"{await login_resp.get_json()}"
-        )
-        return await login_resp.get_json()
+    # Login to set the session
+    login_resp = await client.post("/api/auth/login", json={"pin": pin, "username": username})
+    assert login_resp.status_code in (200, 201), (
+        f"Login failed: {login_resp.status_code}, {await login_resp.get_json()}"
+    )
+    login_json = await login_resp.get_json()
+
+    # Assert the contract (fail fast if it ever changes)
+    assert isinstance(login_json, dict), f"expected dict, got {type(login_json)}"
+    assert "user" in login_json["data"] and isinstance(login_json["data"]["user"], dict), f"expected 'user' object, got: {login_json}"
+    assert "id" in login_json["data"]["user"] and isinstance(login_json["data"]["user"]["id"], int), f"expected user.id int, got: {login_json}"
+
+    user_id = login_json["data"]["user"]["id"]
+    return {"user_id": user_id, "login_response": login_json}
 
     # Otherwise fail
     assert False, f"Unexpected response from setup: {resp.status_code}"
+
+@pytest_asyncio.fixture
+async def seed_ai_config(client):
+    """Fixture to login user and seed AI configuration settings"""
+    from backend.db.engine_async import AsyncSessionLocal
+    from backend.db.models import Configuration
+
+    login = await create_user_and_login(client)
+    user_id = login["user_id"]
+
+    async with AsyncSessionLocal() as session:
+        config = Configuration(
+            user_id=user_id,
+            ai_api_url="http://fake",
+            ai_model="fake-model",
+            ai_api_key="fake-key",
+        )
+
+        session.add(config)
+        await session.commit()
+        return config
