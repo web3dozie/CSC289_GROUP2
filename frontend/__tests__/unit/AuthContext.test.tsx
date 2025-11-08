@@ -89,7 +89,7 @@ describe('AuthContext', () => {
 
     it('should restore user from localStorage if session is valid', async () => {
       const mockUser = { id: 1, username: 'testuser' }
-      localStorage.setItem('taskline_auth', JSON.stringify({ user: mockUser }))
+      sessionStorage.setItem('taskline_auth', JSON.stringify({ user: mockUser }))
 
       const { settingsApi } = await import('../../src/lib/api')
       vi.mocked(settingsApi.getSettings).mockResolvedValueOnce({
@@ -111,7 +111,7 @@ describe('AuthContext', () => {
 
     it('should clear localStorage if session validation fails', async () => {
       const mockUser = { id: 1, username: 'testuser' }
-      localStorage.setItem('taskline_auth', JSON.stringify({ user: mockUser }))
+      sessionStorage.setItem('taskline_auth', JSON.stringify({ user: mockUser }))
 
       const { settingsApi } = await import('../../src/lib/api')
       vi.mocked(settingsApi.getSettings).mockRejectedValueOnce(new Error('Unauthorized'))
@@ -124,13 +124,13 @@ describe('AuthContext', () => {
 
       expect(result.current.user).toBeNull()
       expect(result.current.isAuthenticated).toBe(false)
-      expect(localStorage.getItem('taskline_auth')).toBeNull()
+      expect(sessionStorage.getItem('taskline_auth')).toBeNull()
     })
 
     it('should restore lock state from localStorage', async () => {
       const mockUser = { id: 1, username: 'testuser' }
-      localStorage.setItem('taskline_auth', JSON.stringify({ user: mockUser }))
-      localStorage.setItem('taskline_lock_state', 'true')
+      sessionStorage.setItem('taskline_auth', JSON.stringify({ user: mockUser }))
+      sessionStorage.setItem('taskline_lock_state', 'true')
 
       const { settingsApi } = await import('../../src/lib/api')
       vi.mocked(settingsApi.getSettings).mockResolvedValueOnce({
@@ -600,7 +600,7 @@ describe('AuthContext', () => {
         await result.current.login('testuser', '1234')
       })
 
-      const stored = localStorage.getItem('taskline_auth')
+      const stored = sessionStorage.getItem('taskline_auth')
       expect(stored).toBeTruthy()
       const parsed = JSON.parse(stored!)
       expect(parsed.user).toEqual({ id: 1, username: 'testuser' })
@@ -630,12 +630,12 @@ describe('AuthContext', () => {
       })
 
       await waitFor(() => {
-        expect(localStorage.getItem('taskline_lock_state')).toBe('true')
+        expect(sessionStorage.getItem('taskline_lock_state')).toBe('true')
       })
     })
 
     it('should handle corrupted localStorage data gracefully', async () => {
-      localStorage.setItem('taskline_auth', 'invalid json')
+      sessionStorage.setItem('taskline_auth', 'invalid json')
 
       const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() })
 
