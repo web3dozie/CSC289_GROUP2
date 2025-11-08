@@ -2,15 +2,15 @@
 
 
 class FakeLLMServiceBase:
-    def get_completion(self, **kwargs):
+    async def get_completion(self, **kwargs):
         pass
 
-    def close(self):
+    async def close(self):
         pass
 
 
 class FakeLLMServiceCreate(FakeLLMServiceBase):
-    def get_completion(self, **kwargs):
+    async def get_completion(self, **kwargs):
         return (
             "Sure!\n"
             "```json\n"
@@ -21,7 +21,7 @@ class FakeLLMServiceCreate(FakeLLMServiceBase):
 
 
 class FakeLLMServiceUpdate(FakeLLMServiceBase):
-    def get_completion(self, **kwargs):
+    async def get_completion(self, **kwargs):
         return (
             "Sure!\n"
             "```json\n"
@@ -32,7 +32,7 @@ class FakeLLMServiceUpdate(FakeLLMServiceBase):
 
 
 class FakeLLMServiceArchive(FakeLLMServiceBase):
-    def get_completion(self, **kwargs):
+    async def get_completion(self, **kwargs):
         return (
             "Sure!\n"
             "```json\n"
@@ -43,7 +43,7 @@ class FakeLLMServiceArchive(FakeLLMServiceBase):
 
 
 class FakeLLMServiceDelete(FakeLLMServiceBase):
-    def get_completion(self, **kwargs):
+    async def get_completion(self, **kwargs):
         return (
             "Sure!\n"
             "```json\n"
@@ -54,5 +54,5 @@ class FakeLLMServiceDelete(FakeLLMServiceBase):
 
 
 class FakeLLMServiceError(FakeLLMServiceBase):
-    def get_completion(self, **kwargs):
+    async def get_completion(self, **kwargs):
         raise RuntimeError("Simulated LLM failure")
