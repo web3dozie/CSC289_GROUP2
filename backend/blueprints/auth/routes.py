@@ -136,6 +136,7 @@ async def setup_auth():
             session["user_id"] = new_user.id
             session["username"] = username
             session["session_id"] = session_id
+            # Session expires when browser closes (non-permanent)
             session.permanent = False
 
             # Log successful signup
@@ -220,14 +221,8 @@ async def login():
             ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
             user_agent = request.headers.get("User-Agent", "Unknown")
 
-            # Check if user wants "remember me" (longer session)
-            remember_me = data.get("remember_me", False)
-
-            # Set session expiry - 30 days if remember me, otherwise 24 hours
-            if remember_me:
-                expires_at = datetime.now() + timedelta(days=30)
-            else:
-                expires_at = datetime.now() + timedelta(hours=24)
+            # Session expires when browser closes (24 hour max for session tracking)
+            expires_at = datetime.now() + timedelta(hours=24)
 
             # Create session record in database
             user_session = UserSession(
@@ -235,7 +230,7 @@ async def login():
                 user_id=user.id,
                 ip_address=ip_address,
                 user_agent=user_agent,
-                is_remember_me=remember_me,
+                is_remember_me=False,  # Never persist sessions
                 expires_at=expires_at,
             )
             db_session.add(user_session)
@@ -246,10 +241,8 @@ async def login():
             session["username"] = user.username
             session["session_id"] = session_id
 
-            # Make session permanent based on remember_me
-            from quart import session as quart_session
-
-            session.permanent = remember_me
+            # Session expires when browser closes (non-permanent)
+            session.permanent = False
 
             # Log successful login
             security_logger.log_login_attempt(username, ip_address, True, user.id)
@@ -258,14 +251,13 @@ async def login():
             import logging
 
             logging.info(
-                f"User {user.id} logged in successfully with session {session_id}, remember_me={remember_me}, permanent={session.permanent}"
+                f"User {user.id} logged in successfully with session {session_id}, session expires on browser close"
             )
 
             return success_response(
                 {
                     "message": "Login successful",
                     "user": {"id": user.id, "username": user.username},
-                    "remember_me": remember_me,
                 }
             )
 
