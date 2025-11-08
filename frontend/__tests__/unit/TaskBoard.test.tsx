@@ -206,4 +206,53 @@ describe('TaskBoard', () => {
       expect(screen.getByText(/no tasks in to do/i)).toBeInTheDocument()
     })
   })
+
+  describe('Task Counts', () => {
+    it('should display total task count', async () => {
+      render(<TaskBoard />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/2 total tasks/i)).toBeInTheDocument()
+      })
+    })
+
+    it('should display lane specific counts', async () => {
+      render(<TaskBoard />)
+
+      await waitFor(() => {
+        // Each lane should show its count
+        const todoLane = screen.getByText('To Do').closest('div')
+        expect(todoLane).toHaveTextContent('1')
+      })
+    })
+  })
+
+  describe('Archive Feature', () => {
+    it('should show archive button when there are completed tasks', async () => {
+      vi.mocked(hooks.useKanbanTasks).mockReturnValue({
+        data: {
+          ...mockKanbanData,
+          done: {
+            tasks: [{
+              ...mockTask1,
+              id: 3,
+              done: true,
+              status: { id: 3, name: 'Done' },
+              status_id: 3,
+            }],
+            count: 1,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      } as any)
+
+      render(<TaskBoard />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /archive completed/i })).toBeInTheDocument()
+      })
+    })
+  })
 })

@@ -70,13 +70,14 @@ def create_app():
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["DATABASE_URL"] = DATABASE_URL
 
-    # Session configuration for better persistence
+    # Session configuration - session expires when browser closes
     app.config["SESSION_COOKIE_NAME"] = "taskline_session"
     app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent XSS access to cookies
     app.config["SESSION_COOKIE_SECURE"] = False  # Set to True in production with HTTPS
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
-    app.config["PERMANENT_SESSION_LIFETIME"] = 86400  # 24 hours default
     app.config["SESSION_REFRESH_EACH_REQUEST"] = True  # Keep session alive on activity
+    # Session cookies expire when browser closes (non-permanent)
+    app.config["SESSION_PERMANENT"] = False
 
     # Register routes
     register_routes(app)

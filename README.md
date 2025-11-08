@@ -343,7 +343,7 @@ robot --include data-seg E2E.robot
 | GET | `/export` | Export all user data as JSON |
 | POST | `/import` | Import data from JSON |
 
-## 🔧 Configuration
+## Configuration
 
 ### Backend Configuration
 
