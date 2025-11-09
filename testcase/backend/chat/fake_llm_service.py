@@ -47,13 +47,14 @@ class FakeLLMServiceArchive(FakeLLMServiceBase):
             "Done."
         )
 
-
+# Deletion not currently implemented in backend.chat.routes; stub for completeness
 class FakeLLMServiceDelete(FakeLLMServiceBase):
     async def get_completion(self, **kwargs):
+        title = INJECT_TASK_TITLE or "To Delete"
         return (
             "Sure!\n"
             "```json\n"
-            '{"action":"delete_task","task_id":1}\n'
+            f'{{"action":"delete_task","task_title":"{title}"}}\n'
             "```\n"
             "Done."
         )
@@ -62,3 +63,14 @@ class FakeLLMServiceDelete(FakeLLMServiceBase):
 class FakeLLMServiceError(FakeLLMServiceBase):
     async def get_completion(self, **kwargs):
         raise RuntimeError("Simulated LLM failure")
+
+
+class FakeLLMServiceComplete(FakeLLMServiceBase):
+    async def get_completion(self, **kwargs):
+        # Response contains a code block with JSON action matching the inline test stub
+        return (
+            "Okay, marking it complete.\n"
+            "```json\n"
+            '{"action": "complete_task", "task_title": "Finish Report"}'
+            "\n```"
+        )
