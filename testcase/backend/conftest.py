@@ -9,6 +9,8 @@ import uuid
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import select
+
 
 # Ensure backend package is importable
 ROOT = Path(__file__).resolve().parents[2]  # .../CSC289_GROUP2
@@ -168,21 +170,40 @@ async def create_user_and_login(
 
 @pytest_asyncio.fixture
 async def seed_ai_config(client):
-    """Fixture to login user and seed AI configuration settings"""
+    """Login user via API and ensure Configuration has AI fields set for that user."""
+
     from backend.db.engine_async import AsyncSessionLocal
     from backend.db.models import Configuration
 
     login = await create_user_and_login(client)
     user_id = login["user_id"]
 
-    async with AsyncSessionLocal() as session:
-        config = Configuration(
-            user_id=user_id,
-            ai_api_url="http://fake",
-            ai_model="fake-model",
-            ai_api_key="fake-key",
+    async with AsyncSessionLocal() as s:
+        cfg = await s.scalar(
+            select(Configuration).where(Configuration.user_id == user_id).limit(1)
         )
 
-        session.add(config)
-        await session.commit()
-        return config
+        if cfg is None:
+            # no row yet → create with AI fields populated
+            cfg = Configuration(
+                user_id=user_id,
+                ai_api_url="http://fake",
+                ai_model="fake-model",
+                ai_api_key="fake-key",
+            )
+            s.add(cfg)
+        else:
+            # row exists (likely with empty AI fields) → UPDATE it
+            cfg.ai_api_url = "http://fake"
+            cfg.ai_model = "fake-model"
+            cfg.ai_api_key = "fake-key"
+
+        await s.commit()
+        # optional: refresh to be sure
+        await s.refresh(cfg)
+
+    # also pin the session user just to be explicit in tests
+    async with client.session_transaction() as sess:
+        sess["user_id"] = user_id
+
+    return {"user_id": user_id}
