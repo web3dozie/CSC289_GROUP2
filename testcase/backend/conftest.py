@@ -244,8 +244,9 @@ async def patch_llm(monkeypatch):
 
 
 @pytest_asyncio.fixture
-async def ensure_todo_status():
-    """Ensure a default 'Todo' Status exists and return it."""
+async def ensure_todo_status(app):
+    """Ensure a default 'Todo' Status exists and return it.
+    Depends on app fixture to ensure database tables are created first."""
     async with AsyncSessionLocal() as s:
         existing = (
             await s.execute(select(Status).where(Status.title == "Todo"))

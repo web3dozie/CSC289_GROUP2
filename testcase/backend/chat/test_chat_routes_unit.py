@@ -16,8 +16,10 @@ from backend.db.models import Task, Tag, Category, Status
 
 
 @pytest_asyncio.fixture
-async def db_session():
-    # Use a transactional session bound to same engine context. Ensure at least one user exists for created_by references.
+async def db_session(app):
+    # Use a transactional session bound to same engine context. 
+    # The app fixture ensures tables are created via migrations.
+    # Ensure at least one user exists for created_by references.
     async with AsyncSessionLocal() as s:
         # Seed minimal user row if absent (id=1)
         from backend.db.models import User
