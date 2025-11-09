@@ -9,6 +9,50 @@ A classy, local-first task companion that runs entirely on your computer, stores
 [![TypeScript](https://img.shields.io/badge/typescript-5.2+-3178c6.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## 🚀 Quick Start - Install in 1 Minute
+
+TaskLine runs entirely on your computer in a single Docker container. **No cloud, no accounts, your data stays local.**
+
+### One-Command Installation
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/web3dozie/CSC289_GROUP2/dev/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+iwr -useb https://raw.githubusercontent.com/web3dozie/CSC289_GROUP2/dev/install.ps1 | iex
+```
+
+**Or run directly with Docker:**
+```bash
+docker run -d --name taskline -p 3456:3456 -v taskline-data:/data web3dozie/taskline:latest
+```
+
+Then open **http://localhost:3456** in your browser!
+
+### Requirements
+
+- **Docker Desktop** (that's it!)
+  - [Install for macOS](https://docs.docker.com/desktop/install/mac-install/)
+  - [Install for Windows](https://docs.docker.com/desktop/install/windows-install/)
+  - [Install for Linux](https://docs.docker.com/engine/install/)
+
+### Managing TaskLine
+
+After installation, use the `taskline` command:
+
+```bash
+taskline start      # Start TaskLine
+taskline stop       # Stop TaskLine
+taskline status     # Check if running
+taskline update     # Update to latest version
+taskline backup     # Backup your data
+taskline logs       # View logs
+taskline uninstall  # Remove TaskLine (keeps data)
+```
+
 ## Features
 
 ### Core Functionality
@@ -104,15 +148,17 @@ taskline/
 └── docs/                      # Additional documentation
 ```
 
-## Quick Start
+## Development Setup
+
+For developers who want to contribute or run TaskLine from source:
 
 ### Prerequisites
 
 - **Python 3.12+**
-- **Node.js 20+** (pnpm recommended)
+- **Node.js 20+** (npm recommended)
 - **Docker Desktop** (for containerized deployment)
 
-### Development Setup
+### Local Development
 
 #### 1. Clone and Setup Environment
 
@@ -182,20 +228,19 @@ Open your browser to `http://localhost:5173` and:
 
 ## Docker Deployment
 
-For production or containerized development:
+**For end users:** See the [Quick Start](#-quick-start---install-in-1-minute) section above for one-command installation.
+
+**For developers:** Build the production image from source:
 
 ```bash
-# Using docker-compose (recommended)
-docker-compose -f deployment/docker-compose.yml up -d
+# Build the single-container image
+docker build -f deployment/Dockerfile -t taskline:local .
 
-# Or build and run separately
-docker build -f backend/Dockerfile -t taskline-backend .
-docker build -f deployment/frontend/Dockerfile -t taskline-frontend .
+# Run it
+docker run -d --name taskline -p 3456:3456 -v taskline-data:/data taskline:local
 ```
 
-The application will be available at:
-- **Frontend**: http://localhost:8080
-- **Backend API**: http://localhost:5001
+The application will be available at **http://localhost:3456**
 
 ## Testing
 
@@ -298,7 +343,7 @@ robot --include data-seg E2E.robot
 | GET | `/export` | Export all user data as JSON |
 | POST | `/import` | Import data from JSON |
 
-## 🔧 Configuration
+## Configuration
 
 ### Backend Configuration
 
@@ -458,13 +503,23 @@ OPENAI_API_KEY=your-api-key
 
 ### Docker Production Deployment
 
-```bash
-# Build production images
-docker-compose -f deployment/docker-compose.yml build
+TaskLine runs in a single optimized container for easy deployment:
 
-# Deploy with production settings
-docker-compose -f deployment/docker-compose.yml up -d
+```bash
+# Pull and run the latest version
+docker run -d \
+  --name taskline \
+  -p 3456:3456 \
+  -v taskline-data:/data \
+  -e SECRET_KEY=your-production-secret-key \
+  --restart unless-stopped \
+  web3dozie/taskline:latest
+
+# Or use docker-compose
+docker-compose -f deployment/docker-compose.single.yml up -d
 ```
+
+**Access**: http://your-server:3456
 
 ## Troubleshooting
 
