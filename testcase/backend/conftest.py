@@ -6,10 +6,14 @@ import os
 import sys
 from pathlib import Path
 import uuid
+import importlib
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
+
+from backend.db.engine_async import AsyncSessionLocal
+from backend.db.models import Status
 
 
 # Ensure backend package is importable
@@ -213,3 +217,43 @@ async def logged_in_client(client, seed_ai_config):
     async with client.session_transaction() as s:
         s["user_id"] = seed_ai_config["user_id"]
     return client
+
+
+import pytest_asyncio
+
+@pytest_asyncio.fixture
+async def patch_llm(monkeypatch):
+    """Fixture that returns a callable to patch the LLMService used by chat routes.
+
+    Usage inside a test:
+        patch_llm(FakeLLMClass)
+        patch_llm(lambda: MyFake())
+        patch_llm(MyFakeInstance)
+    """
+    def _set_llm(factory_or_cls):
+        # Import fresh to avoid stale references captured during app creation
+        chat_routes = importlib.import_module("backend.blueprints.chat.routes")
+        if isinstance(factory_or_cls, type):
+            monkeypatch.setattr(chat_routes, "LLMService", lambda: factory_or_cls())
+        elif callable(factory_or_cls):
+            monkeypatch.setattr(chat_routes, "LLMService", factory_or_cls)
+        else:
+            # Provided an instance
+            monkeypatch.setattr(chat_routes, "LLMService", lambda: factory_or_cls)
+    return _set_llm
+
+
+@pytest_asyncio.fixture
+async def ensure_todo_status():
+    """Ensure a default 'Todo' Status exists and return it."""
+    async with AsyncSessionLocal() as s:
+        existing = (
+            await s.execute(select(Status).where(Status.title == "Todo"))
+        ).scalars().first()
+        if existing:
+            return existing
+        st = Status(title="Todo", description="Default", created_by=1, color_hex="000000")
+        s.add(st)
+        await s.flush()
+        await s.commit()
+        return st

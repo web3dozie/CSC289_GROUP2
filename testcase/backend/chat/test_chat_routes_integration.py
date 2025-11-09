@@ -2,6 +2,7 @@ import pytest
 
 from testcase.backend.chat import fake_llm_service
 from testcase.backend.conftest import create_user_and_login
+# Use the patch_llm fixture provided by outer conftest via function parameters
 
 
 @pytest.mark.asyncio
