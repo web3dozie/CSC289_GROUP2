@@ -12,7 +12,8 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import select
 
-from backend.db.engine_async import AsyncSessionLocal
+# Don't import AsyncSessionLocal at module level - it binds to the wrong engine!
+# Instead, import it inside fixtures after app fixture has configured the correct engine
 from backend.db.models import Status
 
 
@@ -176,6 +177,7 @@ async def create_user_and_login(
 async def seed_ai_config(client):
     """Login user via API and ensure Configuration has AI fields set for that user."""
 
+    # Import AsyncSessionLocal here, after app fixture has configured the engine
     from backend.db.engine_async import AsyncSessionLocal
     from backend.db.models import Configuration
 
@@ -247,6 +249,9 @@ async def patch_llm(monkeypatch):
 async def ensure_todo_status(app):
     """Ensure a default 'Todo' Status exists and return it.
     Depends on app fixture to ensure database tables are created first."""
+    # Import AsyncSessionLocal here, after app fixture has configured the engine
+    from backend.db.engine_async import AsyncSessionLocal
+    
     async with AsyncSessionLocal() as s:
         existing = (
             await s.execute(select(Status).where(Status.title == "Todo"))

@@ -10,7 +10,7 @@ from backend.blueprints.chat.routes import (
     archive_task_action,
     find_task_by_title,
 )
-from backend.db.engine_async import AsyncSessionLocal, async_engine
+# Don't import AsyncSessionLocal at module level - import it inside fixtures after app configures engine
 from sqlalchemy import select
 from backend.db.models import Task, Tag, Category, Status
 
@@ -19,6 +19,9 @@ from backend.db.models import Task, Tag, Category, Status
 async def db_session(app):
     # Use a transactional session bound to same engine context. 
     # The app fixture ensures tables are created via migrations.
+    # Import AsyncSessionLocal here, after app fixture has configured the engine
+    from backend.db.engine_async import AsyncSessionLocal
+    
     # Ensure at least one user exists for created_by references.
     async with AsyncSessionLocal() as s:
         # Seed minimal user row if absent (id=1)
