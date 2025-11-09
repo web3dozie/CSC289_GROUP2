@@ -207,3 +207,9 @@ async def seed_ai_config(client):
         sess["user_id"] = user_id
 
     return {"user_id": user_id}
+
+@pytest_asyncio.fixture
+async def logged_in_client(client, seed_ai_config):
+    async with client.session_transaction() as s:
+        s["user_id"] = seed_ai_config["user_id"]
+    return client

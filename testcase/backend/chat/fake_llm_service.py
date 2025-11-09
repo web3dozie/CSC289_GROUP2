@@ -74,3 +74,17 @@ class FakeLLMServiceComplete(FakeLLMServiceBase):
             '{"action": "complete_task", "task_title": "Finish Report"}'
             "\n```"
         )
+
+
+class FakeLLMServiceEcho(FakeLLMServiceBase):
+    async def get_completion(self, **kwargs):
+        return "Hello"
+
+
+class FakeLLMServiceMultiAction(FakeLLMServiceBase):
+    async def get_completion(self, **kwargs):
+        return (
+            "```json {\"action\": \"create_task\", \"title\": \"Chain\", \"due_date\": \"2030-01-01\"} ``` "
+            "```json {\"action\": \"update_task\", \"task_title\": \"Chain\", \"priority\": true} ``` "
+            "```json {\"action\": \"archive_task\", \"task_title\": \"Chain\"} ```"
+        )

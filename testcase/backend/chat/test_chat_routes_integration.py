@@ -1,6 +1,90 @@
 import pytest
-from conftest import create_user_and_login
+
 from testcase.backend.chat import fake_llm_service
+from testcase.backend.conftest import create_user_and_login
+
+
+@pytest.mark.asyncio
+async def test_send_message_empty(monkeypatch, client, seed_ai_config):
+    # seed_ai_config pins session user_id already
+
+    resp = await client.post("/api/chat/message", json={"message": "   "})
+    assert resp.status_code == 400
+    body = await resp.get_json()
+    assert body.get("error") == "Message cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_send_message_llm_failure(patch_llm, client, seed_ai_config):
+    # seed_ai_config pins session user_id already
+
+    # Patch LLM to raise using shared fake
+    patch_llm(fake_llm_service.FakeLLMServiceError)
+
+    resp = await client.post("/api/chat/message", json={"message": "hi"})
+    assert resp.status_code == 500
+    body = await resp.get_json()
+    assert "Failed to get AI response" in body.get("error", "")
+
+
+@pytest.mark.asyncio
+async def test_send_message_executes_multiple_actions(patch_llm, client, seed_ai_config):
+    # seed_ai_config pins session user_id already
+
+    # Configure fake to emit create + update + archive for the same title
+    patch_llm(fake_llm_service.FakeLLMServiceMultiAction)
+
+    resp = await client.post("/api/chat/message", json={"message": "go"})
+    assert resp.status_code == 200, await resp.get_json()
+    body = await resp.get_json()
+    acts = [a.get("action") for a in body.get("actions_executed", [])]
+    # All three should be recorded in order
+    assert acts == ["create_task", "update_task", "archive_task"]
+
+
+@pytest.mark.asyncio
+async def test_chat_history_empty_then_messages(patch_llm, client, seed_ai_config):
+    # No conversation yet -> empty list (seed_ai_config pins session)
+
+    resp = await client.get("/api/chat/history")
+    assert resp.status_code == 200
+    body = await resp.get_json()
+    assert body["messages"] == []
+
+    # Now send a message with a do-nothing LLM
+    patch_llm(fake_llm_service.FakeLLMServiceEcho)
+
+    send = await client.post("/api/chat/message", json={"message": "Hi"})
+    assert send.status_code == 200
+
+    # Now history should contain messages
+    resp2 = await client.get("/api/chat/history")
+    assert resp2.status_code == 200
+    body2 = await resp2.get_json()
+    assert len(body2["messages"]) >= 2
+
+
+@pytest.mark.asyncio
+async def test_clear_history(patch_llm, client, seed_ai_config):
+    # seed_ai_config pins session user_id already
+
+    # Ensure there's a conversation by sending a message
+    patch_llm(fake_llm_service.FakeLLMServiceEcho)
+    await client.post("/api/chat/message", json={"message": "Hi"})
+
+    # Clear it
+    resp = await client.post("/api/chat/clear")
+    assert resp.status_code == 200
+    body = await resp.get_json()
+    assert body.get("success") is True
+
+    # History now empty
+    resp2 = await client.get("/api/chat/history")
+    body2 = await resp2.get_json()
+    assert body2["messages"] == []
+
+
+# ---- Consolidated from test_chat_api.py ----
 
 @pytest.mark.asyncio
 async def test_chat_rejects_when_ai_not_configured(client):
@@ -13,14 +97,13 @@ async def test_chat_rejects_when_ai_not_configured(client):
 
 
 @pytest.mark.asyncio
-async def test_chat_executes_create_task_action(monkeypatch, client, seed_ai_config):
+async def test_chat_executes_create_task_action(patch_llm, client, seed_ai_config):
     from backend.db.engine_async import AsyncSessionLocal
     from backend.db.models import Configuration
     from sqlalchemy import select
     
     # Patch LLMService to use our fake that returns a create_task action    
-    from backend.blueprints.chat import routes as chat_routes
-    monkeypatch.setattr(chat_routes,"LLMService", fake_llm_service.FakeLLMServiceCreate)
+    patch_llm(fake_llm_service.FakeLLMServiceCreate)
 
     # Set session user_id to the seeded user
     async with client.session_transaction() as session:
@@ -49,7 +132,7 @@ async def test_chat_executes_create_task_action(monkeypatch, client, seed_ai_con
     assert "AI task" in titles
 
 @pytest.mark.asyncio
-async def test_chat_archives_task(monkeypatch, client, seed_ai_config):
+async def test_chat_archives_task(patch_llm, client, seed_ai_config):
     title_to_archive = "To Archive"
 
     # Use the seeded user for the entire flow so ownership is consistent
@@ -65,8 +148,7 @@ async def test_chat_archives_task(monkeypatch, client, seed_ai_config):
     fake_llm_service.INJECT_TASK_TITLE = title_to_archive
 
     # Patch LLMService to use our fake
-    from backend.blueprints.chat import routes as chat_routes
-    monkeypatch.setattr(chat_routes, "LLMService", fake_llm_service.FakeLLMServiceArchive)
+    patch_llm(fake_llm_service.FakeLLMServiceArchive)
 
     # Verify task appears in active tasks list
     tasks_resp = await client.get("/api/tasks/")
@@ -89,7 +171,7 @@ async def test_chat_archives_task(monkeypatch, client, seed_ai_config):
 
 
 @pytest.mark.asyncio
-async def test_chat_completes_task(monkeypatch, client, seed_ai_config):
+async def test_chat_completes_task(patch_llm, client, seed_ai_config):
     # Use seeded user
     async with client.session_transaction() as sess:
         sess["user_id"] = seed_ai_config["user_id"]
@@ -109,8 +191,7 @@ async def test_chat_completes_task(monkeypatch, client, seed_ai_config):
     assert task_obj.get("done") is False
 
     # Stub LLMService to return a complete_task action using shared fake
-    from backend.blueprints.chat import routes as chat_routes
-    monkeypatch.setattr(chat_routes, "LLMService", fake_llm_service.FakeLLMServiceComplete)
+    patch_llm(fake_llm_service.FakeLLMServiceComplete)
 
     # Send chat message (content arbitrary; stub decides action)
     resp = await client.post("/api/chat/message", json={"message": "Please complete the task"})
@@ -130,7 +211,7 @@ async def test_chat_completes_task(monkeypatch, client, seed_ai_config):
 
 
 @pytest.mark.asyncio
-async def test_chat_updates_task(monkeypatch, client, seed_ai_config):
+async def test_chat_updates_task(patch_llm, client, seed_ai_config):
     # Use seeded user
     async with client.session_transaction() as sess:
         sess["user_id"] = seed_ai_config["user_id"]
@@ -147,9 +228,8 @@ async def test_chat_updates_task(monkeypatch, client, seed_ai_config):
     before_priority = task_before.get("priority", False)
 
     # Configure the fake to target our title, then patch LLMService
-    from backend.blueprints.chat import routes as chat_routes
     fake_llm_service.INJECT_TASK_TITLE = base_title
-    monkeypatch.setattr(chat_routes, "LLMService", fake_llm_service.FakeLLMServiceUpdate)
+    patch_llm(fake_llm_service.FakeLLMServiceUpdate)
 
     # Trigger chat message which should execute update_task
     resp = await client.post("/api/chat/message", json={"message": "update it"})
