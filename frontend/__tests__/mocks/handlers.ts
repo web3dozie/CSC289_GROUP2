@@ -199,8 +199,8 @@ export const handlers = [
   // GET /api/categories - Get categories
   http.get('/api/categories', () => {
     return HttpResponse.json([
-      { id: 1, name: 'Work', color_hex: '#3b82f6', description: null, created_on: new Date().toISOString(), updated_on: new Date().toISOString() },
-      { id: 2, name: 'Personal', color_hex: '#10b981', description: null, created_on: new Date().toISOString(), updated_on: new Date().toISOString() }
+      { id: 1, name: 'Work', color_hex: '#3b82f6', description: null, created_on: new Date().toISOString(), updated_on: new Date().toISOString(), created_by: 1 },
+      { id: 2, name: 'Personal', color_hex: '#10b981', description: null, created_on: new Date().toISOString(), updated_on: new Date().toISOString(), created_by: 1 }
     ])
   }),
 
@@ -221,7 +221,8 @@ export const handlers = [
       color_hex: body.color_hex,
       description: body.description || null,
       created_on: new Date().toISOString(),
-      updated_on: new Date().toISOString()
+      updated_on: new Date().toISOString(),
+      created_by: 1
     })
   }),
 
@@ -235,7 +236,8 @@ export const handlers = [
       color_hex: body.color_hex,
       description: body.description || null,
       created_on: new Date().toISOString(),
-      updated_on: new Date().toISOString()
+      updated_on: new Date().toISOString(),
+      created_by: 1
     })
   }),
 
