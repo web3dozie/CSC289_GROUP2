@@ -267,7 +267,7 @@ async def get_kanban_board():
 @auth_required
 async def get_categories():
     """Get available categories for the user as a list of category names with caching."""
-    cache_key = f"categories_user_{session['user_id']}"
+    cache_key = f"task_categories_user_{session['user_id']}"
     cached_categories = cache.get(cache_key)
     if cached_categories is not None:
         return jsonify(cached_categories)

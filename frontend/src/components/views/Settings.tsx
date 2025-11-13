@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload, ShieldAlert, AlertTriangle } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload, ShieldAlert, AlertTriangle, Tag } from 'lucide-react'
 import {
   useSettings,
   useUpdateSettings,
@@ -13,6 +13,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTutorial } from '../../contexts/TutorialContext'
 import { ImportConfirmation } from '../tasks'
+import { CategoriesManagement } from '../settings/CategoriesManagement'
 import type { UserSettings } from '../../lib/api'
 
 interface SettingSectionProps {
@@ -690,6 +691,15 @@ export const Settings: React.FC = () => {
               </label>
             </div>
           </div>
+        </SettingSection>
+
+        {/* Categories Management */}
+        <SettingSection
+          title="Task Categories"
+          description="Create and manage categories to organize your tasks"
+          icon={Palette}
+        >
+          <CategoriesManagement />
         </SettingSection>
 
         {/* AI Integration Settings */}

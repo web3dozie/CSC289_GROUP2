@@ -459,3 +459,58 @@ export const accountApi = {
     }),
 }
 
+// Categories API
+export interface Category {
+  id: number
+  name: string
+  description?: string
+  color_hex: string
+  created_on: string
+  updated_on?: string
+  created_by: number
+}
+
+export interface CategoryUsage {
+  id: number
+  name: string
+  task_count: number
+  color_hex: string
+}
+
+export const categoriesApi = {
+  getAll: () =>
+    apiRequest<Category[]>('/api/categories'),
+
+  getById: (id: number) =>
+    apiRequest<Category>(`/api/categories/${id}`),
+
+  create: (data: {
+    name: string
+    description?: string
+    color_hex: string
+  }) =>
+    apiRequest<Category>('/api/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: number, data: Partial<{
+    name: string
+    description?: string
+    color_hex: string
+  }>) =>
+    apiRequest<Category>(`/api/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: number) =>
+    apiRequest<{ message: string }>(`/api/categories/${id}`, {
+      method: 'DELETE',
+    }),
+
+  getUsage: () =>
+    apiRequest<CategoryUsage[]>('/api/categories/usage'),
+}
+
+

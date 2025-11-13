@@ -3,6 +3,7 @@ Input validation utilities for task management
 """
 from datetime import datetime
 from typing import Optional, Dict, Any
+from backend.errors import ValidationError
 
 
 class TaskValidator:
@@ -12,12 +13,12 @@ class TaskValidator:
     def validate_title(title: str) -> str:
         """Validate and clean task title"""
         if not title or not title.strip():
-            raise ValueError("Task title cannot be empty")
+            raise ValidationError("Task title cannot be empty")
         
         cleaned = title.strip()
         
         if len(cleaned) > 200:
-            raise ValueError("Task title cannot exceed 200 characters")
+            raise ValidationError("Task title cannot exceed 200 characters")
         
         return cleaned
     
@@ -30,7 +31,7 @@ class TaskValidator:
         cleaned = description.strip()
         
         if len(cleaned) > 2000:
-            raise ValueError("Task description cannot exceed 2000 characters")
+            raise ValidationError("Task description cannot exceed 2000 characters")
         
         return cleaned
     
@@ -43,12 +44,12 @@ class TaskValidator:
         try:
             due_date = datetime.strptime(due_date_str, "%Y-%m-%d")
         except ValueError:
-            raise ValueError("Due date must be in YYYY-MM-DD format")
+            raise ValidationError("Due date must be in YYYY-MM-DD format")
         
         # Don't allow dates too far in the past (more than 1 year ago)
         one_year_ago = datetime.now().replace(year=datetime.now().year - 1)
         if due_date < one_year_ago:
-            raise ValueError("Due date cannot be more than 1 year in the past")
+            raise ValidationError("Due date cannot be more than 1 year in the past")
         
         return due_date
     
@@ -61,13 +62,13 @@ class TaskValidator:
         try:
             estimate_int = int(estimate)
         except (ValueError, TypeError):
-            raise ValueError("Estimate must be a number")
+            raise ValidationError("Estimate must be a number")
         
         if estimate_int < 0:
-            raise ValueError("Estimate cannot be negative")
+            raise ValidationError("Estimate cannot be negative")
         
         if estimate_int > 10080:  # 7 days in minutes
-            raise ValueError("Estimate cannot exceed 7 days (10080 minutes)")
+            raise ValidationError("Estimate cannot exceed 7 days (10080 minutes)")
         
         return estimate_int
     
@@ -92,10 +93,95 @@ class TaskValidator:
             try:
                 validated['status_id'] = int(data['status_id'])
             except (ValueError, TypeError):
-                raise ValueError("Status ID must be a valid number")
+                raise ValidationError("Status ID must be a valid number")
         
         if 'category' in data:
             validated['category'] = data['category']
+        
+        return validated
+
+
+class CategoryValidator:
+    """Validates category data before database operations"""
+    
+    @staticmethod
+    def validate_name(name: str) -> str:
+        """Validate and clean category name"""
+        if not name or not name.strip():
+            raise ValidationError("Category name cannot be empty")
+        
+        cleaned = name.strip()
+        
+        if len(cleaned) > 140:
+            raise ValidationError("Category name cannot exceed 140 characters")
+        
+        return cleaned
+    
+    @staticmethod
+    def validate_description(description: Optional[str]) -> Optional[str]:
+        """Validate and clean category description"""
+        if description is None or not description.strip():
+            return None
+        
+        cleaned = description.strip()
+        
+        if len(cleaned) > 140:
+            raise ValidationError("Category description cannot exceed 140 characters")
+        
+        return cleaned
+    
+    @staticmethod
+    def validate_color_hex(color_hex: str) -> str:
+        """Validate and clean hex color code"""
+        if not color_hex:
+            raise ValidationError("Category color is required")
+        
+        # Remove # if present
+        cleaned = color_hex.strip().lstrip('#').upper()
+        
+        # Must be 6 characters (RRGGBB) or 3 characters (RGB - will expand)
+        if len(cleaned) == 3:
+            # Expand RGB to RRGGBB
+            cleaned = ''.join([c*2 for c in cleaned])
+        elif len(cleaned) != 6:
+            raise ValidationError("Color must be a valid hex code (e.g., FF5733 or #FF5733)")
+        
+        # Validate hex characters
+        if not all(c in '0123456789ABCDEF' for c in cleaned):
+            raise ValidationError("Color must contain only hex characters (0-9, A-F)")
+        
+        return cleaned
+    
+    @staticmethod
+    def validate_create(data: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate category creation data"""
+        validated = {}
+        
+        # Required fields
+        validated['name'] = CategoryValidator.validate_name(data.get('name', ''))
+        validated['color_hex'] = CategoryValidator.validate_color_hex(data.get('color_hex', ''))
+        
+        # Optional fields
+        validated['description'] = CategoryValidator.validate_description(data.get('description'))
+        
+        return validated
+    
+    @staticmethod
+    def validate_update(data: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate category update data (all fields optional)"""
+        validated = {}
+        
+        if 'name' in data:
+            validated['name'] = CategoryValidator.validate_name(data['name'])
+        
+        if 'color_hex' in data:
+            validated['color_hex'] = CategoryValidator.validate_color_hex(data['color_hex'])
+        
+        if 'description' in data:
+            validated['description'] = CategoryValidator.validate_description(data['description'])
+        
+        if not validated:
+            raise ValidationError("No valid fields provided for update")
         
         return validated
 
@@ -114,7 +200,10 @@ def create_validation_error_response(error: Exception) -> dict:
         "Estimate must be a number": "Time estimate must be a number of minutes",
         "Estimate cannot be negative": "Time estimate cannot be negative",
         "Estimate cannot exceed": "Time estimate is too large (max 7 days)",
-        "Status ID must be": "Invalid status selected"
+        "Status ID must be": "Invalid status selected",
+        "Category name cannot": "Category name issue",
+        "Category color": "Category color issue",
+        "Color must": "Invalid color format"
     }
     
     for key, friendly_msg in friendly_messages.items():
