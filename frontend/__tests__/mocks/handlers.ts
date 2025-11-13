@@ -207,6 +207,55 @@ export const handlers = [
     })
   }),
 
+  // GET /api/categories/usage - Get category usage statistics
+  http.get('/api/categories/usage', () => {
+    return HttpResponse.json({
+      success: true,
+      data: [
+        { category_id: 1, category_name: 'Work', task_count: 5 },
+        { category_id: 2, category_name: 'Personal', task_count: 3 }
+      ]
+    })
+  }),
+
+  // POST /api/categories - Create category
+  http.post('/api/categories', async ({ request }) => {
+    const body = await request.json() as any
+    return HttpResponse.json({
+      success: true,
+      data: {
+        id: 999,
+        name: body.name,
+        color_hex: body.color_hex,
+        description: body.description || null,
+        created_on: new Date().toISOString(),
+        updated_on: new Date().toISOString()
+      }
+    })
+  }),
+
+  // PUT /api/categories/:id - Update category
+  http.put('/api/categories/:id', async ({ request, params }) => {
+    const body = await request.json() as any
+    const { id } = params
+    return HttpResponse.json({
+      success: true,
+      data: {
+        id: Number(id),
+        name: body.name,
+        color_hex: body.color_hex,
+        description: body.description || null,
+        created_on: new Date().toISOString(),
+        updated_on: new Date().toISOString()
+      }
+    })
+  }),
+
+  // DELETE /api/categories/:id - Delete category
+  http.delete('/api/categories/:id', () => {
+    return new HttpResponse(null, { status: 204 })
+  }),
+
   // GET /api/tasks/categories - Get task categories (string array)
   http.get('/api/tasks/categories', () => {
     return HttpResponse.json({
