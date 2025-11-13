@@ -200,6 +200,8 @@ export const useCreateTask = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks })
       queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
       queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
+      // Invalidate category usage to update task counts in settings
+      queryClient.invalidateQueries({ queryKey: queryKeys.categoryUsage })
       // Invalidate review analytics queries when a new task is created
       queryClient.invalidateQueries({ queryKey: queryKeys.dailySummary })
       queryClient.invalidateQueries({ queryKey: queryKeys.weeklySummary })
@@ -327,6 +329,8 @@ export const useUpdateTask = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
       queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
       queryClient.invalidateQueries({ queryKey: queryKeys.archived })
+      // Invalidate category usage to update task counts in settings
+      queryClient.invalidateQueries({ queryKey: queryKeys.categoryUsage })
       // Invalidate review analytics queries when task status changes
       queryClient.invalidateQueries({ queryKey: queryKeys.dailySummary })
       queryClient.invalidateQueries({ queryKey: queryKeys.weeklySummary })
