@@ -8,7 +8,6 @@ const SignUp: React.FC = () => {
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  const [email, setEmail] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [showConfirmPin, setShowConfirmPin] = useState(false);
   const { setup, isLoading, error, clearError } = useAuth();
@@ -24,7 +23,7 @@ const SignUp: React.FC = () => {
     }
 
     try {
-      await setup({ pin, username, email });
+      await setup({ pin, username });
       navigate({ to: '/app' });
       
       // Start tutorial after successful signup and navigation
@@ -93,20 +92,6 @@ const SignUp: React.FC = () => {
                 placeholder="Enter a username"
                 className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-white placeholder-cyan-300 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 backdrop-blur-sm"
                 required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-cyan-200 mb-2">
-                Email (Optional)
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-white placeholder-cyan-300 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 backdrop-blur-sm"
               />
             </div>
 

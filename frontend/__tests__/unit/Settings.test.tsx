@@ -36,7 +36,13 @@ vi.mock('../../src/lib/hooks', () => ({
   useAuthLogin: () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false }),
   useAuthLogout: () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false }),
   useAuthSetup: () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false }),
-  useAuthChangeUsername: () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false })
+  useAuthChangeUsername: () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false }),
+  // Categories hooks for the new feature
+  useCategoriesFull: () => ({ data: [], isLoading: false }),
+  useCategoryUsage: () => ({ data: [], isLoading: false }),
+  useCreateCategory: () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isLoading: false }),
+  useUpdateCategory: () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isLoading: false }),
+  useDeleteCategory: () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isLoading: false })
 }))
 
 const renderWithProviders = (component: React.ReactElement) => {

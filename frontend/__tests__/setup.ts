@@ -9,6 +9,8 @@ expect.extend(matchers)
 // Mock scrollIntoView for jsdom
 beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn()
+  // Mock window.scrollTo for jsdom
+  window.scrollTo = vi.fn()
 })
 
 // Suppress React act() warnings in tests

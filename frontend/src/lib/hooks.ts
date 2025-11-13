@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { authApi, tasksApi, reviewApi, settingsApi, healthApi, dataApi, accountApi, type Task } from './api'
+import { authApi, tasksApi, reviewApi, settingsApi, healthApi, dataApi, accountApi, categoriesApi, type Task } from './api'
 
 // Query keys for consistent caching
 export const queryKeys = {
@@ -8,6 +8,8 @@ export const queryKeys = {
   kanban: ['tasks', 'kanban'] as const,
   calendar: ['tasks', 'calendar'] as const,
   categories: ['tasks', 'categories'] as const,
+  category: (id: number) => ['categories', id] as const,
+  categoryUsage: ['categories', 'usage'] as const,
   archived: ['tasks', 'archived'] as const,
   journal: ['review', 'journal'] as const,
   dailySummary: ['review', 'summary', 'daily'] as const,
@@ -122,6 +124,71 @@ export const useCategories = () => {
   })
 }
 
+export const useCategoriesFull = () => {
+  return useQuery({
+    queryKey: ['categories', 'full'],
+    queryFn: categoriesApi.getAll,
+  })
+}
+
+export const useCategory = (id: number) => {
+  return useQuery({
+    queryKey: queryKeys.category(id),
+    queryFn: () => categoriesApi.getById(id),
+    enabled: !!id,
+  })
+}
+
+export const useCategoryUsage = () => {
+  return useQuery({
+    queryKey: queryKeys.categoryUsage,
+    queryFn: categoriesApi.getUsage,
+  })
+}
+
+export const useCreateCategory = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: categoriesApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories })
+      queryClient.invalidateQueries({ queryKey: queryKeys.categoryUsage })
+    },
+  })
+}
+
+export const useUpdateCategory = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof categoriesApi.update>[1] }) =>
+      categoriesApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.category(id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories })
+      queryClient.invalidateQueries({ queryKey: queryKeys.categoryUsage })
+    },
+  })
+}
+
+export const useDeleteCategory = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: categoriesApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories })
+      queryClient.invalidateQueries({ queryKey: queryKeys.categoryUsage })
+      // Also invalidate tasks since their category references may have changed
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks })
+    },
+  })
+}
+
 export const useCreateTask = () => {
   const queryClient = useQueryClient()
 
@@ -133,6 +200,8 @@ export const useCreateTask = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks })
       queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
       queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
+      // Invalidate category usage to update task counts in settings
+      queryClient.invalidateQueries({ queryKey: queryKeys.categoryUsage })
       // Invalidate review analytics queries when a new task is created
       queryClient.invalidateQueries({ queryKey: queryKeys.dailySummary })
       queryClient.invalidateQueries({ queryKey: queryKeys.weeklySummary })
@@ -260,6 +329,8 @@ export const useUpdateTask = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kanban })
       queryClient.invalidateQueries({ queryKey: queryKeys.calendar })
       queryClient.invalidateQueries({ queryKey: queryKeys.archived })
+      // Invalidate category usage to update task counts in settings
+      queryClient.invalidateQueries({ queryKey: queryKeys.categoryUsage })
       // Invalidate review analytics queries when task status changes
       queryClient.invalidateQueries({ queryKey: queryKeys.dailySummary })
       queryClient.invalidateQueries({ queryKey: queryKeys.weeklySummary })

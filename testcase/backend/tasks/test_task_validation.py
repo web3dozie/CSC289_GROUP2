@@ -3,6 +3,7 @@ Tests for the new task validation features added in the PR
 """
 import pytest
 from backend.validation import TaskValidator, create_validation_error_response
+from backend.errors import ValidationError
 
 
 class TestTaskValidator:
@@ -15,16 +16,16 @@ class TestTaskValidator:
     
     def test_validate_title_empty(self):
         """Test empty title raises error"""
-        with pytest.raises(ValueError, match="title cannot be empty"):
+        with pytest.raises(ValidationError, match="title cannot be empty"):
             TaskValidator.validate_title("")
         
-        with pytest.raises(ValueError, match="title cannot be empty"):
+        with pytest.raises(ValidationError, match="title cannot be empty"):
             TaskValidator.validate_title("   ")
     
     def test_validate_title_too_long(self):
         """Test title exceeding 200 characters raises error"""
         long_title = "x" * 201
-        with pytest.raises(ValueError, match="cannot exceed 200 characters"):
+        with pytest.raises(ValidationError, match="cannot exceed 200 characters"):
             TaskValidator.validate_title(long_title)
     
     def test_validate_description_success(self):
@@ -38,7 +39,7 @@ class TestTaskValidator:
     def test_validate_description_too_long(self):
         """Test description exceeding 2000 characters raises error"""
         long_desc = "x" * 2001
-        with pytest.raises(ValueError, match="cannot exceed 2000 characters"):
+        with pytest.raises(ValidationError, match="cannot exceed 2000 characters"):
             TaskValidator.validate_description(long_desc)
     
     def test_validate_due_date_success(self):
@@ -54,15 +55,15 @@ class TestTaskValidator:
     
     def test_validate_due_date_invalid_format(self):
         """Test invalid date format raises error"""
-        with pytest.raises(ValueError, match="YYYY-MM-DD format"):
+        with pytest.raises(ValidationError, match="YYYY-MM-DD format"):
             TaskValidator.validate_due_date("31-12-2025")
         
-        with pytest.raises(ValueError, match="YYYY-MM-DD format"):
+        with pytest.raises(ValidationError, match="YYYY-MM-DD format"):
             TaskValidator.validate_due_date("2025/12/31")
     
     def test_validate_due_date_too_old(self):
         """Test date more than 1 year in the past raises error"""
-        with pytest.raises(ValueError, match="more than 1 year in the past"):
+        with pytest.raises(ValidationError, match="more than 1 year in the past"):
             TaskValidator.validate_due_date("2020-01-01")
     
     def test_validate_estimate_minutes_success(self):
@@ -78,17 +79,17 @@ class TestTaskValidator:
     
     def test_validate_estimate_minutes_negative(self):
         """Test negative estimate raises error"""
-        with pytest.raises(ValueError, match="cannot be negative"):
+        with pytest.raises(ValidationError, match="cannot be negative"):
             TaskValidator.validate_estimate_minutes(-1)
     
     def test_validate_estimate_minutes_too_large(self):
         """Test estimate exceeding 7 days raises error"""
-        with pytest.raises(ValueError, match="cannot exceed 7 days"):
+        with pytest.raises(ValidationError, match="cannot exceed 7 days"):
             TaskValidator.validate_estimate_minutes(10081)
     
     def test_validate_estimate_minutes_invalid_type(self):
         """Test non-numeric estimate raises error"""
-        with pytest.raises(ValueError, match="must be a number"):
+        with pytest.raises(ValidationError, match="must be a number"):
             TaskValidator.validate_estimate_minutes("abc")
     
     def test_validate_task_data_success(self):
