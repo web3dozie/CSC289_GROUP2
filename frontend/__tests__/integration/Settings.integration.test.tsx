@@ -234,11 +234,11 @@ describe('Settings Integration Tests', () => {
       })
 
       // Update only the model field
-      const modelInput = screen.getByPlaceholderText(/gemini-2\.0-flash/i)
-      await user.clear(modelInput)
-      await user.click(modelInput)
-      await user.keyboard('{Control>}a{/Control}')
-      await user.type(modelInput, 'gpt-4o-mini')
+      const modelInput = screen.getByPlaceholderText(/gemini-2\.0-flash/i) as HTMLInputElement
+      
+      // Triple-click to select all text, then type to replace
+      await user.tripleClick(modelInput)
+      await user.keyboard('gpt-4o-mini')
 
       let savedData: any = null
       server.use(
