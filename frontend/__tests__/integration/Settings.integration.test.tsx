@@ -236,6 +236,8 @@ describe('Settings Integration Tests', () => {
       // Update only the model field
       const modelInput = screen.getByPlaceholderText(/gemini-2\.0-flash/i)
       await user.clear(modelInput)
+      await user.click(modelInput)
+      await user.keyboard('{Control>}a{/Control}')
       await user.type(modelInput, 'gpt-4o-mini')
 
       let savedData: any = null
@@ -522,6 +524,14 @@ describe('Settings Integration Tests', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Features')).toBeInTheDocument()
+      }, { timeout: 5000 })
+
+      // Wait for data to load and state to update
+      await waitFor(() => {
+        const notesText = screen.getByText('Task Notes')
+        const toggleContainer = notesText.closest('.flex')
+        const notesToggle = toggleContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
+        expect(notesToggle).toBeInTheDocument()
       })
 
       // Find notes toggle by searching for the text nearby
@@ -585,6 +595,14 @@ describe('Settings Integration Tests', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Features')).toBeInTheDocument()
+      }, { timeout: 5000 })
+
+      // Wait for data to load and state to update
+      await waitFor(() => {
+        const timerText = screen.getByText('Pomodoro Timer')
+        const toggleContainer = timerText.closest('.flex')
+        const timerToggle = toggleContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
+        expect(timerToggle).toBeInTheDocument()
       })
 
       // Find timer toggle
