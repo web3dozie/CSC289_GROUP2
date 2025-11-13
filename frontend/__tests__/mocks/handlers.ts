@@ -53,20 +53,25 @@ export const handlers = [
   }),
 
   http.put('/api/settings', async ({ request }) => {
-    const body = await request.json() as any
-    return HttpResponse.json({
-      success: true,
-      data: {
-        notes_enabled: body.notes_enabled ?? true,
-        timer_enabled: body.timer_enabled ?? true,
-        ai_api_url: body.ai_api_url ?? '',
-        ai_model: body.ai_model ?? '',
-        ai_api_key: body.ai_api_key ?? '',
-        auto_lock_minutes: body.auto_lock_minutes ?? 10,
-        theme: body.theme ?? 'light',
-        updated_on: new Date().toISOString()
-      }
-    })
+    try {
+      const body = await request.json() as any
+      return HttpResponse.json({
+        success: true,
+        data: {
+          notes_enabled: body.notes_enabled ?? true,
+          timer_enabled: body.timer_enabled ?? true,
+          ai_api_url: body.ai_api_url ?? '',
+          ai_model: body.ai_model ?? '',
+          ai_api_key: body.ai_api_key ?? '',
+          auto_lock_minutes: body.auto_lock_minutes ?? 10,
+          theme: body.theme ?? 'light',
+          updated_on: new Date().toISOString()
+        }
+      })
+    } catch (error) {
+      console.error('MSW PUT /api/settings error:', error)
+      return new HttpResponse(null, { status: 500 })
+    }
   }),
 
   // Task management handlers
