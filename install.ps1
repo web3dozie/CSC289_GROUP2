@@ -8,7 +8,9 @@ $ErrorActionPreference = "Stop"
 $ContainerName = "taskline"
 $ImageName = "web3dozie/taskline:latest"
 $Port = "3456"
+$InternalPort = "3456"
 $VolumeName = "taskline-data"
+$LocalDomain = "my.taskline.app"
 
 # Banner
 Write-Host ""
@@ -101,7 +103,8 @@ Write-Host "✓ Image downloaded" -ForegroundColor Green
 Write-Host "→ Starting TaskLine..." -ForegroundColor Yellow
 docker run -d `
     --name $ContainerName `
-    -p "${Port}:3456" `
+    -p "80:${InternalPort}" `
+    -p "${Port}:${InternalPort}" `
     -v "${VolumeName}:/data" `
     --restart unless-stopped `
     $ImageName | Out-Null
@@ -114,7 +117,7 @@ $healthy = $false
 
 while ($counter -lt $maxWait) {
     try {
-        $response = docker exec $ContainerName curl -sf http://localhost:3456/health 2>$null
+        $response = docker exec $ContainerName curl -sf http://localhost:${InternalPort}/health 2>$null
         if ($response) {
             Write-Host "✓ TaskLine is ready!" -ForegroundColor Green
             $healthy = $true
@@ -137,6 +140,23 @@ if (-not $healthy) {
     exit 1
 }
 
+# Set up local domain
+Write-Host "→ Setting up local domain..." -ForegroundColor Yellow
+$hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
+$hostsContent = Get-Content $hostsPath -ErrorAction SilentlyContinue
+if ($hostsContent -notmatch $LocalDomain) {
+    try {
+        Add-Content -Path $hostsPath -Value "`n127.0.0.1 $LocalDomain" -ErrorAction Stop
+        Write-Host "✓ Added $LocalDomain to hosts file" -ForegroundColor Green
+    } catch {
+        Write-Host "! Could not modify hosts file. Run PowerShell as Administrator to add $LocalDomain" -ForegroundColor Yellow
+        Write-Host "  Or manually add this line to $hostsPath :" -ForegroundColor Yellow
+        Write-Host "  127.0.0.1 $LocalDomain" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✓ $LocalDomain already in hosts file" -ForegroundColor Green
+}
+
 # Success message
 Write-Host ""
 Write-Host "╔════════════════════════════════════════════════════════╗" -ForegroundColor Green
@@ -146,6 +166,7 @@ Write-Host "║                                                        ║" -For
 Write-Host "╚════════════════════════════════════════════════════════╝" -ForegroundColor Green
 Write-Host ""
 Write-Host "→ Access TaskLine:" -ForegroundColor Cyan
+Write-Host "  http://$LocalDomain" -ForegroundColor Green
 Write-Host "  http://localhost:$Port" -ForegroundColor Green
 Write-Host ""
 Write-Host "→ Data Location:" -ForegroundColor Cyan
@@ -162,10 +183,9 @@ Write-Host "→ Backup Your Data:" -ForegroundColor Cyan
 Write-Host "  docker run --rm -v ${VolumeName}:/data -v `${PWD}:/backup ubuntu tar czf /backup/taskline-backup.tar.gz -C /data ." -ForegroundColor Yellow
 Write-Host ""
 
-# Offer to install CLI wrapper
-Write-Host "→ Install 'taskline' command?" -ForegroundColor Cyan
-Write-Host "  This will create a simple CLI tool for managing TaskLine"
-$installCli = Read-Host "  Install? [y/N]"
+# Install CLI wrapper automatically
+Write-Host "→ Installing 'taskline' command..." -ForegroundColor Cyan
+$installCli = "Y"
 
 if ($installCli -match '^[Yy]$') {
     $cliPath = "$env:USERPROFILE\.local\bin\taskline.ps1"
@@ -188,7 +208,9 @@ param(
 $ContainerName = "taskline"
 $ImageName = "web3dozie/taskline:latest"
 $Port = "3456"
+$InternalPort = "3456"
 $VolumeName = "taskline-data"
+$LocalDomain = "my.taskline.app"
 
 switch ($Command) {
     "start" {
@@ -196,9 +218,9 @@ switch ($Command) {
         try {
             docker start $ContainerName 2>$null
         } catch {
-            docker run -d --name $ContainerName -p "${Port}:3456" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
+            docker run -d --name $ContainerName -p "80:${InternalPort}" -p "${Port}:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
         }
-        Write-Host "TaskLine is running at http://localhost:$Port"
+        Write-Host "TaskLine is running at http://$LocalDomain"
     }
     "stop" {
         Write-Host "Stopping TaskLine..."
@@ -212,7 +234,7 @@ switch ($Command) {
         $running = docker ps --format "{{.Names}}" | Where-Object { $_ -eq $ContainerName }
         if ($running) {
             Write-Host "TaskLine is running"
-            Write-Host "URL: http://localhost:$Port"
+            Write-Host "URL: http://$LocalDomain"
             docker ps --filter "name=$ContainerName" --format "table {{.Status}}`t{{.Ports}}"
         } else {
             Write-Host "TaskLine is not running"
@@ -226,8 +248,8 @@ switch ($Command) {
         docker pull $ImageName
         docker stop $ContainerName
         docker rm $ContainerName
-        docker run -d --name $ContainerName -p "${Port}:3456" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
-        Write-Host "TaskLine updated and running at http://localhost:$Port"
+        docker run -d --name $ContainerName -p "80:${InternalPort}" -p "${Port}:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
+        Write-Host "TaskLine updated and running at http://$LocalDomain"
     }
     "uninstall" {
         $confirm = Read-Host "Remove TaskLine container? Data will be preserved. [y/N]"

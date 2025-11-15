@@ -18,8 +18,10 @@ NC='\033[0m' # No Color
 CONTAINER_NAME="taskline"
 IMAGE_NAME="web3dozie/taskline:latest"
 PORT="3456"
+INTERNAL_PORT="3456"
 DATA_DIR="$HOME/.taskline"
 VOLUME_NAME="taskline-data"
+LOCAL_DOMAIN="my.taskline.app"
 
 # Banner
 echo -e "${CYAN}"
@@ -114,7 +116,8 @@ mkdir -p ${DATA_DIR}
 echo -e "${YELLOW}→${NC} Starting TaskLine..."
 docker run -d \
     --name ${CONTAINER_NAME} \
-    -p ${PORT}:3456 \
+    -p 80:${INTERNAL_PORT} \
+    -p ${PORT}:${INTERNAL_PORT} \
     -v ${VOLUME_NAME}:/data \
     --restart unless-stopped \
     ${IMAGE_NAME}
@@ -124,7 +127,7 @@ echo -e "${YELLOW}→${NC} Waiting for TaskLine to start..."
 MAX_WAIT=60
 COUNTER=0
 while [ $COUNTER -lt $MAX_WAIT ]; do
-    if docker exec ${CONTAINER_NAME} curl -sf http://localhost:3456/health > /dev/null 2>&1; then
+    if docker exec ${CONTAINER_NAME} curl -sf http://localhost:${INTERNAL_PORT}/health > /dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} TaskLine is ready!"
         break
     fi
@@ -142,6 +145,24 @@ if [ $COUNTER -ge $MAX_WAIT ]; then
     exit 1
 fi
 
+# Set up local domain
+echo -e "${YELLOW}→${NC} Setting up local domain..."
+if ! grep -q "${LOCAL_DOMAIN}" /etc/hosts 2>/dev/null; then
+    if [ -w /etc/hosts ]; then
+        echo "127.0.0.1 ${LOCAL_DOMAIN}" >> /etc/hosts
+        echo -e "${GREEN}✓${NC} Added ${LOCAL_DOMAIN} to /etc/hosts"
+    else
+        echo -e "${YELLOW}!${NC} Need sudo to add ${LOCAL_DOMAIN} to /etc/hosts"
+        if sudo sh -c "echo '127.0.0.1 ${LOCAL_DOMAIN}' >> /etc/hosts"; then
+            echo -e "${GREEN}✓${NC} Added ${LOCAL_DOMAIN} to /etc/hosts"
+        else
+            echo -e "${YELLOW}!${NC} Could not modify /etc/hosts. You can access via http://localhost"
+        fi
+    fi
+else
+    echo -e "${GREEN}✓${NC} ${LOCAL_DOMAIN} already in /etc/hosts"
+fi
+
 # Success message
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
@@ -151,6 +172,7 @@ echo -e "${GREEN}║                                                        ║$
 echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${CYAN}→ Access TaskLine:${NC}"
+echo -e "  ${GREEN}http://${LOCAL_DOMAIN}${NC}"
 echo -e "  ${GREEN}http://localhost:${PORT}${NC}"
 echo ""
 echo -e "${CYAN}→ Data Location:${NC}"
@@ -167,10 +189,19 @@ echo -e "${CYAN}→ Backup Your Data:${NC}"
 echo -e "  ${YELLOW}docker run --rm -v ${VOLUME_NAME}:/data -v \$(pwd):/backup ubuntu tar czf /backup/taskline-backup.tar.gz -C /data .${NC}"
 echo ""
 
-# Offer to install CLI wrapper
-echo -e "${CYAN}→ Install 'taskline' command?${NC}"
-echo "  This will create a simple CLI tool for managing TaskLine"
-read -p "  Install? [y/N]: " install_cli
+# Install CLI wrapper
+# Auto-install if piped (non-interactive), otherwise ask
+if [ -t 0 ]; then
+    # Interactive mode
+    echo -e "${CYAN}→ Install 'taskline' command?${NC}"
+    echo "  This will create a simple CLI tool for managing TaskLine"
+    read -p "  Install? [Y/n]: " install_cli
+    install_cli=${install_cli:-Y}
+else
+    # Non-interactive (piped from curl)
+    install_cli="Y"
+    echo -e "${CYAN}→ Installing 'taskline' command...${NC}"
+fi
 
 if [[ $install_cli =~ ^[Yy]$ ]]; then
     # Determine install location
@@ -197,14 +228,16 @@ if [[ $install_cli =~ ^[Yy]$ ]]; then
 CONTAINER_NAME="taskline"
 IMAGE_NAME="web3dozie/taskline:latest"
 PORT="3456"
+INTERNAL_PORT="3456"
 VOLUME_NAME="taskline-data"
+LOCAL_DOMAIN="my.taskline.app"
 
 case "$1" in
     start)
         echo "Starting TaskLine..."
         docker start ${CONTAINER_NAME} 2>/dev/null || \
-        docker run -d --name ${CONTAINER_NAME} -p ${PORT}:3456 -v ${VOLUME_NAME}:/data --restart unless-stopped ${IMAGE_NAME}
-        echo "TaskLine is running at http://localhost:${PORT}"
+        docker run -d --name ${CONTAINER_NAME} -p 80:${INTERNAL_PORT} -p ${PORT}:${INTERNAL_PORT} -v ${VOLUME_NAME}:/data --restart unless-stopped ${IMAGE_NAME}
+        echo "TaskLine is running at http://${LOCAL_DOMAIN}"
         ;;
     stop)
         echo "Stopping TaskLine..."
@@ -217,7 +250,7 @@ case "$1" in
     status)
         if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
             echo "TaskLine is running"
-            echo "URL: http://localhost:${PORT}"
+            echo "URL: http://${LOCAL_DOMAIN}"
             docker ps --filter "name=${CONTAINER_NAME}" --format "table {{.Status}}\t{{.Ports}}"
         else
             echo "TaskLine is not running"
@@ -231,8 +264,8 @@ case "$1" in
         docker pull ${IMAGE_NAME}
         docker stop ${CONTAINER_NAME}
         docker rm ${CONTAINER_NAME}
-        docker run -d --name ${CONTAINER_NAME} -p ${PORT}:3456 -v ${VOLUME_NAME}:/data --restart unless-stopped ${IMAGE_NAME}
-        echo "TaskLine updated and running at http://localhost:${PORT}"
+        docker run -d --name ${CONTAINER_NAME} -p 80:${INTERNAL_PORT} -p ${PORT}:${INTERNAL_PORT} -v ${VOLUME_NAME}:/data --restart unless-stopped ${IMAGE_NAME}
+        echo "TaskLine updated and running at http://${LOCAL_DOMAIN}"
         ;;
     uninstall)
         read -p "Remove TaskLine container? Data will be preserved. [y/N]: " confirm
