@@ -1,6 +1,6 @@
 # TaskLine - Windows PowerShell Installer
 # Install TaskLine - a local-first task management app
-# Usage: iwr -useb https://raw.githubusercontent.com/web3dozie/CSC289_GROUP2/dev/install.ps1 | iex
+# Usage: iwr -useb https://mytaskline.app/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 

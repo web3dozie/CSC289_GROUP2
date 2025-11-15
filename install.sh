@@ -2,7 +2,7 @@
 
 # TaskLine - One-Command Installer
 # Install TaskLine - a local-first task management app
-# Usage: curl -fsSL https://raw.githubusercontent.com/web3dozie/CSC289_GROUP2/dev/install.sh | bash
+# Usage: curl -fsSL https://mytaskline.app/install.sh | bash
 
 set -e
 
