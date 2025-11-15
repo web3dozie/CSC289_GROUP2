@@ -10,7 +10,7 @@ $ImageName = "web3dozie/taskline:latest"
 $Port = "3456"
 $InternalPort = "3456"
 $VolumeName = "taskline-data"
-$LocalDomain = "my.taskline.app"
+$LocalDomain = "my.taskline.local"
 
 # Banner
 Write-Host ""
@@ -210,7 +210,7 @@ $ImageName = "web3dozie/taskline:latest"
 $Port = "3456"
 $InternalPort = "3456"
 $VolumeName = "taskline-data"
-$LocalDomain = "my.taskline.app"
+$LocalDomain = "my.taskline.local"
 
 switch ($Command) {
     "start" {
