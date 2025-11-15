@@ -58,7 +58,7 @@ A classy, local‑first task companion that's fast, private, and helps you lock 
 
 ## Data & Privacy
 - Local‑only storage (SQLite). Nothing leaves your device unless you export.
-- PIN lock: 4–8 digits. Auto‑lock after idle (default 10 minutes; configurable).
+- PIN lock: 4–8 digits. Auto‑lock after idle (configurable).
 - Export/Import: one JSON bundle (tasks, categories, settings, journal). Optional raw DB backup for power users.
 
 ## Analytics (Compute‑on‑Read)

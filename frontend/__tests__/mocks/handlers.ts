@@ -53,20 +53,25 @@ export const handlers = [
   }),
 
   http.put('/api/settings', async ({ request }) => {
-    const body = await request.json() as any
-    return HttpResponse.json({
-      success: true,
-      data: {
-        notes_enabled: body.notes_enabled ?? true,
-        timer_enabled: body.timer_enabled ?? true,
-        ai_api_url: body.ai_api_url ?? '',
-        ai_model: body.ai_model ?? '',
-        ai_api_key: body.ai_api_key ?? '',
-        auto_lock_minutes: body.auto_lock_minutes ?? 10,
-        theme: body.theme ?? 'light',
-        updated_on: new Date().toISOString()
-      }
-    })
+    try {
+      const body = await request.json() as any
+      return HttpResponse.json({
+        success: true,
+        data: {
+          notes_enabled: body.notes_enabled ?? true,
+          timer_enabled: body.timer_enabled ?? true,
+          ai_api_url: body.ai_api_url ?? '',
+          ai_model: body.ai_model ?? '',
+          ai_api_key: body.ai_api_key ?? '',
+          auto_lock_minutes: body.auto_lock_minutes ?? 10,
+          theme: body.theme ?? 'light',
+          updated_on: new Date().toISOString()
+        }
+      })
+    } catch (error) {
+      console.error('MSW PUT /api/settings error:', error)
+      return new HttpResponse(null, { status: 500 })
+    }
   }),
 
   // Task management handlers
@@ -198,13 +203,52 @@ export const handlers = [
 
   // GET /api/categories - Get categories
   http.get('/api/categories', () => {
+    return HttpResponse.json([
+      { id: 1, name: 'Work', color_hex: '#3b82f6', description: null, created_on: new Date().toISOString(), updated_on: new Date().toISOString(), created_by: 1 },
+      { id: 2, name: 'Personal', color_hex: '#10b981', description: null, created_on: new Date().toISOString(), updated_on: new Date().toISOString(), created_by: 1 }
+    ])
+  }),
+
+  // GET /api/categories/usage - Get category usage statistics
+  http.get('/api/categories/usage', () => {
+    return HttpResponse.json([
+      { id: 1, name: 'Work', color_hex: '#3b82f6', task_count: 5 },
+      { id: 2, name: 'Personal', color_hex: '#10b981', task_count: 3 }
+    ])
+  }),
+
+  // POST /api/categories - Create category
+  http.post('/api/categories', async ({ request }) => {
+    const body = await request.json() as any
     return HttpResponse.json({
-      success: true,
-      data: [
-        { id: 1, name: 'Work', color: '#3b82f6' },
-        { id: 2, name: 'Personal', color: '#10b981' }
-      ]
+      id: 999,
+      name: body.name,
+      color_hex: body.color_hex,
+      description: body.description || null,
+      created_on: new Date().toISOString(),
+      updated_on: new Date().toISOString(),
+      created_by: 1
     })
+  }),
+
+  // PUT /api/categories/:id - Update category
+  http.put('/api/categories/:id', async ({ request, params }) => {
+    const body = await request.json() as any
+    const { id } = params
+    return HttpResponse.json({
+      id: Number(id),
+      name: body.name,
+      color_hex: body.color_hex,
+      description: body.description || null,
+      created_on: new Date().toISOString(),
+      updated_on: new Date().toISOString(),
+      created_by: 1
+    })
+  }),
+
+  // DELETE /api/categories/:id - Delete category
+  http.delete('/api/categories/:id', () => {
+    return new HttpResponse(null, { status: 204 })
   }),
 
   // GET /api/tasks/categories - Get task categories (string array)

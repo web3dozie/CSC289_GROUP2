@@ -494,6 +494,16 @@ def register_routes(app):
     except ImportError as e:
         print(f"[WARN] Account deletion blueprint not available: {e}")
 
+    try:
+        try:
+            from backend.blueprints.categories import categories_bp
+        except ImportError:
+            from blueprints.categories import categories_bp
+        app.register_blueprint(categories_bp)
+        print("[OK] Categories blueprint registered")
+    except ImportError as e:
+        print(f"[WARN] Categories blueprint not available: {e}")
+
     # Error handlers - Standardized error responses
     try:
         from backend.errors import (

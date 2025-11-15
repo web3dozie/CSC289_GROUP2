@@ -29,7 +29,7 @@ const FAQ: React.FC = () => {
     },
     {
       question: "How does the PIN lock work?",
-      answer: "You set a 4-8 digit PIN when you first use the app. The app automatically locks after 10 minutes of inactivity (configurable in settings). Your PIN is stored securely and never transmitted anywhere."
+      answer: "You set a 4-8 digit PIN when you first use the app. The app automatically locks after 5 minutes of inactivity (configurable in settings). Your PIN is stored securely and never transmitted anywhere."
     },
     {
       question: "What views are available?",

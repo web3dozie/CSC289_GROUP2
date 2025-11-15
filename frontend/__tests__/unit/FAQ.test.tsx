@@ -168,7 +168,7 @@ describe('FAQ', () => {
       await user.click(screen.getByText('How does the PIN lock work?'));
       
       expect(screen.getByText(/4-8 digit PIN/)).toBeInTheDocument();
-      expect(screen.getByText(/automatically locks after 10 minutes/)).toBeInTheDocument();
+      expect(screen.getByText(/automatically locks after 5 minutes/)).toBeInTheDocument();
     });
 
     it('displays correct answer for views question', async () => {

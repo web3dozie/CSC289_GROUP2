@@ -122,4 +122,15 @@ describe('TaskForm', () => {
     renderWithProviders(<TaskForm {...defaultProps} task={task} />)
     expect(screen.getByText(/edit task/i)).toBeInTheDocument()
   })
+
+  it('should set min due date to today (local)', () => {
+    renderWithProviders(<TaskForm {...defaultProps} />)
+    const dueDateInput = screen.getByLabelText(/due date/i) as HTMLInputElement
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const expected = `${yyyy}-${mm}-${dd}`
+    expect(dueDateInput.min).toBe(expected)
+  })
 })

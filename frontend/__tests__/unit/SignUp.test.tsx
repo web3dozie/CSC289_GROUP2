@@ -64,7 +64,6 @@ describe('SignUp', () => {
       
       expect(screen.getByText('Set Up Task Line')).toBeInTheDocument();
       expect(screen.getByLabelText('Username')).toBeInTheDocument();
-      expect(screen.getByLabelText('Email (Optional)')).toBeInTheDocument();
       expect(screen.getByLabelText('PIN Code')).toBeInTheDocument();
       expect(screen.getByLabelText('Confirm PIN')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Create Account/i })).toBeInTheDocument();
@@ -114,16 +113,6 @@ describe('SignUp', () => {
       await user.type(usernameInput, 'testuser');
       
       expect(usernameInput).toHaveValue('testuser');
-    });
-
-    it('updates email field on input', async () => {
-      const user = userEvent.setup();
-      render(<SignUp />);
-      
-      const emailInput = screen.getByLabelText('Email (Optional)');
-      await user.type(emailInput, 'test@example.com');
-      
-      expect(emailInput).toHaveValue('test@example.com');
     });
 
     it('updates PIN field with only digits', async () => {
@@ -280,7 +269,6 @@ describe('SignUp', () => {
       render(<SignUp />);
       
       await user.type(screen.getByLabelText('Username'), 'testuser');
-      await user.type(screen.getByLabelText('Email (Optional)'), 'test@example.com');
       await user.type(screen.getByLabelText('PIN Code'), '1234');
       await user.type(screen.getByLabelText('Confirm PIN'), '1234');
       
@@ -291,29 +279,6 @@ describe('SignUp', () => {
         expect(mockSetup).toHaveBeenCalledWith({
           pin: '1234',
           username: 'testuser',
-          email: 'test@example.com',
-        });
-      });
-    });
-
-    it('calls setup without email when email is not provided', async () => {
-      const user = userEvent.setup();
-      mockSetup.mockResolvedValue(undefined);
-      
-      render(<SignUp />);
-      
-      await user.type(screen.getByLabelText('Username'), 'testuser');
-      await user.type(screen.getByLabelText('PIN Code'), '1234');
-      await user.type(screen.getByLabelText('Confirm PIN'), '1234');
-      
-      const submitButton = screen.getByRole('button', { name: /Create Account/i });
-      await user.click(submitButton);
-      
-      await waitFor(() => {
-        expect(mockSetup).toHaveBeenCalledWith({
-          pin: '1234',
-          username: 'testuser',
-          email: '',
         });
       });
     });
@@ -435,13 +400,6 @@ describe('SignUp', () => {
       const confirmPinInput = screen.getByLabelText('Confirm PIN');
       expect(confirmPinInput).toBeRequired();
     });
-
-    it('does not require email field', () => {
-      render(<SignUp />);
-      
-      const emailInput = screen.getByLabelText('Email (Optional)');
-      expect(emailInput).not.toBeRequired();
-    });
   });
 
   describe('Accessibility', () => {
@@ -449,7 +407,6 @@ describe('SignUp', () => {
       render(<SignUp />);
       
       expect(screen.getByLabelText('Username')).toBeInTheDocument();
-      expect(screen.getByLabelText('Email (Optional)')).toBeInTheDocument();
       expect(screen.getByLabelText('PIN Code')).toBeInTheDocument();
       expect(screen.getByLabelText('Confirm PIN')).toBeInTheDocument();
     });

@@ -271,7 +271,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) 
                   onChange={(e) => setDueDate(e.target.value)}
                   className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   aria-describedby="due-date-help"
-                  min={new Date().toISOString().split('T')[0]}
+                  // Use local date to avoid UTC offset issues which can make "today" appear as tomorrow
+                  min={(() => {
+                    const d = new Date()
+                    const yyyy = d.getFullYear()
+                    const mm = String(d.getMonth() + 1).padStart(2, '0')
+                    const dd = String(d.getDate()).padStart(2, '0')
+                    return `${yyyy}-${mm}-${dd}`
+                  })()}
                 />
                 <Calendar
                   className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2"
