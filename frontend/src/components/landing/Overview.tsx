@@ -71,12 +71,12 @@ A classy, local‑first task companion that's fast, private, and helps you lock 
 - Semantic HTML; form labels, clear errors, screen‑reader friendly.
 - Drag‑and‑drop has keyboard alternatives.
 
-## Architecture (Decisive, Simple)
-- Frontend: React 19, Vite, TypeScript, Tailwind, TanStack Router/Query.
-- Backend: Modular monolith using Django + Django REST Framework (DRF).
+### Architecture (Decisive, Simple)
+- Frontend: React 18, Vite, TypeScript, Tailwind, TanStack Router/Query.
+- Backend: Modular monolith using Quart (ASGI) with SQLAlchemy and Alembic (async Python stack).
 - Database: SQLite (WAL mode) in the backend container.
 - Packaging: Two containers (frontend, backend). No external services required.
-- Tests: pytest/pytest‑django (backend) and Vitest/Testing Library (frontend).
+- Tests: pytest/pytest‑asyncio (backend) and Vitest/Testing Library (frontend).
 
 ### Backend Apps (Modules)
 - auth: PIN set/verify; session via HTTP‑only cookie.
