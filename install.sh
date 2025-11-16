@@ -54,6 +54,7 @@ if ! command -v docker &> /dev/null; then
     echo "  • macOS: https://docs.docker.com/desktop/install/mac-install/"
     echo "  • Linux: https://docs.docker.com/engine/install/"
     echo ""
+    read -p "Press Enter to exit..."
     exit 1
 fi
 echo -e "${GREEN}✓${NC} Docker found"
@@ -63,7 +64,17 @@ echo -e "${YELLOW}→${NC} Checking if Docker is running..."
 if ! docker info &> /dev/null; then
     echo -e "${RED}✗${NC} Docker is not running."
     echo ""
-    echo "Please start Docker and run this installer again."
+    echo -e "${YELLOW}Please start Docker and try again:${NC}"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo -e "  ${CYAN}1. Start Docker Desktop from Applications${NC}"
+        echo -e "  ${CYAN}2. Wait for the whale icon to appear in the menu bar${NC}"
+    else
+        echo -e "  ${CYAN}1. Start Docker: sudo systemctl start docker${NC}"
+        echo -e "  ${CYAN}2. Or start Docker Desktop if installed${NC}"
+    fi
+    echo -e "  ${CYAN}3. Run this installer again${NC}"
+    echo ""
+    read -p "Press Enter to exit..."
     exit 1
 fi
 echo -e "${GREEN}✓${NC} Docker is running"
