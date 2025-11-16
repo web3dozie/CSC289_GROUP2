@@ -25,11 +25,13 @@ except ImportError:
 try:
     from backend.db.engine_async import async_engine, AsyncSessionLocal
     from backend.db.models import Base, Status, Task
-    from backend.security.auth_required import auth_required
+    # auth_required is defined in auth_decorators.py under backend/security
+    from backend.security.auth_decorators import auth_required
 except ImportError:
     from db.engine_async import async_engine, AsyncSessionLocal
     from db.models import Base, Status, Task
-    from backend.security.auth_decorators import auth_required
+    # Fallback when running without package context
+    from security.auth_decorators import auth_required
 
 # Import for database health check and migrations
 from pathlib import Path
