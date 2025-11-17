@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatLocalDate } from './date'
 import { authApi, tasksApi, reviewApi, settingsApi, healthApi, dataApi, accountApi, categoriesApi, type Task } from './api'
 
 // Query keys for consistent caching
@@ -483,8 +484,8 @@ export const useExportData = () => {
       const link = document.createElement('a')
       link.href = url
       
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+      // Generate filename with timestamp using local timezone
+      const timestamp = formatLocalDate() // YYYY-MM-DD
       link.download = `taskline-export-${timestamp}.json`
       
       // Trigger download
