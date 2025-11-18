@@ -500,7 +500,6 @@ describe('Settings Integration Tests', () => {
 
   describe('Feature Toggles', () => {
     it('features section should not be present in settings', async () => {
-      const user = userEvent.setup()
 
       server.use(
         http.get('/api/settings', () => {
@@ -528,7 +527,6 @@ describe('Settings Integration Tests', () => {
     })
 
     it('features section should not be present in settings (timer)', async () => {
-      const user = userEvent.setup()
 
       server.use(
         http.get('/api/settings', () => {
@@ -556,7 +554,6 @@ describe('Settings Integration Tests', () => {
     })
 
     it('features section should not be present in settings (both)', async () => {
-      const user = userEvent.setup()
 
       server.use(
         http.get('/api/settings', () => {
