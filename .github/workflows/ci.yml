@@ -22,6 +22,9 @@ jobs:
       - name: Install deps
         working-directory: frontend
         run: npm ci
+      - name: Run tests
+        working-directory: frontend
+        run: npm run test:run
       - name: Lint
         working-directory: frontend
         run: npm run lint
@@ -32,7 +35,9 @@ jobs:
   backend:
     name: Backend Tests (conditional)
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('backend/**') != '' }}
+    # commenting out hashfiles conditional. hashfiles was causing the test to fail.
+    # this conditional can only be used inside of a step job or run job.
+    # if: ${{ hashFiles('backend/**') != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,11 +46,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install deps
-        working-directory: backend
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pytest
       - name: Run tests
-        working-directory: backend
-        run: pytest -q || true
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          pytest testcase/backend -q 
+

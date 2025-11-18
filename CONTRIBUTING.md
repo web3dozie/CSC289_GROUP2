@@ -20,7 +20,7 @@ This doc explains how we work together. Keep it simple, predictable, and kind.
   - `fix(auth): show error on wrong pin`
   - `docs(readme): add quick start`
   - Types: feat, fix, docs, chore, refactor, test, perf, build, ci
-- Squash merge PRs (one clean commit per PR) to keep history tidy.
+- Do not squash merge PRs (keep commit history)
 
 ## Trello‑First Workflow (Free Tier Friendly)
 - Source of truth: Trello board.

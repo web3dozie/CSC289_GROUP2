@@ -20,4 +20,7 @@ Checklist
 - [ ] Trello card linked
 
 Merge Strategy
-- Use “Squash and merge”.
+- Use “Merge”.
+- NOTE: DO NOT SQUASH AND MERGE 
+  - (keep commit history for grading purposes)
+

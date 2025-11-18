@@ -4,3 +4,95 @@ sample_frontend
 SDLC
 scripts
 docs
+node_modules/
+frontend/node_modules/
+taskline.db
+taskline.db*
+carranza-test-suite
+
+# Dependencies
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Test coverage reports
+coverage/
+*.lcov
+.coveragerc
+.coverage
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# MSW (Mock Service Worker) generated files
+public/mockServiceWorker.js
+
+# Husky
+.husky/_/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# SQLite database files (backend and root)
+backend/*.db
+backend/*.sqlite3
+backend/*.db-*
+backend/taskline.db-*
+*.db
+*.sqlite3
+*.db-*
+taskline.db*
+debug_test.db*
+
+# Local Python virtualenvs (some members might use `venv/` instead of `.venv`)
+venv/
+
+# Pytest and type-check caches
+.pytest_cache/
+.mypy_cache/
+
+# pip build/wheel metadata
+pip-wheel-metadata/
+
+# JetBrains IDEs
+.idea/
+
+# Debug and temporary files
+debug_*.py
+debug_*.db*
+*.db-shm
+*.db-wal
+test.db*
+temp_*.py
+
+# testcase artifacts from robot
+testcase/e2e/log.html
+testcase/e2e/report.html
+testcase/e2e/output.xml
+testcase/e2e/selenium-screenshot-*
+log.html
+report.html
+output.xml
+selenium-screenshot-*

@@ -1,0 +1,25 @@
+# TaskLine - Single Container Docker Compose
+# Simple deployment with one container
+
+services:
+  taskline:
+    image: web3dozie/taskline:latest
+    container_name: taskline
+    ports:
+      - "3456:3456"
+    volumes:
+      - taskline-data:/data
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-taskline-secret-change-in-production}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3456/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  taskline-data:
+    name: taskline-data
+    driver: local
