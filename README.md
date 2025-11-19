@@ -226,6 +226,28 @@ Open your browser to `http://localhost:5173` and:
 1. Create an account with username and PIN
 2. Start managing your tasks!
 
+### Repository housekeeping
+
+We include a simple script to help remove tracked build artifacts and caches from the git index without deleting local copies. This is useful to keep the repo clean when generated files have been accidentally committed.
+
+PowerShell (Windows):
+
+```powershell
+# Run and review changes before committing
+.\scripts\cleanup.ps1
+# To also commit the removal automatically:
+.\scripts\cleanup.ps1 -Commit
+```
+
+POSIX (macOS / Linux):
+
+```bash
+# Run and review changes before committing
+./scripts/cleanup.sh
+# To also commit the removal automatically:
+./scripts/cleanup.sh --commit
+```
+
 ## Docker Deployment
 
 **For end users:** See the [Quick Start](#-quick-start---install-in-1-minute) section above for one-command installation.
