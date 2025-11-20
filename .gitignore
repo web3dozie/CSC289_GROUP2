@@ -28,6 +28,7 @@ build/
 
 # Test coverage reports
 coverage/
+htmlcov/
 *.lcov
 .coveragerc
 .coverage

@@ -459,14 +459,9 @@ export const useUpdateSettings = () => {
   return useMutation({
     mutationFn: settingsApi.updateSettings,
     onSuccess: (data) => {
-      console.log('Mutation onSuccess - received data:', data)
       // Immediately update the cache with the returned data
       queryClient.setQueryData(queryKeys.settings, data)
-      console.log('Updated settings cache with new data')
     },
-    onError: (error) => {
-      console.error('Mutation onError:', error)
-    }
   })
 }
 

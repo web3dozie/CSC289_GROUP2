@@ -1,15 +1,13 @@
 import os
+import sys
 from quart import Quart, jsonify, request, session
 from quart_rate_limiter import RateLimiter, rate_limit
 from quart_cors import cors
 from datetime import datetime
 from sqlalchemy import select, func, text
+from pathlib import Path
 
 # Add the backend directory to Python path for imports
-import sys
-import os
-
-# Add both current directory and parent directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, current_dir)
@@ -18,24 +16,16 @@ sys.path.insert(0, parent_dir)
 # Import environment variables
 try:
     from backend.config import DATABASE_URL, SECRET_KEY
-except ImportError:
-    from config import DATABASE_URL, SECRET_KEY
-
-# Imports for running the full app
-try:
     from backend.db.engine_async import async_engine, AsyncSessionLocal
     from backend.db.models import Base, Status, Task
-    # auth_required is defined in auth_decorators.py under backend/security
     from backend.security.auth_decorators import auth_required
+    from backend.db.health_check import check_db_health
 except ImportError:
+    from config import DATABASE_URL, SECRET_KEY
     from db.engine_async import async_engine, AsyncSessionLocal
     from db.models import Base, Status, Task
-    # Fallback when running without package context
     from security.auth_decorators import auth_required
-
-# Import for database health check and migrations
-from pathlib import Path
-from db.health_check import check_db_health
+    from db.health_check import check_db_health
 
 
 def create_app():
