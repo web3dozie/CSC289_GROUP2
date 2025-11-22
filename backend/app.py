@@ -1,5 +1,5 @@
 import os
-from quart import Quart, jsonify, request, session
+from quart import Quart, jsonify, request, session, Response
 from quart_rate_limiter import RateLimiter, rate_limit
 from quart_cors import cors
 from datetime import datetime
@@ -139,42 +139,180 @@ def register_routes(app):
             }
         )
 
+    # @app.route("/api/export", methods=["GET"])
+    # @auth_required
+    # async def export_data():
+    #     """Export all user data as JSON"""
+    #     try:
+    #         try:
+    #             from backend.db.models import Task, JournalEntry, Configuration, Status
+    #             from backend.db.engine_async import AsyncSessionLocal
+    #         except ImportError:
+    #             from db.models import Task, JournalEntry, Configuration, Status
+    #             from db.engine_async import AsyncSessionLocal
+    #         from sqlalchemy import select
+    #         from sqlalchemy.orm import selectinload
+    #         import logging
+
+    #         async with AsyncSessionLocal() as db_session:
+    #             # Export tasks
+    #             task_result = await db_session.execute(
+    #                 select(Task)
+    #                 .options(selectinload(Task.status))
+    #                 .where(Task.created_by == session["user_id"])
+    #             )
+    #             tasks = []
+    #             for task in task_result.scalars().all():
+    #                 try:
+    #                     tasks.append(task.to_dict())
+    #                 except Exception as e:
+    #                     logging.error(f"Error serializing task {task.id}: {e}")
+    #                     # Fallback: create dict manually
+    #                     tasks.append(
+    #                         {
+    #                             "id": task.id,
+    #                             "title": task.title,
+    #                             "description": task.description,
+    #                             "notes": task.notes,
+    #                             "category": None,  # Skip complex relationships for now
+    #                             "status": (
+    #                                 {"id": task.status_id, "name": "Unknown"}
+    #                                 if task.status_id
+    #                                 else None
+    #                             ),
+    #                             "tags": [],
+    #                             "done": task.done,
+    #                             "archived": task.archived,
+    #                             "priority": task.priority,
+    #                             "estimate_minutes": task.estimate_minutes,
+    #                             "order": task.order,
+    #                             "parent_id": task.parent_id,
+    #                             "due_date": (
+    #                                 task.due_date.isoformat() if task.due_date else None
+    #                             ),
+    #                             "created_at": (
+    #                                 task.created_on.isoformat()
+    #                                 if task.created_on
+    #                                 else None
+    #                             ),
+    #                             "updated_on": (
+    #                                 task.updated_on.isoformat()
+    #                                 if task.updated_on
+    #                                 else None
+    #                             ),
+    #                             "closed_on": (
+    #                                 task.closed_on.isoformat()
+    #                                 if task.closed_on
+    #                                 else None
+    #                             ),
+    #                             "created_by": task.created_by,
+    #                         }
+    #                     )
+
+    #             # Export journal entries
+    #             journal_result = await db_session.execute(
+    #                 select(JournalEntry).where(
+    #                     JournalEntry.user_id == session["user_id"]
+    #                 )
+    #             )
+    #             journal_entries = [
+    #                 entry.to_dict() for entry in journal_result.scalars().all()
+    #             ]
+
+    #             # Export settings
+    #             settings_result = await db_session.execute(
+    #                 select(Configuration).where(
+    #                     Configuration.user_id == session["user_id"]
+    #                 )
+    #             )
+    #             settings = [
+    #                 setting.to_dict() for setting in settings_result.scalars().all()
+    #             ]
+
+    #             export_data = {
+    #                 "version": "1.0",
+    #                 "exported_at": datetime.now().isoformat(),
+    #                 "tasks": tasks,
+    #                 "journal_entries": journal_entries,
+    #                 "settings": settings,
+    #             }
+
+    #             return jsonify(export_data)
+
+    #     except Exception as e:
+    #         import logging
+
+    #         logging.exception("Failed to export data")
+    #         return jsonify({"error": "Failed to export data"}), 500
+
     @app.route("/api/export", methods=["GET"])
     @auth_required
     async def export_data():
         """Export all user data as JSON"""
         try:
+            export_data = await _generate_export_data(session["user_id"])
+            return jsonify(export_data)
+        except Exception as e:
+            import logging
+
+            logging.exception("Failed to export data")
+            return jsonify({"error": "Failed to export data"}), 500
+
+    @app.route("/api/export.md", methods=["GET"])
+    @auth_required
+    async def export_data_markdown():
+        """Export all user data as Markdown"""
+        try:
+            export_data = await _generate_export_data(session["user_id"])
+            md_content = _render_markdown(export_data)
+
+            headers = {
+                "Content-Disposition": 'attachment; filename="taskline_export.md"',
+            }
+
+            return Response(md_content, headers=headers, content_type="text/markdown")
+        except Exception:
+            import logging
+
+            return jsonify({"error": "Failed to export data"}), 500
+
+    async def _generate_export_data(user_id):
+        """Helper function to collect tasks, journal entries, and settings for export"""
+        try:
+            import logging
+
             try:
                 from backend.db.models import Task, JournalEntry, Configuration, Status
                 from backend.db.engine_async import AsyncSessionLocal
             except ImportError:
                 from db.models import Task, JournalEntry, Configuration, Status
                 from db.engine_async import AsyncSessionLocal
+
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
-            import logging
 
             async with AsyncSessionLocal() as db_session:
-                # Export tasks
+                # Collect tasks
                 task_result = await db_session.execute(
                     select(Task)
                     .options(selectinload(Task.status))
-                    .where(Task.created_by == session["user_id"])
+                    .where(Task.created_by == user_id)
                 )
+                # Serialize tasks
                 tasks = []
                 for task in task_result.scalars().all():
                     try:
                         tasks.append(task.to_dict())
                     except Exception as e:
                         logging.error(f"Error serializing task {task.id}: {e}")
-                        # Fallback: create dict manually
+                        # Create dictionary manually as fallback
                         tasks.append(
                             {
                                 "id": task.id,
                                 "title": task.title,
                                 "description": task.description,
                                 "notes": task.notes,
-                                "category": None,  # Skip complex relationships for now
+                                "category": None,
                                 "status": (
                                     {"id": task.status_id, "name": "Unknown"}
                                     if task.status_id
@@ -209,41 +347,192 @@ def register_routes(app):
                             }
                         )
 
-                # Export journal entries
+                # Collect journal entries
                 journal_result = await db_session.execute(
-                    select(JournalEntry).where(
-                        JournalEntry.user_id == session["user_id"]
-                    )
+                    select(JournalEntry).where(JournalEntry.user_id == user_id)
                 )
-                journal_entries = [
-                    entry.to_dict() for entry in journal_result.scalars().all()
-                ]
+                # Serialize journal entries
+                journal_entries = []
+                for entry in journal_result.scalars().all():
+                    try:
+                        journal_entries.append(entry.to_dict())
+                    except Exception as e:
+                        logging.error(
+                            f"Error serializing journal entry {entry.id}: {e}"
+                        )
+                        journal_entries.append(
+                            {
+                                "id": entry.id,
+                                "user_id": entry.user_id,
+                                "entry_date": (
+                                    entry.entry_date.isoformat()
+                                    if entry.entry_date
+                                    else None
+                                ),
+                                "content": entry.content,
+                                "created_at": (
+                                    entry.created_at.isoformat()
+                                    if entry.created_at
+                                    else None
+                                ),
+                                "updated_at": (
+                                    entry.updated_at.isoformat()
+                                    if entry.updated_at
+                                    else None
+                                ),
+                                "user_id": entry.user_id,
+                            }
+                        )
 
-                # Export settings
+                # Collect settings
                 settings_result = await db_session.execute(
-                    select(Configuration).where(
-                        Configuration.user_id == session["user_id"]
-                    )
+                    select(Configuration).where(Configuration.user_id == user_id)
                 )
-                settings = [
-                    setting.to_dict() for setting in settings_result.scalars().all()
-                ]
+                # Serialize settings
+                settings = []
+                for setting in settings_result.scalars().all():
+                    try:
+                        settings.append(setting.to_dict())
+                    except Exception as e:
+                        logging.error(f"Error serializing setting {setting.id}: {e}")
+                        settings.append(
+                            {
+                                "id": setting.id,
+                                "user_id": setting.user_id,
+                                "notes_enabled": setting.notes_enabled,
+                                "timer_enabled": setting.timer_enabled,
+                                "ai_api_url": setting.ai_api_url,
+                                "ai_model": setting.ai_model,
+                                "ai_api_key": setting.ai_api_key,
+                                "auto_lock_minutes": setting.auto_lock_minutes,
+                                "theme": setting.theme,
+                                "updated_on": (
+                                    setting.updated_on.isoformat()
+                                    if setting.updated_on
+                                    else None
+                                ),
+                            }
+                        )
 
-                export_data = {
-                    "version": "1.0",
+                return {
                     "exported_at": datetime.now().isoformat(),
                     "tasks": tasks,
                     "journal_entries": journal_entries,
                     "settings": settings,
                 }
-
-                return jsonify(export_data)
-
         except Exception as e:
-            import logging
+            logging.exception("Failed to generate export data")
+            raise e
 
-            logging.exception("Failed to export data")
-            return jsonify({"error": "Failed to export data"}), 500
+    def _generate_markdown_table(headers, rows):
+        """Helper function to generate a Markdown table from headers and rows"""
+        lines = []
+
+        # Header row
+        header_line = "| " + " | ".join(headers) + " |"
+        lines.append(header_line)
+
+        # Separator row
+        separator_line = "| " + " | ".join(["---"] * len(headers)) + " |"
+        lines.append(separator_line)
+
+        # Data rows
+        for row in rows:
+            row_line = (
+                "| " + " | ".join(str(row.get(header, "")) for header in headers) + " |"
+            )
+            lines.append(row_line)
+
+        return "\n".join(lines)
+
+    def _render_markdown(export_data):
+        """Helper function to render export data as Markdown"""
+
+        lines = []
+        lines.append(f"# Task Line Export\n")
+        lines.append(f"**Exported At:** {export_data['exported_at']}\n")
+
+        # Tasks
+        tasks = export_data.get("tasks", [])
+        lines.append(f"## Tasks ({len(tasks)})\n")
+        task_headers = [
+            "ID",
+            "Title",
+            "Description",
+            "Notes",
+            "Category",
+            "Tags",
+            "Status",
+            "Parent",
+            "Priority",
+            "Estimate (min)",
+            "Order",
+            "Done",
+            "Archived",
+            "Due Date",
+            "Created At",
+            "Updated On",
+            "Closed On",
+            "Created By",
+        ]
+
+        task_rows = []
+        for task in tasks:
+            status = task.get("status") or {}
+            status_name = status.get("name", "N/A")
+            task_rows.append(
+                {
+                    "ID": task.get("id"),
+                    "Title": task.get("title"),
+                    "Description": task.get("description", ""),
+                    "Notes": task.get("notes", ""),
+                    "Category": task.get("category") or "N/A",
+                    "Tags": ", ".join(task.get("tags", [])) or "N/A",
+                    "Status": status_name,
+                    "Parent": task.get("parent_id") or "N/A",
+                    "Priority": task.get("priority") or "N/A",
+                    "Estimate (min)": task.get("estimate_minutes") or "N/A",
+                    "Order": task.get("order") or "N/A",
+                    "Done": str(task.get("done")),
+                    "Archived": str(task.get("archived")),
+                    "Due Date": task.get("due_date") or "N/A",
+                    "Created At": task.get("created_at") or "N/A",
+                    "Updated On": task.get("updated_on") or "N/A",
+                    "Closed On": task.get("closed_on") or "N/A",
+                    "Created By": task.get("created_by"),
+                }
+            )
+        lines.append(_generate_markdown_table(task_headers, task_rows))
+        lines.append("\n")
+
+        # Journal Entries
+        journal_entries = export_data.get("journal_entries", [])
+        lines.append(f"## Journal Entries ({len(journal_entries)})\n")
+        if journal_entries:
+            journal_headers = [key for key in journal_entries[0].keys()]
+            for entry in journal_entries:
+                lines.append(f"### Entry ID: {entry.get('id')}\n")
+                lines.append(f"**Date:** {entry.get('entry_date')}\n")
+                lines.append(f"**Content:**\n\n{entry.get('content')}\n")
+            lines.append(_generate_markdown_table(journal_headers, journal_entries))
+        else:
+            lines.append("No journal entries found.\n")
+        lines.append("\n")
+
+        # Settings
+        settings = export_data.get("settings", [])
+        lines.append(f"## Settings ({len(settings)})\n")
+        if settings:
+            setting_headers = [key for key in settings[0].keys()]
+            setting_rows = []
+            for setting in settings:
+                setting_rows.append({key: setting.get(key) for key in setting_headers})
+            lines.append(_generate_markdown_table(setting_headers, setting_rows))
+        else:
+            lines.append("No settings found.\n")
+        lines.append("\n")
+
+        return "\n".join(lines)
 
     @app.route("/api/import", methods=["POST"])
     @auth_required
