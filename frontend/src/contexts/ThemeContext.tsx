@@ -28,16 +28,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
     // Load from localStorage first for immediate theme application
     const stored = localStorage.getItem('theme') as Theme
-    console.log('ThemeContext: Initial theme from localStorage:', stored)
     return stored || 'light'
   })
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
 
   // Update theme from settings when loaded - but only if different from current theme
   useEffect(() => {
-    console.log('ThemeContext: settings changed', { settingsTheme: settings?.theme, currentTheme: theme })
     if (settings?.theme && settings.theme !== theme) {
-      console.log('ThemeContext: Updating theme from settings:', settings.theme, '(was:', theme, ')')
       setThemeState(settings.theme as Theme)
     }
   }, [settings?.theme])
@@ -66,7 +63,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Apply theme to DOM
   useEffect(() => {
-    console.log('ThemeContext: Applying theme to DOM', { theme, resolvedTheme })
     const root = document.documentElement
 
     // Remove existing theme classes
@@ -77,11 +73,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     // Store in localStorage for immediate access on reload
     localStorage.setItem('theme', theme)
-    console.log('ThemeContext: Applied class', resolvedTheme, 'to documentElement')
   }, [theme, resolvedTheme])
 
   const setTheme = (newTheme: Theme) => {
-    console.log('ThemeContext: setTheme called with:', newTheme)
     setThemeState(newTheme)
   }
 

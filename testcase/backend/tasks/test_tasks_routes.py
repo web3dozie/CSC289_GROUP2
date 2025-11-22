@@ -206,3 +206,26 @@ async def test_update_invalid_due_date_format(logged_in_client, create_task, ass
     task_id = await create_task(title="Upd Date")
     resp = await logged_in_client.put(f"/api/tasks/{task_id}", json={"due_date": "31-12-2030"})
     await assert_error(resp, 400)
+
+
+@pytest.mark.asyncio
+async def test_update_invalid_order_value(logged_in_client, create_task, assert_error):
+    task_id = await create_task(title="Order Test")
+    # Try to set non-integer order
+    resp = await logged_in_client.put(f"/api/tasks/{task_id}", json={"order": "not_an_int"})
+    await assert_error(resp, 400)
+
+
+@pytest.mark.asyncio
+async def test_update_invalid_status_id_value(logged_in_client, create_task, assert_error):
+    task_id = await create_task(title="Status Test")
+    # Try to set non-integer status id
+    resp = await logged_in_client.put(f"/api/tasks/{task_id}", json={"status_id": "not_a_number"})
+    await assert_error(resp, 400)
+
+
+@pytest.mark.asyncio
+async def test_create_invalid_status_id(logged_in_client, assert_error):
+    # Attempt to create with invalid foreign key status id
+    resp = await logged_in_client.post("/api/tasks", json={"title": "Bad Status", "status_id": 9999})
+    await assert_error(resp, 400)

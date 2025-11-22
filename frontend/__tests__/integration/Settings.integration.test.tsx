@@ -499,8 +499,7 @@ describe('Settings Integration Tests', () => {
   })
 
   describe('Feature Toggles', () => {
-    it('toggles notes feature off and saves', async () => {
-      const user = userEvent.setup()
+    it('features section should not be present in settings', async () => {
 
       server.use(
         http.get('/api/settings', () => {
@@ -523,55 +522,11 @@ describe('Settings Integration Tests', () => {
       render(<SettingsWithProviders />)
 
       await waitFor(() => {
-        expect(screen.getByText('Features')).toBeInTheDocument()
-      }, { timeout: 5000 })
-
-      // Wait for data to load and state to update
-      await waitFor(() => {
-        const notesText = screen.getByText('Task Notes')
-        const toggleContainer = notesText.closest('.flex')
-        const notesToggle = toggleContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
-        expect(notesToggle).toBeInTheDocument()
-      })
-
-      // Find notes toggle by searching for the text nearby
-      const notesText = screen.getByText('Task Notes')
-      const toggleContainer = notesText.closest('.flex')
-      const notesToggle = toggleContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
-
-      expect(notesToggle).toBeChecked()
-
-      // Toggle notes off
-      await user.click(notesToggle)
-
-      // Mock save
-      let savedData: any = null
-      server.use(
-        http.put('/api/settings', async ({ request }) => {
-          savedData = await request.json()
-          return HttpResponse.json({
-            success: true,
-            data: {
-              ...savedData,
-              updated_on: new Date().toISOString()
-            }
-          })
-        })
-      )
-
-      // Click Save
-      const saveButton = screen.getByRole('button', { name: /save settings/i })
-      await user.click(saveButton)
-
-      // Verify notes was toggled off
-      await waitFor(() => {
-        expect(savedData).toBeTruthy()
-        expect(savedData.notes_enabled).toBe(false)
+        expect(screen.queryByText('Features')).not.toBeInTheDocument()
       })
     })
 
-    it('toggles timer feature off and saves', async () => {
-      const user = userEvent.setup()
+    it('features section should not be present in settings (timer)', async () => {
 
       server.use(
         http.get('/api/settings', () => {
@@ -594,52 +549,11 @@ describe('Settings Integration Tests', () => {
       render(<SettingsWithProviders />)
 
       await waitFor(() => {
-        expect(screen.getByText('Features')).toBeInTheDocument()
-      }, { timeout: 5000 })
-
-      // Wait for data to load and state to update
-      await waitFor(() => {
-        const timerText = screen.getByText('Pomodoro Timer')
-        const toggleContainer = timerText.closest('.flex')
-        const timerToggle = toggleContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
-        expect(timerToggle).toBeInTheDocument()
-      })
-
-      // Find timer toggle
-      const timerText = screen.getByText('Pomodoro Timer')
-      const toggleContainer = timerText.closest('.flex')
-      const timerToggle = toggleContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
-
-      expect(timerToggle).toBeChecked()
-
-      // Toggle timer off
-      await user.click(timerToggle)
-
-      let savedData: any = null
-      server.use(
-        http.put('/api/settings', async ({ request }) => {
-          savedData = await request.json()
-          return HttpResponse.json({
-            success: true,
-            data: {
-              ...savedData,
-              updated_on: new Date().toISOString()
-            }
-          })
-        })
-      )
-
-      const saveButton = screen.getByRole('button', { name: /save settings/i })
-      await user.click(saveButton)
-
-      await waitFor(() => {
-        expect(savedData).toBeTruthy()
-        expect(savedData.timer_enabled).toBe(false)
+        expect(screen.queryByText('Features')).not.toBeInTheDocument()
       })
     })
 
-    it('toggles both features on and off', async () => {
-      const user = userEvent.setup()
+    it('features section should not be present in settings (both)', async () => {
 
       server.use(
         http.get('/api/settings', () => {
@@ -662,47 +576,7 @@ describe('Settings Integration Tests', () => {
       render(<SettingsWithProviders />)
 
       await waitFor(() => {
-        expect(screen.getByText('Features')).toBeInTheDocument()
-      })
-
-      // Find both toggles
-      const notesText = screen.getByText('Task Notes')
-      const notesContainer = notesText.closest('.flex')
-      const notesToggle = notesContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
-
-      const timerText = screen.getByText('Pomodoro Timer')
-      const timerContainer = timerText.closest('.flex')
-      const timerToggle = timerContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
-
-      // Both should be unchecked initially
-      expect(notesToggle).not.toBeChecked()
-      expect(timerToggle).not.toBeChecked()
-
-      // Toggle both on
-      await user.click(notesToggle)
-      await user.click(timerToggle)
-
-      let savedData: any = null
-      server.use(
-        http.put('/api/settings', async ({ request }) => {
-          savedData = await request.json()
-          return HttpResponse.json({
-            success: true,
-            data: {
-              ...savedData,
-              updated_on: new Date().toISOString()
-            }
-          })
-        })
-      )
-
-      const saveButton = screen.getByRole('button', { name: /save settings/i })
-      await user.click(saveButton)
-
-      await waitFor(() => {
-        expect(savedData).toBeTruthy()
-        expect(savedData.notes_enabled).toBe(true)
-        expect(savedData.timer_enabled).toBe(true)
+        expect(screen.queryByText('Features')).not.toBeInTheDocument()
       })
     })
   })
@@ -746,16 +620,7 @@ describe('Settings Integration Tests', () => {
       const autoLockSelect = securitySection?.querySelector('select') as HTMLSelectElement
       await user.selectOptions(autoLockSelect, '60')
 
-      // Toggle features on
-      const notesText = screen.getByText('Task Notes')
-      const notesContainer = notesText.closest('.flex')
-      const notesToggle = notesContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
-      await user.click(notesToggle)
-
-      const timerText = screen.getByText('Pomodoro Timer')
-      const timerContainer = timerText.closest('.flex')
-      const timerToggle = timerContainer?.querySelector('input[type="checkbox"]') as HTMLInputElement
-      await user.click(timerToggle)
+      // Features section removed from UI (no toggles to click)
 
       // Fill AI config
       const apiUrlInput = screen.getByPlaceholderText(/generativelanguage\.googleapis\.com/i)
@@ -789,8 +654,7 @@ describe('Settings Integration Tests', () => {
         expect(savedData).toBeTruthy()
         expect(savedData.theme).toBe('dark')
         expect(savedData.auto_lock_minutes).toBe(60)
-        expect(savedData.notes_enabled).toBe(true)
-        expect(savedData.timer_enabled).toBe(true)
+        // Feature flags not part of UI; do not assert notes_enabled/timer_enabled
         expect(savedData.ai_api_url).toBe('https://api.openai.com/v1')
         expect(savedData.ai_model).toBe('gpt-4o')
         expect(savedData.ai_api_key).toBe('sk-test-key-123')

@@ -28,6 +28,7 @@ build/
 
 # Test coverage reports
 coverage/
+htmlcov/
 *.lcov
 .coveragerc
 .coverage
@@ -96,3 +97,22 @@ log.html
 report.html
 output.xml
 selenium-screenshot-*
+# Keep many script files ignored, but allow team-approved helper scripts to be tracked
+!scripts/cleanup.ps1
+!scripts/cleanup.sh
+
+# Coverage / test reports HTML
+htmlcov/
+backend/htmlcov/
+
+# Vite and build caches
+frontend/.vite/
+frontend/.cache/
+frontend/tsconfig.tsbuildinfo
+
+# Node & front-end build artifacts
+frontend/dist/
+frontend/coverage/
+
+# Editor/OS files that may leak
+*.log

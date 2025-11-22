@@ -64,37 +64,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem(AUTH_STORAGE_KEY)
         localStorage.removeItem(LOCK_STORAGE_KEY)
         
-        console.log('[AuthContext] Loading auth state from sessionStorage')
         const stored = sessionStorage.getItem(AUTH_STORAGE_KEY)
         if (stored) {
           const authData = JSON.parse(stored)
-          console.log('[AuthContext] Found stored auth data:', { username: authData.user?.username })
           
           // Validate session with backend - only restore if backend session is still valid
           // This ensures that if the browser was closed and reopened, the session will be gone
           try {
-            console.log('[AuthContext] Validating session with backend...')
             await settingsApi.getSettings()
-            console.log('[AuthContext] Session is valid, restoring user')
             setUser(authData.user)
             
             // Restore lock state if it was locked before refresh
             const lockState = sessionStorage.getItem(LOCK_STORAGE_KEY)
-            console.log('[AuthContext] Lock state from storage:', lockState)
             
             if (lockState === 'true') {
-              console.log('[AuthContext] Restoring locked state')
               setIsLocked(true)
             }
           } catch (error) {
             // Session is invalid (e.g., browser was closed and session expired), clear sessionStorage
             // This forces the user to log in again
-            console.log('[AuthContext] Session validation failed (browser may have been closed), clearing auth state:', error)
             sessionStorage.removeItem(AUTH_STORAGE_KEY)
             sessionStorage.removeItem(LOCK_STORAGE_KEY)
           }
-        } else {
-          console.log('[AuthContext] No stored auth data found')
         }
       } catch (error) {
         console.error('[AuthContext] Failed to load auth state:', error)
@@ -102,7 +93,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         sessionStorage.removeItem(LOCK_STORAGE_KEY)
       } finally {
         setIsLoading(false)
-        console.log('[AuthContext] Auth state loading complete')
       }
     }
 
@@ -124,17 +114,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Save lock state to sessionStorage whenever it changes
   useEffect(() => {
     if (!isLoading && user) {
-      console.log('[AuthContext] Saving lock state:', isLocked)
       sessionStorage.setItem(LOCK_STORAGE_KEY, String(isLocked))
     }
   }, [isLocked, user, isLoading])
 
   const login = async (username: string, pin: string) => {
     try {
-      console.log('[AuthContext] Attempting login for user:', username)
       setError(null)
       const result = await loginMutation.mutateAsync({ username, pin })
-      console.log('[AuthContext] Login successful:', { userId: result.user.id, username: result.user.username })
       setUser({ id: result.user.id, username: result.user.username })
       setIsLocked(false) // Clear locked state on fresh login
       sessionStorage.removeItem(LOCK_STORAGE_KEY)
