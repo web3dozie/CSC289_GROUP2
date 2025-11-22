@@ -17,12 +17,12 @@ TaskLine runs entirely on your computer in a single Docker container. **No cloud
 
 **macOS / Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/web3dozie/CSC289_GROUP2/dev/install.sh | bash
+curl -fsSL https://mytaskline.app/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-iwr -useb https://raw.githubusercontent.com/web3dozie/CSC289_GROUP2/dev/install.ps1 | iex
+iwr -useb https://mytaskline.app/install.ps1 | iex
 ```
 
 **Or run directly with Docker:**
