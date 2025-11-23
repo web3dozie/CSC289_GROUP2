@@ -1,5 +1,5 @@
 import React from 'react';
-import { Github, FileText} from 'lucide-react';
+import { Github, FileText, BookOpen } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 
 const Footer: React.FC = () => {
@@ -61,8 +61,8 @@ const Footer: React.FC = () => {
                 </a>
               </li>
               <li>
-                <Link 
-                  to="/overview" 
+                <Link
+                  to="/overview"
                   className="text-gray-400 hover:text-white transition-colors inline-flex items-center"
                 >
                   <FileText className="h-4 w-4 mr-2" />
@@ -70,13 +70,15 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                {/* <a 
-                  href="/SDLC" 
+                <a
+                  href="/docs"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors inline-flex items-center"
                 >
-                  <Folder className="h-4 w-4 mr-2" />
-                  SDLC Documentation
-                </a> */}
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Documentation
+                </a>
               </li>
             </ul>
           </div>
