@@ -21,7 +21,7 @@ PORT="3456"
 INTERNAL_PORT="3456"
 DATA_DIR="$HOME/.taskline"
 VOLUME_NAME="taskline-data"
-LOCAL_DOMAIN="my.taskline.local"
+LOCAL_DOMAIN="mytaskline.local"
 
 # Banner
 echo -e "${CYAN}"
@@ -241,7 +241,7 @@ IMAGE_NAME="web3dozie/taskline:latest"
 PORT="3456"
 INTERNAL_PORT="3456"
 VOLUME_NAME="taskline-data"
-LOCAL_DOMAIN="my.taskline.local"
+LOCAL_DOMAIN="mytaskline.local"
 
 case "$1" in
     start)
