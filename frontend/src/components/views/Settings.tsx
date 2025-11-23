@@ -749,6 +749,16 @@ export const Settings: React.FC = () => {
                 <li>Drag & drop functionality across views</li>
               </ul>
             </div>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium"
+              >
+                View Full Documentation →
+              </a>
+            </div>
           </div>
         </SettingSection>
 
