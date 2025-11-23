@@ -114,5 +114,9 @@ frontend/tsconfig.tsbuildinfo
 frontend/dist/
 frontend/coverage/
 
+# MkDocs build artifacts
+docs-site/site/
+docs-site/.venv/
+
 # Editor/OS files that may leak
 *.log
