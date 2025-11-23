@@ -5,12 +5,27 @@ site_description: Lock in. Get it done. Stay zen.
 theme:
   name: material
   palette:
-    primary: teal
-    accent: teal
+    # Light mode
+    - scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
   features:
     - navigation.sections
     - navigation.expand
+    - navigation.tabs
     - search.highlight
+    - search.suggest
+    - content.code.copy
 
 nav:
   - Home: index.md
