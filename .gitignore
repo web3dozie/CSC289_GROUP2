@@ -120,3 +120,7 @@ docs-site/.venv/
 
 # Editor/OS files that may leak
 *.log
+
+# Demo data scripts and summaries (local use only)
+populate_demo_data*.py
+DEMO_*.md
