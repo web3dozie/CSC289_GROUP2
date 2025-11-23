@@ -336,13 +336,23 @@ export const Dashboard: React.FC = () => {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Get started by creating your first task. Stay organized, focused, and productive.
             </p>
-            <Link
-              to="/app/list"
-              className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
-            >
-              Create Your First Task
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Link
+                to="/app/list"
+                className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Create Your First Task
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Link>
+              <a
+                href="/docs/getting-started/quick-start"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-6 py-3 border border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 font-medium rounded-lg transition-colors"
+              >
+                Quick Start Guide
+              </a>
+            </div>
           </div>
         </section>
       )}
