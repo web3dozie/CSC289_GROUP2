@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle, RefreshCw, Home, WifiOff } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Home, WifiOff, BookOpen } from 'lucide-react'
 import { ApiError } from '../lib/api'
 
 interface ErrorBoundaryState {
@@ -171,12 +171,23 @@ const DefaultErrorFallback: React.FC<DefaultErrorFallbackProps> = ({
           )}
         </div>
 
-        {/* Help text for specific error types */}
-        {isNetworkError && (
-          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-            Please check your internet connection and try again.
-          </p>
-        )}
+        {/* Help text and documentation link */}
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          {isNetworkError && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-3">
+              Please check your internet connection and try again.
+            </p>
+          )}
+          <a
+            href="/docs/troubleshooting"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            View Troubleshooting Guide
+          </a>
+        </div>
         {isAuthError && (
           <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
             Your session may have expired. Please log in again.

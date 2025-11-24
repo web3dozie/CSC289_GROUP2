@@ -21,7 +21,23 @@ COPY frontend/ .
 RUN npm run build
 
 # ============================================
-# Stage 2: Python Dependencies
+# Stage 2: Build Documentation
+# ============================================
+FROM python:3.12-slim AS docs-builder
+
+WORKDIR /docs
+
+# Install mkdocs and material theme
+RUN pip install --no-cache-dir mkdocs mkdocs-material
+
+# Copy docs source
+COPY docs-site/ .
+
+# Build static documentation
+RUN mkdocs build
+
+# ============================================
+# Stage 3: Python Dependencies
 # ============================================
 FROM python:3.12-slim AS python-deps
 
@@ -32,7 +48,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ============================================
-# Stage 3: Production Image
+# Stage 4: Production Image
 # ============================================
 FROM python:3.12-slim
 
@@ -57,6 +73,9 @@ COPY .env.example .env.example
 
 # Copy built frontend to nginx html directory
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
+
+# Copy built documentation to nginx html directory
+COPY --from=docs-builder /docs/site /usr/share/nginx/html/docs
 
 # Copy nginx configuration
 COPY deployment/nginx-single.conf /etc/nginx/sites-enabled/taskline.conf

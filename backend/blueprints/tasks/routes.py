@@ -77,20 +77,9 @@ async def resolve_category_name_to_id(
 @tasks_bp.route("", methods=["GET"])
 @auth_required
 async def get_tasks():
-    """Get all non-archived tasks for the user with pagination."""
+    """Get all non-archived tasks for the user (no pagination for demo)."""
     try:
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 20, type=int)
-        offset = (page - 1) * per_page
-
         async with AsyncSessionLocal() as db_session:
-            count_result = await db_session.execute(
-                select(func.count(Task.id)).where(
-                    and_(Task.created_by == session["user_id"], Task.archived == False)
-                )
-            )
-            total = count_result.scalar() or 0
-
             result = await db_session.execute(
                 select(Task)
                 .options(
@@ -102,20 +91,12 @@ async def get_tasks():
                     and_(Task.created_by == session["user_id"], Task.archived == False)
                 )
                 .order_by(Task.updated_on.desc())
-                .limit(per_page)
-                .offset(offset)
             )
             tasks = result.scalars().all()
 
             return success_response(
                 {
                     "tasks": [task.to_dict() for task in tasks],
-                    "pagination": {
-                        "page": page,
-                        "per_page": per_page,
-                        "total": total,
-                        "pages": (total + per_page - 1) // per_page if per_page else 0,
-                    },
                 }
             )
     except Exception:

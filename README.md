@@ -9,6 +9,8 @@ A classy, local-first task companion that runs entirely on your computer, stores
 [![TypeScript](https://img.shields.io/badge/typescript-5.2+-3178c6.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **Try it live:** Visit [mytaskline.app](https://mytaskline.app) to see TaskLine in action, or install locally for complete privacy and offline access.
+
 ## 🚀 Quick Start - Install in 1 Minute
 
 TaskLine runs entirely on your computer in a single Docker container. **No cloud, no accounts, your data stays local.**
@@ -27,10 +29,12 @@ iwr -useb https://mytaskline.app/install.ps1 | iex
 
 **Or run directly with Docker:**
 ```bash
-docker run -d --name taskline -p 3456:3456 -v taskline-data:/data web3dozie/taskline:latest
+docker run -d --name taskline -p 80:3456 -p 3456:3456 -v taskline-data:/data web3dozie/taskline:latest
 ```
 
-Then open **http://localhost:3456** in your browser!
+Then open **http://mytaskline.local** or **http://localhost:3456** in your browser!
+
+> **Note:** The installer automatically configures `mytaskline.local` in your hosts file for a better local experience.
 
 ### Requirements
 
@@ -236,11 +240,14 @@ Open your browser to `http://localhost:5173` and:
 # Build the single-container image
 docker build -f deployment/Dockerfile -t taskline:local .
 
-# Run it
-docker run -d --name taskline -p 3456:3456 -v taskline-data:/data taskline:local
+# Run it with dual port mapping
+docker run -d --name taskline -p 80:3456 -p 3456:3456 -v taskline-data:/data taskline:local
+
+# Add local domain to your hosts file (optional)
+echo "127.0.0.1 mytaskline.local" | sudo tee -a /etc/hosts
 ```
 
-The application will be available at **http://localhost:3456**
+The application will be available at **http://mytaskline.local** or **http://localhost:3456**
 
 ## Testing
 
@@ -509,6 +516,7 @@ TaskLine runs in a single optimized container for easy deployment:
 # Pull and run the latest version
 docker run -d \
   --name taskline \
+  -p 80:3456 \
   -p 3456:3456 \
   -v taskline-data:/data \
   -e SECRET_KEY=your-production-secret-key \
@@ -519,7 +527,9 @@ docker run -d \
 docker-compose -f deployment/docker-compose.single.yml up -d
 ```
 
-**Access**: http://your-server:3456
+**Access**:
+- Local: http://mytaskline.local or http://localhost:3456
+- Production: http://your-server or http://your-server:3456
 
 ## Troubleshooting
 
