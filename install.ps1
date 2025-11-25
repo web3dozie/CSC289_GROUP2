@@ -50,7 +50,7 @@ try {
 Write-Host "> Checking if Docker is running..." -ForegroundColor Yellow
 $dockerRunning = $false
 try {
-    $null = docker info 2>&1
+    $null = docker ps 2>&1
     if ($LASTEXITCODE -eq 0) {
         $dockerRunning = $true
         Write-Host "[OK] Docker is running" -ForegroundColor Green
