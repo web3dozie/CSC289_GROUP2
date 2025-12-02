@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Settings as SettingsIcon, Palette, Lock, Timer, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload, ShieldAlert, AlertTriangle } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Lock, Cpu, Key, Save, Eye, EyeOff, HelpCircle, Download, Upload, ShieldAlert, AlertTriangle } from 'lucide-react'
 import {
   useSettings,
   useUpdateSettings,
@@ -53,8 +53,7 @@ export const Settings: React.FC = () => {
   // Local state for form inputs
   const [themeForm, setThemeForm] = useState(theme)
   const [autoLockMinutes, setAutoLockMinutes] = useState(settings?.auto_lock_minutes?.toString() || '30')
-  const [notesEnabled, setNotesEnabled] = useState(settings?.notes_enabled || false)
-  const [timerEnabled, setTimerEnabled] = useState(settings?.timer_enabled || false)
+  // Feature toggles (removed from UI): notes_enabled and timer_enabled are managed server-side but UI removed per user request
   const [aiApiUrl, setAiApiUrl] = useState(settings?.ai_api_url || '')
   const [aiModel, setAiModel] = useState(settings?.ai_model || '')
   const [aiApiKey, setAiApiKey] = useState(settings?.ai_api_key || '')
@@ -94,8 +93,7 @@ export const Settings: React.FC = () => {
     if (settings) {
       setThemeForm(settings.theme as 'light' | 'dark' | 'auto')
       setAutoLockMinutes(settings.auto_lock_minutes.toString())
-      setNotesEnabled(settings.notes_enabled)
-      setTimerEnabled(settings.timer_enabled)
+      // Feature toggles updated from backend (no UI)
       setAiApiUrl(settings.ai_api_url || '')
       setAiModel(settings.ai_model || '')
       setAiApiKey(settings.ai_api_key || '')
@@ -108,22 +106,20 @@ export const Settings: React.FC = () => {
       const hasChanges = 
         themeForm !== settings.theme ||
         autoLockMinutes !== settings.auto_lock_minutes.toString() ||
-        notesEnabled !== settings.notes_enabled ||
-        timerEnabled !== settings.timer_enabled ||
+        false ||
         aiApiUrl !== (settings.ai_api_url || '') ||
         aiModel !== (settings.ai_model || '') ||
         aiApiKey !== (settings.ai_api_key || '')
       
       setHasUnsavedChanges(hasChanges)
     }
-  }, [themeForm, autoLockMinutes, notesEnabled, timerEnabled, aiApiUrl, aiModel, aiApiKey, settings])
+  }, [themeForm, autoLockMinutes, aiApiUrl, aiModel, aiApiKey, settings])
 
   const handleSaveSettings = async () => {
     const updates: Partial<UserSettings> = {
       theme: themeForm,
       auto_lock_minutes: parseInt(autoLockMinutes),
-      notes_enabled: notesEnabled,
-      timer_enabled: timerEnabled,
+      // notes_enabled and timer_enabled intentionally omitted from UI updates
       ai_api_url: aiApiUrl || undefined,
       ai_model: aiModel || undefined,
       ai_api_key: aiApiKey || undefined,
@@ -652,46 +648,7 @@ export const Settings: React.FC = () => {
           </div>
         </SettingSection>
 
-        {/* Features Settings */}
-        <SettingSection
-          title="Features"
-          description="Enable or disable Task Line features"
-          icon={Timer}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">Task Notes</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Add detailed notes to your tasks</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={notesEnabled}
-                  onChange={(e) => setNotesEnabled(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 dark:peer-checked:bg-purple-500"></div>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">Pomodoro Timer</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Use built-in timer for focused work sessions</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={timerEnabled}
-                  onChange={(e) => setTimerEnabled(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 dark:peer-checked:bg-purple-500"></div>
-              </label>
-            </div>
-          </div>
-        </SettingSection>
+        {/* Features section removed as per request */}
 
         {/* Categories Management */}
         <SettingSection
@@ -791,6 +748,16 @@ export const Settings: React.FC = () => {
                 <li>Organizing tasks by due date in the Calendar</li>
                 <li>Drag & drop functionality across views</li>
               </ul>
+            </div>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium"
+              >
+                View Full Documentation →
+              </a>
             </div>
           </div>
         </SettingSection>

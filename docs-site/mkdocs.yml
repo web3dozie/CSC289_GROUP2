@@ -1,0 +1,52 @@
+site_name: TaskLine Documentation
+site_url: https://docs.mytaskline.app
+site_description: Lock in. Get it done. Stay zen.
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.tabs
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+  - Features:
+    - Task Management: features/tasks.md
+    - Calendar View: features/calendar.md
+    - Pomodoro Timer: features/pomodoro.md
+    - Categories: features/categories.md
+    - Dashboard: features/dashboard.md
+    - AI Chat Assistant: features/ai-chat.md
+  - Settings:
+    - Theme & Appearance: settings/theme.md
+    - Auto-Lock Security: settings/security.md
+    - Data Management: settings/data.md
+    - Account: settings/account.md
+  - Troubleshooting: troubleshooting.md
+  - FAQ: faq.md
+
+markdown_extensions:
+  - admonition
+  - tables

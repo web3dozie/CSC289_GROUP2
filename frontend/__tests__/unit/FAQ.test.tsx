@@ -47,10 +47,11 @@ describe('FAQ', () => {
 
     it('renders the documentation link in footer', () => {
       render(<FAQ />);
-      
+
       expect(screen.getByText('Still have questions?')).toBeInTheDocument();
       expect(screen.getByText('Check out our comprehensive documentation for more information.')).toBeInTheDocument();
-      expect(screen.getByText('Read Documentation →')).toBeInTheDocument();
+      expect(screen.getByText('Full Documentation →')).toBeInTheDocument();
+      expect(screen.getByText('Project Overview')).toBeInTheDocument();
     });
   });
 
@@ -248,9 +249,12 @@ describe('FAQ', () => {
   describe('Navigation Links', () => {
     it('renders documentation link with correct href', () => {
       render(<FAQ />);
-      
-      const link = screen.getByText('Read Documentation →');
-      expect(link).toHaveAttribute('href', '/overview');
+
+      const docsLink = screen.getByText('Full Documentation →');
+      expect(docsLink).toHaveAttribute('href', '/docs');
+
+      const overviewLink = screen.getByText('Project Overview');
+      expect(overviewLink).toHaveAttribute('href', '/overview');
     });
   });
 

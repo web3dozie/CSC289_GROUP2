@@ -95,15 +95,8 @@ async function apiRequest<T>(
     ...options,
   }
 
-  console.log('[API] Request:', options.method || 'GET', endpoint)
-
   try {
     const response = await fetch(url, config)
-
-    console.log('[API] Response:', response.status, endpoint, {
-      ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
-    })
 
     // Handle empty responses (like 204 No Content)
     if (response.status === 204) {
@@ -129,8 +122,6 @@ async function apiRequest<T>(
       const message = data?.error || data?.message || `HTTP ${response.status}`
       throw new ApiError(response.status, message)
     }
-
-    console.log('[API] Success response:', { endpoint, dataKeys: data ? Object.keys(data) : [] })
 
     // Handle standardized success response format
     if (data && typeof data === 'object' && 'success' in data && data.success === true) {

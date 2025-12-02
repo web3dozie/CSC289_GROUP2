@@ -80,9 +80,9 @@ describe('Settings', () => {
       expect(screen.getByRole('heading', { name: /^Security$/i })).toBeInTheDocument()
     })
 
-    it('should render features section', () => {
+    it('should not render features section', () => {
       renderWithProviders(<Settings />)
-      expect(screen.getByRole('heading', { name: /^Features$/i })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: /^Features$/i })).not.toBeInTheDocument()
     })
 
     it('should render AI settings section', () => {
@@ -111,9 +111,9 @@ describe('Settings', () => {
   })
 
   describe('Feature Toggles', () => {
-    it('should display features section', () => {
+    it('should not display features toggles', () => {
       renderWithProviders(<Settings />)
-      expect(screen.getByRole('heading', { name: /features/i })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: /features/i })).not.toBeInTheDocument()
     })
   })
 

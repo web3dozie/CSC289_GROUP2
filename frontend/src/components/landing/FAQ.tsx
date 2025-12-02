@@ -97,8 +97,17 @@ const FAQ: React.FC = () => {
                 to="/overview"
                 className="text-purple-400 hover:text-purple-300 font-medium"
               >
-                Read Documentation →
+                Project Overview
               </Link>
+              <span className="text-gray-500">•</span>
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-400 hover:text-purple-300 font-medium"
+              >
+                Full Documentation →
+              </a>
             </div>
           </div>
         </div>

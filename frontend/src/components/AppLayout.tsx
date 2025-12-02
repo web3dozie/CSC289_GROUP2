@@ -9,7 +9,8 @@ import {
   LogOut,
   User,
   Timer,
-  LayoutDashboard
+  LayoutDashboard,
+  HelpCircle
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { ChatWidget } from './ChatWidget'
@@ -125,16 +126,28 @@ export const AppLayout: React.FC = () => {
               </button>
             </div>
 
-            {/* Settings link */}
-            <Link
-              to="/app/settings"
-              data-tutorial="nav-link-settings"
-              className="flex items-center mt-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-              aria-label="Go to settings page"
-            >
-              <Settings className="w-4 h-4 mr-2" aria-hidden="true" />
-              Settings
-            </Link>
+            {/* Settings and Help links */}
+            <div className="mt-3 space-y-1">
+              <Link
+                to="/app/settings"
+                data-tutorial="nav-link-settings"
+                className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                aria-label="Go to settings page"
+              >
+                <Settings className="w-4 h-4 mr-2" aria-hidden="true" />
+                Settings
+              </Link>
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                aria-label="Open documentation"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" aria-hidden="true" />
+                Help & Docs
+              </a>
+            </div>
           </section>
         </div>
       </aside>

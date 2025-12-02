@@ -44,6 +44,7 @@ async def resolve_category_name_to_id(
 
     # Category doesn't exist, create it with exception handling for race conditions
     try:
+        logging.debug("Create category payload: user=%s category_name=%s", user_id, category_name)
         new_category = Category(
             name=category_name,
             description=f"Auto-created category: {category_name}",
@@ -76,20 +77,9 @@ async def resolve_category_name_to_id(
 @tasks_bp.route("", methods=["GET"])
 @auth_required
 async def get_tasks():
-    """Get all non-archived tasks for the user with pagination."""
+    """Get all non-archived tasks for the user (no pagination for demo)."""
     try:
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 20, type=int)
-        offset = (page - 1) * per_page
-
         async with AsyncSessionLocal() as db_session:
-            count_result = await db_session.execute(
-                select(func.count(Task.id)).where(
-                    and_(Task.created_by == session["user_id"], Task.archived == False)
-                )
-            )
-            total = count_result.scalar() or 0
-
             result = await db_session.execute(
                 select(Task)
                 .options(
@@ -101,20 +91,12 @@ async def get_tasks():
                     and_(Task.created_by == session["user_id"], Task.archived == False)
                 )
                 .order_by(Task.updated_on.desc())
-                .limit(per_page)
-                .offset(offset)
             )
             tasks = result.scalars().all()
 
             return success_response(
                 {
                     "tasks": [task.to_dict() for task in tasks],
-                    "pagination": {
-                        "page": page,
-                        "per_page": per_page,
-                        "total": total,
-                        "pages": (total + per_page - 1) // per_page if per_page else 0,
-                    },
                 }
             )
     except Exception:
@@ -135,6 +117,11 @@ async def create_task():
     try:
         # Validate all input data
         validated_data = TaskValidator.validate_task_data(data)
+        logging.debug(
+            "Create task payload: user=%s payload=%s",
+            session.get("user_id"),
+            validated_data,
+        )
 
         async with AsyncSessionLocal() as db_session:
             # Get or default status_id
@@ -185,9 +172,14 @@ async def create_task():
         raise ValidationError(error_info["error"], details=error_info)
     except ValidationError:
         raise
-    except Exception:
-        logging.exception("Failed to create task")
-        raise DatabaseError("Failed to create task")
+    except Exception as e:
+        # Log user id and input data for debugging while avoiding sensitive data exposure
+        try:
+            uid = session.get('user_id')
+        except Exception:
+            uid = None
+        logging.exception("Failed to create task (user=%s): %s", uid, str(e))
+        raise DatabaseError("Failed to create task", details={"user_id": uid, "error": str(e)})
 
 
 async def get_cached_statuses(db_session):
@@ -227,6 +219,7 @@ async def get_kanban_board():
     """Display kanban board grouped by status."""
     try:
         async with AsyncSessionLocal() as db_session:
+            logging.debug("Fetching kanban board for user=%s", session.get("user_id"))
             statuses = await get_cached_statuses(db_session)
 
             kanban_data = {}
@@ -291,6 +284,7 @@ async def get_categories():
 async def get_task(task_id):
     """Fetch a single task by id for the current user."""
     try:
+        logging.debug("Fetching task: user=%s task_id=%s", session.get("user_id"), task_id)
         async with AsyncSessionLocal() as db_session:
             result = await db_session.execute(
                 select(Task)
@@ -320,6 +314,8 @@ async def update_task(task_id):
 
     if not data:
         raise ValidationError("No data provided")
+
+    logging.debug("Update task payload: user=%s task_id=%s payload=%s", session.get('user_id'), task_id, data)
 
     try:
         async with AsyncSessionLocal() as db_session:
@@ -374,7 +370,10 @@ async def update_task(task_id):
                 task.estimate_minutes = validated_estimate
 
             if "order" in data:
-                task.order = int(data["order"])
+                try:
+                    task.order = int(data["order"])
+                except (TypeError, ValueError):
+                    raise ValidationError("Order must be an integer", details={"field": "order"})
 
             if "category" in data:
                 task.category_id = await resolve_category_name_to_id(
@@ -390,7 +389,10 @@ async def update_task(task_id):
                 task.due_date = validated_due_date if validated_due_date else None
 
             if "status_id" in data:
-                task.status_id = int(data["status_id"])
+                try:
+                    task.status_id = int(data["status_id"])
+                except (TypeError, ValueError):
+                    raise ValidationError("Status ID must be a valid number", details={"field": "status_id"})
             elif status_override is not None:
                 task.status_id = status_override
 
@@ -412,9 +414,14 @@ async def update_task(task_id):
         # Convert validation errors to user-friendly messages
         error_info = create_validation_error_response(e)
         raise ValidationError(error_info["error"], details=error_info)
-    except Exception:
-        logging.exception("Failed to update task")
-        raise DatabaseError("Failed to update task")
+    # duplicate ValidationError/NotFoundError already handled above
+    except Exception as e:
+        try:
+            uid = session.get('user_id')
+        except Exception:
+            uid = None
+        logging.exception("Failed to update task user=%s id=%s: %s", uid, task_id, str(e))
+        raise DatabaseError("Failed to update task", details={"user_id": uid, "task_id": task_id, "error": str(e)})
 
 
 @tasks_bp.route("/<int:task_id>", methods=["DELETE"])
