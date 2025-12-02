@@ -129,6 +129,7 @@ Write-Host "> Starting TaskLine..." -ForegroundColor Yellow
 docker run -d `
     --name $ContainerName `
     -p "${Port}:${InternalPort}" `
+    -p "80:${InternalPort}" `
     -v "${VolumeName}:/data" `
     --restart unless-stopped `
     $ImageName | Out-Null
@@ -195,7 +196,9 @@ Write-Host ""
 Write-Host "> Access TaskLine:" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Local:   http://localhost:$Port"
+Write-Host "  Local:   http://localhost (port 80)"
 Write-Host "  Network: http://${LocalDomain}:$Port"
+Write-Host "  Network: http://${LocalDomain} (port 80)"
 Write-Host ""
 Write-Host "> Data Location:" -ForegroundColor Cyan
 Write-Host "  Docker Volume: $VolumeName" -ForegroundColor Yellow
@@ -246,11 +249,12 @@ switch ($Command) {
         try {
             docker start $ContainerName 2>$null
         } catch {
-            docker run -d --name $ContainerName -p "${Port}:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
+            docker run -d --name $ContainerName -p "${Port}:${InternalPort}" -p "80:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
         }
         Write-Host ""
         Write-Host "  Local:   http://localhost:${Port}"
-        Write-Host "  Network: http://${LocalDomain}:${Port}"
+        Write-Host "  Local:   http://localhost (port 80)"
+        Write-Host "  Network: http://${LocalDomain}"
         Write-Host ""
     }
     "stop" {
@@ -267,7 +271,8 @@ switch ($Command) {
             Write-Host "TaskLine is running"
             Write-Host ""
             Write-Host "  Local:   http://localhost:${Port}"
-            Write-Host "  Network: http://${LocalDomain}:${Port}"
+            Write-Host "  Local:   http://localhost (port 80)"
+            Write-Host "  Network: http://${LocalDomain}"
             Write-Host ""
             docker ps --filter "name=$ContainerName" --format "table {{.Status}}`t{{.Ports}}"
         } else {
@@ -282,10 +287,11 @@ switch ($Command) {
         docker pull $ImageName
         docker stop $ContainerName
         docker rm $ContainerName
-        docker run -d --name $ContainerName -p "${Port}:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
+        docker run -d --name $ContainerName -p "${Port}:${InternalPort}" -p "80:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
         Write-Host ""
         Write-Host "  Local:   http://localhost:${Port}"
-        Write-Host "  Network: http://${LocalDomain}:${Port}"
+        Write-Host "  Local:   http://localhost (port 80)"
+        Write-Host "  Network: http://${LocalDomain}"
         Write-Host ""
     }
     "uninstall" {
@@ -379,5 +385,6 @@ Write-Host ""
 Write-Host "*** Setup complete! Open your browser to get started." -ForegroundColor Green
 Write-Host ""
 Write-Host "   Ctrl+click this link here -> http://localhost:${Port}" -ForegroundColor Cyan
+Write-Host "   Or use the custom domain -> http://${LocalDomain}" -ForegroundColor Cyan
 Write-Host ""
 Write-Host ""
