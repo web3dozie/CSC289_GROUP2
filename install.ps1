@@ -30,6 +30,24 @@ Write-Host ""
 Write-Host "TaskLine Installer" -ForegroundColor Blue
 Write-Host ""
 
+# Check if running as Administrator
+Write-Host "> Checking administrator privileges..." -ForegroundColor Yellow
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    Write-Host "[ERROR] This script requires Administrator privileges" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Please run PowerShell as Administrator:" -ForegroundColor Yellow
+    Write-Host "  1. Right-click PowerShell" -ForegroundColor Cyan
+    Write-Host "  2. Select 'Run as Administrator'" -ForegroundColor Cyan
+    Write-Host "  3. Run this script again" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Press Enter to exit..." -ForegroundColor Gray
+    Read-Host
+    exit 1
+}
+Write-Host "[OK] Running with administrator privileges" -ForegroundColor Green
+
 # Check if Docker is installed
 Write-Host "> Checking for Docker..." -ForegroundColor Yellow
 try {
