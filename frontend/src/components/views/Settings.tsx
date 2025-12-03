@@ -776,14 +776,25 @@ export const Settings: React.FC = () => {
                   Download all your tasks, journal entries, and settings as a JSON file
                 </div>
               </div>
-              <button
-                onClick={handleExportData}
-                disabled={exportData.isPending}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                {exportData.isPending ? 'Downloading...' : 'Download JSON'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportData}
+                  disabled={exportData.isPending}
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {exportData.isPending ? 'Downloading...' : 'Download JSON'}
+                </button>
+                {/* Minimal addition: direct Markdown export */}
+                <a
+                  href="/api/export.md"
+                  download="taskline_export.md"
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Markdown
+                </a>
+              </div>
             </div>
 
             <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">

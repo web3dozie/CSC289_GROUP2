@@ -387,33 +387,24 @@ export const healthApi = {
 
 // Data management API
 export const dataApi = {
-  export: async (): Promise<Blob> => {
-    const url = `${API_BASE_URL}/api/export`
+  export: async (format: 'json' | 'md' = 'json'): Promise<Blob> => {
+    const url = `${API_BASE_URL}${format === 'md' ? '/api/export.md' : '/api/export'}`
 
     const config: RequestInit = {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Include cookies for session management
+      headers: format === 'json' ? { 'Content-Type': 'application/json' } : {},
+      credentials: 'include',
     }
 
     const response = await fetch(url, config)
 
     if (!response.ok) {
-      // Try to parse standardized error format
       const data = await response.json().catch(() => null)
       if (data && typeof data === 'object' && 'success' in data && data.success === false) {
         const errorData = data as APIErrorResponse
-        throw new ApiError(
-          errorData.error.code,
-          errorData.error.message,
-          errorData.error.details
-        )
+        throw new ApiError(errorData.error.code, errorData.error.message, errorData.error.details)
       }
-
-      // Fallback for non-standardized errors
-      const message = data?.error || data?.message || `HTTP ${response.status}`
+      const message = (data as any)?.error || (data as any)?.message || `HTTP ${response.status}`
       throw new ApiError(response.status, message)
     }
 
