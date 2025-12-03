@@ -84,6 +84,17 @@ jobs:
           scp -i ~/.ssh/id_ed25519 install.sh install.ps1 root@${{ secrets.VM_HOST }}:/var/www/mytaskline/
           echo "✓ Install scripts updated"
 
+      - name: Build and deploy documentation
+        run: |
+          echo "Building documentation..."
+          cd docs-site
+          pip install mkdocs mkdocs-material
+          mkdocs build
+
+          echo "Deploying documentation..."
+          scp -i ~/.ssh/id_ed25519 -r site/ root@${{ secrets.VM_HOST }}:/var/www/mytaskline/docs/
+          echo "✓ Documentation deployed"
+
       - name: Verify deployment
         run: |
           echo "Waiting 10s for app to stabilize..."
