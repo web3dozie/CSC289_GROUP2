@@ -30,6 +30,24 @@ Write-Host ""
 Write-Host "TaskLine Installer" -ForegroundColor Blue
 Write-Host ""
 
+# Check if running as Administrator
+Write-Host "> Checking administrator privileges..." -ForegroundColor Yellow
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    Write-Host "[ERROR] This script requires Administrator privileges" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Please run PowerShell as Administrator:" -ForegroundColor Yellow
+    Write-Host "  1. Right-click PowerShell" -ForegroundColor Cyan
+    Write-Host "  2. Select 'Run as Administrator'" -ForegroundColor Cyan
+    Write-Host "  3. Run this script again" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Press Enter to exit..." -ForegroundColor Gray
+    Read-Host
+    exit 1
+}
+Write-Host "[OK] Running with administrator privileges" -ForegroundColor Green
+
 # Check if Docker is installed
 Write-Host "> Checking for Docker..." -ForegroundColor Yellow
 try {
@@ -50,7 +68,7 @@ try {
 Write-Host "> Checking if Docker is running..." -ForegroundColor Yellow
 $dockerRunning = $false
 try {
-    $null = docker info 2>&1
+    $null = docker ps 2>&1
     if ($LASTEXITCODE -eq 0) {
         $dockerRunning = $true
         Write-Host "[OK] Docker is running" -ForegroundColor Green
@@ -128,8 +146,8 @@ Write-Host "[OK] Image downloaded" -ForegroundColor Green
 Write-Host "> Starting TaskLine..." -ForegroundColor Yellow
 docker run -d `
     --name $ContainerName `
-    -p "80:${InternalPort}" `
     -p "${Port}:${InternalPort}" `
+    -p "80:${InternalPort}" `
     -v "${VolumeName}:/data" `
     --restart unless-stopped `
     $ImageName | Out-Null
@@ -194,8 +212,11 @@ Write-Host "|                                                        |" -Foregro
 Write-Host "+========================================================+" -ForegroundColor Green
 Write-Host ""
 Write-Host "> Access TaskLine:" -ForegroundColor Cyan
-Write-Host "  http://$LocalDomain" -ForegroundColor Green
-Write-Host "  http://localhost:$Port" -ForegroundColor Green
+Write-Host ""
+Write-Host "  Local:   http://localhost:$Port"
+Write-Host "  Local:   http://localhost (port 80)"
+Write-Host "  Network: http://${LocalDomain}:$Port"
+Write-Host "  Network: http://${LocalDomain} (port 80)"
 Write-Host ""
 Write-Host "> Data Location:" -ForegroundColor Cyan
 Write-Host "  Docker Volume: $VolumeName" -ForegroundColor Yellow
@@ -246,9 +267,13 @@ switch ($Command) {
         try {
             docker start $ContainerName 2>$null
         } catch {
-            docker run -d --name $ContainerName -p "80:${InternalPort}" -p "${Port}:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
+            docker run -d --name $ContainerName -p "${Port}:${InternalPort}" -p "80:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
         }
-        Write-Host "TaskLine is running at http://$LocalDomain"
+        Write-Host ""
+        Write-Host "  Local:   http://localhost:${Port}"
+        Write-Host "  Local:   http://localhost (port 80)"
+        Write-Host "  Network: http://${LocalDomain}"
+        Write-Host ""
     }
     "stop" {
         Write-Host "Stopping TaskLine..."
@@ -262,7 +287,11 @@ switch ($Command) {
         $running = docker ps --format "{{.Names}}" | Where-Object { $_ -eq $ContainerName }
         if ($running) {
             Write-Host "TaskLine is running"
-            Write-Host "URL: http://$LocalDomain"
+            Write-Host ""
+            Write-Host "  Local:   http://localhost:${Port}"
+            Write-Host "  Local:   http://localhost (port 80)"
+            Write-Host "  Network: http://${LocalDomain}"
+            Write-Host ""
             docker ps --filter "name=$ContainerName" --format "table {{.Status}}`t{{.Ports}}"
         } else {
             Write-Host "TaskLine is not running"
@@ -276,8 +305,12 @@ switch ($Command) {
         docker pull $ImageName
         docker stop $ContainerName
         docker rm $ContainerName
-        docker run -d --name $ContainerName -p "80:${InternalPort}" -p "${Port}:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
-        Write-Host "TaskLine updated and running at http://$LocalDomain"
+        docker run -d --name $ContainerName -p "${Port}:${InternalPort}" -p "80:${InternalPort}" -v "${VolumeName}:/data" --restart unless-stopped $ImageName | Out-Null
+        Write-Host ""
+        Write-Host "  Local:   http://localhost:${Port}"
+        Write-Host "  Local:   http://localhost (port 80)"
+        Write-Host "  Network: http://${LocalDomain}"
+        Write-Host ""
     }
     "uninstall" {
         $confirm = Read-Host "Remove TaskLine container? Data will be preserved. [y/N]"
@@ -368,4 +401,8 @@ switch ($Command) {
 
 Write-Host ""
 Write-Host "*** Setup complete! Open your browser to get started." -ForegroundColor Green
+Write-Host ""
+Write-Host "   Ctrl+click this link here -> http://localhost:${Port}" -ForegroundColor Cyan
+Write-Host "   Or use the custom domain -> http://${LocalDomain}" -ForegroundColor Cyan
+Write-Host ""
 Write-Host ""

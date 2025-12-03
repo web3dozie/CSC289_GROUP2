@@ -11,7 +11,7 @@ A classy, local-first task companion that runs entirely on your computer, stores
 
 > **Try it live:** Visit [mytaskline.app](https://mytaskline.app) to see TaskLine in action, or install locally for complete privacy and offline access.
 
-## 🚀 Quick Start - Install in 1 Minute
+## Quick Start - Install in 1 Minute
 
 TaskLine runs entirely on your computer in a single Docker container. **No cloud, no accounts, your data stays local.**
 
