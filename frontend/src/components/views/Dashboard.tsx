@@ -345,7 +345,7 @@ export const Dashboard: React.FC = () => {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
               <a
-                href="/docs/getting-started/quick-start"
+                href="https://mytaskline.app/docs/getting-started/quick-start"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center px-6 py-3 border border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 font-medium rounded-lg transition-colors"

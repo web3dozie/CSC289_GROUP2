@@ -138,7 +138,7 @@ export const AppLayout: React.FC = () => {
                 Settings
               </Link>
               <a
-                href="/docs"
+                href="https://mytaskline.app/docs"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"

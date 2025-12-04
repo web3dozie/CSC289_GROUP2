@@ -1,6 +1,6 @@
 import type { ChatResponse, ChatHistory } from '../types/chat'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 export const chatService = {
   async sendMessage(message: string): Promise<ChatResponse> {

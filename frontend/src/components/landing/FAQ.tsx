@@ -101,7 +101,7 @@ const FAQ: React.FC = () => {
               </Link>
               <span className="text-gray-500">•</span>
               <a
-                href="/docs"
+                href="https://mytaskline.app/docs"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-400 hover:text-purple-300 font-medium"
