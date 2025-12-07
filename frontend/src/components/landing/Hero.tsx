@@ -29,7 +29,7 @@ const Hero: React.FC = () => {
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
           <a
-            href="https://mytaskline.app/docs"
+            href="https://mytaskline.app/docs/"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-900"

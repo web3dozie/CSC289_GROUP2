@@ -251,7 +251,7 @@ describe('FAQ', () => {
       render(<FAQ />);
 
       const docsLink = screen.getByText('Full Documentation →');
-      expect(docsLink).toHaveAttribute('href', '/docs');
+      expect(docsLink).toHaveAttribute('href', 'https://mytaskline.app/docs/');
 
       const overviewLink = screen.getByText('Project Overview');
       expect(overviewLink).toHaveAttribute('href', '/overview');
