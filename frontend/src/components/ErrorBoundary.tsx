@@ -179,7 +179,7 @@ const DefaultErrorFallback: React.FC<DefaultErrorFallbackProps> = ({
             </p>
           )}
           <a
-            href="/docs/troubleshooting"
+            href="https://mytaskline.app/docs/troubleshooting"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"

@@ -71,7 +71,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="/docs"
+                  href="https://mytaskline.app/docs/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors inline-flex items-center"
