@@ -53,13 +53,13 @@ export const AppLayout: React.FC = () => {
         Skip to navigation
       </a>
 
-      {/* Sidebar */}
+      {/* Desktop Sidebar - hidden on mobile */}
       <aside
-        className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg"
+        className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-64 bg-white dark:bg-gray-800 shadow-lg"
         role="complementary"
         aria-label="Main navigation"
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full w-full">
           {/* Logo/Brand */}
           <header className="flex items-center justify-center h-16 px-4 border-b border-gray-200 dark:border-gray-700">
             <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Task Line</h1>
@@ -152,8 +152,43 @@ export const AppLayout: React.FC = () => {
         </div>
       </aside>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 safe-area-bottom">
+        <div className="flex justify-around items-center h-16">
+          {navigation.map((item) => {
+            const Icon = item.icon
+            const isActive = location.pathname === item.href
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`flex flex-col items-center justify-center flex-1 h-full px-1 ${
+                  isActive
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] mt-1">{item.name}</span>
+              </Link>
+            )
+          })}
+          <Link
+            to="/app/settings"
+            className={`flex flex-col items-center justify-center flex-1 h-full px-1 ${
+              location.pathname === '/app/settings'
+                ? 'text-purple-600 dark:text-purple-400'
+                : 'text-gray-500 dark:text-gray-400'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            <span className="text-[10px] mt-1">Settings</span>
+          </Link>
+        </div>
+      </nav>
+
       {/* Main content */}
-      <div className="pl-64">
+      <div className="md:pl-64 pb-20 md:pb-0">
         <main
           id="main-content"
           className="py-6"
