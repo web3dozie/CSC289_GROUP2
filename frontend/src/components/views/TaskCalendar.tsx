@@ -391,26 +391,29 @@ export const TaskCalendar: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 md:p-6 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          {/* Left side - Month nav */}
+          <div className="flex items-center justify-between md:justify-start md:space-x-4">
             {viewMode === 'calendar' && (
               <>
-                <button
-                  onClick={() => navigateMonth('prev')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                </h1>
-                <button
-                  onClick={() => navigateMonth('next')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
+                <div className="flex items-center space-x-1 md:space-x-2">
+                  <button
+                    onClick={() => navigateMonth('prev')}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <h1 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                  </h1>
+                  <button
+                    onClick={() => navigateMonth('next')}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
                 <button
                   onClick={goToToday}
                   className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
@@ -420,41 +423,42 @@ export const TaskCalendar: React.FC = () => {
               </>
             )}
             {viewMode === 'agenda' && (
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Agenda</h1>
+              <h1 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-gray-100">Agenda</h1>
             )}
           </div>
-          <div className="flex items-center space-x-2">
+          {/* Right side - View toggle + New Task */}
+          <div className="flex items-center justify-between md:justify-end space-x-2">
             {/* View Toggle Buttons */}
             <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('calendar')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center ${
+                className={`p-2 md:px-3 md:py-1 text-sm rounded-md transition-colors flex items-center ${
                   viewMode === 'calendar'
                     ? 'bg-white dark:bg-gray-800 shadow text-gray-900 dark:text-gray-100'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
-                <Grid3X3 className="w-4 h-4 mr-1" />
-                Calendar
+                <Grid3X3 className="w-4 h-4 md:mr-1" />
+                <span className="hidden md:inline">Calendar</span>
               </button>
               <button
                 onClick={() => setViewMode('agenda')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center ${
+                className={`p-2 md:px-3 md:py-1 text-sm rounded-md transition-colors flex items-center ${
                   viewMode === 'agenda'
                     ? 'bg-white dark:bg-gray-800 shadow text-gray-900 dark:text-gray-100'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
-                <List className="w-4 h-4 mr-1" />
-                Agenda
+                <List className="w-4 h-4 md:mr-1" />
+                <span className="hidden md:inline">Agenda</span>
               </button>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
+              className="inline-flex items-center p-2 md:px-4 md:py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              New Task
+              <Plus className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">New Task</span>
             </button>
           </div>
         </div>

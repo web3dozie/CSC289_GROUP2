@@ -98,22 +98,22 @@ export const ChatWidget = () => {
 
   return (
     <>
-      {/* Floating chat button */}
+      {/* Floating chat button - above bottom nav on mobile */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 p-4 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 z-40"
+          className="fixed bottom-20 md:bottom-6 right-4 md:right-6 p-4 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 z-40"
           aria-label="Open AI chat"
         >
           <MessageCircle className="w-6 h-6" />
         </button>
       )}
 
-      {/* Chat modal */}
+      {/* Chat modal - fullscreen on mobile, floating on desktop */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white dark:bg-gray-800 rounded-lg shadow-2xl flex flex-col z-40">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 md:inset-auto md:bottom-6 md:right-6 md:w-96 md:h-[600px] bg-white dark:bg-gray-800 md:rounded-lg shadow-2xl flex flex-col z-50">
+          {/* Header - sticky with prominent close button */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-purple-600" />
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">AI Assistant</h3>
@@ -129,10 +129,10 @@ export const ChatWidget = () => {
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
+                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg bg-gray-100 dark:bg-gray-700 md:bg-transparent md:dark:bg-transparent"
                 aria-label="Close chat"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
           </div>

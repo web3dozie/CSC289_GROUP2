@@ -292,21 +292,21 @@ export const TaskReview: React.FC = () => {
 
       {/* Tabs */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex">
+        <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <nav className="flex min-w-max">
             {tabs.map(tab => {
               const Icon = tab.icon
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex items-center px-3 py-3 md:px-6 md:py-4 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                       : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
-                  <Icon className="w-4 h-4 mr-2" />
+                  <Icon className="w-4 h-4 mr-1 md:mr-2" />
                   {tab.label}
                 </button>
               )
